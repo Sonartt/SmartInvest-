@@ -1,0 +1,2 @@
+# SmartInvest-
+Financial literacy platform 
