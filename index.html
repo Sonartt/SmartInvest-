@@ -66,7 +66,7 @@
             <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-8 max-w-md mx-auto">
                 <h3 class="text-2xl font-bold mb-4">Get Started Now</h3>
                 <div class="space-y-3">
-                    <button type="button" onclick="handleMpesaPay()" id="mpesaBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with M-Pesa</button>
+                    <button type="button" onclick="handleMpesaPay()" id="mpesaBtn" data-phone="254114383762" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with M-Pesa</button>
                     <button type="button" onclick="handlePayPalPay()" id="paypalBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with PayPal</button>
                 </div>
                 <div id="paymentMessage" class="mt-4 text-sm text-yellow-200"></div>
@@ -227,10 +227,11 @@
         msgDiv.textContent = '';
 
         try {
+            const phone = btn.dataset.phone || '254114383762';
             const res = await fetch('/api/pay/mpesa', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 1000, phone: '254114383762' })
+                body: JSON.stringify({ amount: 1000, phone })
             });
             const data = await res.json();
             msgDiv.textContent = data.success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
