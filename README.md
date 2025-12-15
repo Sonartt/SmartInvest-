@@ -33,5 +33,4 @@ python3 -m http.server 8000 --directory .
 
 ## Contact
 
-- Repository: [SmartInvest- on GitHub](https://github.com/Sonartt/SmartInvest-)
-
+- Repository: [SmartInvest- on GitHub](https://github.com/Sonartt/SmartInvest)
