@@ -3,27 +3,46 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>SmartInvest Africa</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <title>SmartInvest Africa</title>
+        <meta name="description" content="SmartInvest Africa — democratizing investment knowledge, tools and opportunities across Africa. Learn, invest, and grow with confidence.">
+        <meta name="robots" content="index,follow">
+        <meta property="og:title" content="SmartInvest Africa">
+        <meta property="og:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
+        <meta property="og:type" content="website">
+        <meta name="theme-color" content="#6D28D9">
+        <link rel="canonical" href="https://yourdomain.example/">
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "SmartInvest Africa",
+            "url": "https://yourdomain.example/",
+            "logo": "https://yourdomain.example/logo.png",
+            "sameAs": []
+        }
+        </script>
 </head>
 <body class="antialiased">
 
+    <a class="sr-only sr-only-focusable" href="#main-content">Skip to content</a>
+
         <!-- Hero Section -->
-        <section class="bg-gradient-to-br from-purple-600 to-purple-800 text-white py-20 px-4">
-        <div class="max-w-7xl mx-auto text-center fade-in-up">
+        <section id="hero" aria-label="Hero" class="bg-gradient-to-br from-purple-600 to-purple-800 text-white py-20 px-4">
+        <div id="main-content" class="max-w-7xl mx-auto text-center fade-in-up" role="main">
             <h2 class="text-5xl md:text-6xl font-bold mb-6">SmartInvest Africa</h2>
             <p class="text-xl md:text-2xl mb-8 text-purple-100">Democratizing investment knowledge, tools and opportunity across Africa. Learn, invest, and grow with confidence.</p>
             <div class="flex flex-col md:flex-row gap-4 justify-center mb-8">
-                <button onclick="scrollToSection('academy')" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Explore Courses</button>
-                <button onclick="scrollToSection('insights')" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">Read Insights</button>
+                <button type="button" onclick="scrollToSection('academy')" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Explore Courses</button>
+                <button type="button" onclick="scrollToSection('insights')" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">Read Insights</button>
             </div>
             
             <!-- Payment Section -->
             <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-8 max-w-md mx-auto">
                 <h3 class="text-2xl font-bold mb-4">Get Started Now</h3>
                 <div class="space-y-3">
-                    <button onclick="handleMpesaPay()" id="mpesaBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with M-Pesa</button>
-                    <button onclick="handlePayPalPay()" id="paypalBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with PayPal</button>
+                    <button type="button" onclick="handleMpesaPay()" id="mpesaBtn" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with M-Pesa</button>
+                    <button type="button" onclick="handlePayPalPay()" id="paypalBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">Pay with PayPal</button>
                 </div>
                 <div id="paymentMessage" class="mt-4 text-sm text-yellow-200"></div>
             </div>
@@ -31,9 +50,9 @@
     </section>
 
     <!-- Academy Section -->
-    <section id="academy" class="py-20 px-4 bg-white">
+    <section id="academy" aria-label="Academy" class="py-20 px-4 bg-white">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Investment Academy</h2>
+            <h2 id="academy-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Academy</h2>
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">Investing 101</h3>
@@ -60,9 +79,9 @@
     </section>
 
     <!-- Insights Section -->
-    <section id="insights" class="py-20 px-4 bg-gray-100">
+    <section id="insights" aria-label="Insights" class="py-20 px-4 bg-gray-100">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Latest Insights</h2>
+            <h2 id="insights-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Latest Insights</h2>
             <div class="grid md:grid-cols-3 gap-6">
                 <div class="card-hover bg-white rounded-lg p-6 shadow-md">
                     <h3 class="text-xl font-bold mb-3 text-slate-900">African Fintech Growth 2025</h3>
@@ -84,31 +103,31 @@
     </section>
 
     <!-- Tools Section -->
-    <section id="tools" class="py-20 px-4 bg-white">
+    <section id="tools" aria-label="Tools" class="py-20 px-4 bg-white">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Investment Tools</h2>
+            <h2 id="tools-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Tools</h2>
             <div class="grid md:grid-cols-3 gap-6">
                 <div class="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
                     <h3 class="text-xl font-bold mb-3 text-purple-700">Portfolio Tracker</h3>
                     <p class="text-gray-700 mb-4">Monitor holdings & performance.</p>
-                    <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Launch Tool</button>
+                    <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Launch Tool</button>
                 </div>
                 <div class="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
                     <h3 class="text-xl font-bold mb-3 text-blue-700">Risk Profiler</h3>
                     <p class="text-gray-700 mb-4">Understand your risk tolerance.</p>
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Launch Tool</button>
+                    <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Launch Tool</button>
                 </div>
                 <div class="card-hover bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
                     <h3 class="text-xl font-bold mb-3 text-green-700">Savings Automator</h3>
                     <p class="text-gray-700 mb-4">Automate micro-savings into investments.</p>
-                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Launch Tool</button>
+                    <button type="button" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Launch Tool</button>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- SME Section -->
-    <section class="py-20 px-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white">
+    <section id="sme" aria-label="SME Funding" class="py-20 px-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white">
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold mb-6">SME Funding Readiness</h2>
             <p class="text-lg mb-8 text-purple-100">Empowering Small and Medium Enterprises with pitching skills, valuation knowledge, and understanding investor expectations.</p>
@@ -117,7 +136,7 @@
     </section>
 
     <!-- Community Section -->
-    <section id="community" class="py-20 px-4 bg-gray-100">
+    <section id="community" aria-label="Community" class="py-20 px-4 bg-gray-100">
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold mb-6 gradient-text">Join Our Community</h2>
             <p class="text-lg text-gray-700 mb-8">Connect with fellow investors, share insights, and grow together in SmartInvest Africa's vibrant community.</p>
@@ -126,7 +145,7 @@
     </section>
 
     <!-- GUND Section -->
-    <section class="py-20 px-4 bg-white">
+    <section id="gund" aria-label="GUND" class="py-20 px-4 bg-white">
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold mb-6 gradient-text">GUND</h2>
             <p class="text-lg text-gray-700">Through trusted knowledge, innovative tools, and a supportive community.</p>
@@ -134,7 +153,7 @@
     </section>
 
     <!-- Contact Section -->
-    <section class="py-20 px-4 bg-gray-100">
+    <section id="contact" aria-label="Contact" class="py-20 px-4 bg-gray-100">
         <div class="max-w-2xl mx-auto">
             <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Contact Us</h2>
             <form class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
@@ -245,7 +264,7 @@
     }
 </script>
 <!-- Sign In Section -->
-<section id="signin" class="py-20 px-4 bg-white">
+<section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
   <div class="max-w-md mx-auto bg-gray-50 p-8 rounded-lg shadow-md">
     <h2 class="text-3xl font-bold mb-6 text-center text-purple-600">Sign In</h2>
 
@@ -266,12 +285,7 @@
         class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600"
       />
 
-      <button
-        type="submit"
-        class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
-      >
-        Sign In
-      </button>
+            <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
     </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
