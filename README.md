@@ -1,2 +1,2 @@
 # SmartInvest-
-Financial literacy platform 
+Financial literacy landing page 
