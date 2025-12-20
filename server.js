@@ -154,17 +154,46 @@ async function sendNotificationMail(opts={}){
   const to = opts.to || process.env.NOTIFY_EMAIL;
   if (!to) return;
   try {
-    await mailer.sendMail({
+    const info = await mailer.sendMail({
       from: process.env.SMTP_FROM || `no-reply@${process.env.KCB_ACCOUNT_NAME||'smartinvest'}.example`,
       to,
       subject: opts.subject || 'SmartInvest Notification',
       text: opts.text || '',
       html: opts.html
     });
+    // If using Ethereal, log preview URL
+    try {
+      const preview = nodemailer.getTestMessageUrl(info);
+      if (preview) console.log('Ethereal preview URL:', preview);
+    } catch (e) {
+      // ignore
+    }
+    return info;
   } catch (e) {
     console.error('mail error', e.message);
   }
 }
+
+// If mailer isn't configured via SMTP and we're not in production, create an Ethereal test account
+(async function initEthereal(){
+  if (mailer) return; // already configured via SMTP
+  if (process.env.NODE_ENV === 'production') return;
+  try {
+    const testAccount = await nodemailer.createTestAccount();
+    mailer = nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: { user: testAccount.user, pass: testAccount.pass }
+    });
+    console.log('Ethereal test account created for outgoing email:');
+    console.log('  user:', testAccount.user);
+    console.log('  pass:', testAccount.pass);
+    console.log('Use the preview URLs logged when messages are sent to view emails.');
+  } catch (e) {
+    console.error('Failed to create Ethereal account:', e.message);
+  }
+})();
 
 function readUsers() {
   try {
