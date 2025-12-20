@@ -9,7 +9,20 @@
 <body class="p-8 bg-gray-50">
   <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
     <h1 class="text-2xl font-bold mb-4">Pending KCB Manual Transfers</h1>
+    <div class="flex gap-2 mb-4">
+      <button id="exportBtn" onclick="exportCsv()" class="bg-blue-600 text-white px-3 py-1 rounded">Export CSV</button>
+      <button id="reloadBtn" onclick="load()" class="bg-gray-200 px-3 py-1 rounded">Reload</button>
+    </div>
     <div id="list">Loading…</div>
+    <div class="mt-6">
+      <h2 class="font-semibold mb-2">Reconcile bank entries (paste JSON array)</h2>
+      <textarea id="reconcileData" rows="6" class="w-full border rounded p-2"></textarea>
+      <div class="flex gap-2 mt-2">
+        <button onclick="reconcile()" class="bg-green-600 text-white px-3 py-1 rounded">Reconcile</button>
+        <button onclick="document.getElementById('reconcileData').value='';" class="bg-gray-200 px-3 py-1 rounded">Clear</button>
+      </div>
+      <div id="reconcileResult" class="mt-3 text-sm text-gray-700"></div>
+    </div>
   </div>
 
 <script>
@@ -29,6 +42,29 @@ async function markPaid(ts){
   const res = await fetch('/api/admin/kcb/mark-paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ timestamp: ts, note })});
   const data = await res.json();
   if (data.success) { alert('Marked paid'); load(); } else { alert('Failed: '+(data.error||'')); }
+}
+
+async function exportCsv(){
+  const res = await fetch('/api/admin/kcb-export');
+  if (!res.ok) return alert('Export failed');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'kcb-transfers.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+async function reconcile(){
+  const txt = document.getElementById('reconcileData').value;
+  if (!txt) return alert('Paste JSON array of bank entries first');
+  let arr;
+  try { arr = JSON.parse(txt); } catch(e){ return alert('Invalid JSON'); }
+  const res = await fetch('/api/admin/kcb/reconcile',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({ entries: arr })});
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('reconcileResult').textContent = `Matched: ${data.summary.matched}, Unmatched: ${data.summary.unmatched}`;
+    load();
+  } else {
+    document.getElementById('reconcileResult').textContent = 'Reconcile failed: '+(data.error||'');
+  }
 }
 
 load();

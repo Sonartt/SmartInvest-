@@ -8,6 +8,22 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Basic auth for admin routes if ADMIN_USER is set
+function adminAuth(req, res, next) {
+  const adminUser = process.env.ADMIN_USER;
+  if (!adminUser) return next(); // no auth configured
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
+    return res.status(401).end('Unauthorized');
+  }
+  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) return next();
+  res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
+  return res.status(401).end('Unauthorized');
+}
+
 const PORT = process.env.PORT || 3000;
 
 // Helper: get OAuth token for M-Pesa (Daraja)
@@ -308,6 +324,62 @@ app.post('/api/admin/kcb/mark-paid', (req, res) => {
     return res.json({ success: true, transfer: arr[idx] });
   } catch (e) {
     console.error('mark paid error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// CSV export of KCB manual transfers
+app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
+  try {
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const rows = arr.filter(t => t.provider === 'kcb_manual');
+    const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
+    const csv = [header.join(',')].concat(rows.map(r => {
+      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    })).join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error('export error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Reconcile bank entries: accepts JSON { entries: [...] }
+app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body) ? req.body : (req.body.entries || []);
+    if (!incoming || !incoming.length) return res.status(400).json({ error: 'no entries provided' });
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
+    const results = { matched: [], unmatched: [] };
+    incoming.forEach(entry => {
+      const ref = (entry.reference || entry.ref || '').toString().trim();
+      const amt = Number(entry.amount || entry.value || 0);
+      let found = null;
+      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
+      if (!found) {
+        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
+      }
+      if (found) {
+        const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
+        arr[idx].status = 'paid';
+        arr[idx].paidAt = new Date().toISOString();
+        arr[idx].reconciledWith = entry;
+        results.matched.push({ transaction: arr[idx], entry });
+        // notify user
+        sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
+      } else {
+        results.unmatched.push(entry);
+      }
+    });
+    fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+    return res.json({ success: true, summary: { matched: results.matched.length, unmatched: results.unmatched.length }, results });
+  } catch (e) {
+    console.error('reconcile error', e.message);
     return res.status(500).json({ error: e.message });
   }
 });

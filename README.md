@@ -23,6 +23,8 @@ python3 -m http.server 8000 --directory .
 - Accessibility: added skip-link, ARIA landmarks, visible focus styles, and proper button types.
 - SEO: added meta description, Open Graph, Twitter card tags, canonical link, and JSON-LD Organization.
  - Payments: demo payment options include M-Pesa, PayPal, and a simple manual Bank transfer (KCB). The Bank transfer option records a pending transfer and shows account details for manual deposit. Recorded transfers are logged to `transactions.json`.
+ - Admin: there is a minimal admin UI at `/admin.html` to view and manage KCB manual transfers. You can enable HTTP Basic auth for the admin UI by setting `ADMIN_USER` and `ADMIN_PASS` in your local `.env`.
+ - Export & Reconcile: the admin UI supports CSV export of transfers and a simple reconcile endpoint where you can paste bank statement entries (JSON array) to automatically match and mark pending transfers as paid.
 
 ## Contributing
 
