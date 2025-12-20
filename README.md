@@ -22,6 +22,7 @@ python3 -m http.server 8000 --directory .
 - Built as a static HTML site that uses the Tailwind CDN.
 - Accessibility: added skip-link, ARIA landmarks, visible focus styles, and proper button types.
 - SEO: added meta description, Open Graph, Twitter card tags, canonical link, and JSON-LD Organization.
+ - Payments: demo payment options include M-Pesa, PayPal, and a simple manual Bank transfer (KCB). The Bank transfer option records a pending transfer and shows account details for manual deposit. Recorded transfers are logged to `transactions.json`.
 
 ## Contributing
 

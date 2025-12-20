@@ -204,6 +204,39 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
   }
 });
 
+// Manual KCB Bank Transfer (simple flow)
+app.post('/api/pay/kcb/manual', (req, res) => {
+  try {
+    const { name, email, amount, reference } = req.body;
+    if (!name || !email || !amount) return res.status(400).json({ error: 'name, email and amount required' });
+
+    const tx = {
+      provider: 'kcb_manual',
+      timestamp: new Date().toISOString(),
+      name,
+      email,
+      amount,
+      reference: reference || '',
+      status: 'pending',
+      account: {
+        bank: process.env.KCB_BANK_NAME || 'KCB Bank',
+        accountName: process.env.KCB_ACCOUNT_NAME || 'SmartInvest Africa',
+        accountNumber: process.env.KCB_ACCOUNT_NUMBER || '0000000000'
+      }
+    };
+
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    arr.push(tx);
+    fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+
+    return res.json({ success: true, message: 'manual bank transfer recorded', transaction: tx });
+  } catch (err) {
+    console.error('kcb manual error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Simple helper to expose MPesa token for debugging (DO NOT expose in production)
 app.get('/api/pay/mpesa/token', async (req, res) => {
   try {
