@@ -116,4 +116,102 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
   }
 });
 
+// Simple JSON file user store (demo). In production use a real DB.
+const USERS_FILE = './data/users.json';
+const fs = require('fs');
+const bcrypt = require('bcryptjs');
+
+function readUsers() {
+  try {
+    const raw = fs.readFileSync(USERS_FILE, 'utf8');
+    return JSON.parse(raw || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password, acceptTerms } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
+
+    const users = readUsers();
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(409).json({ error: 'email already registered' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
+    users.push(user);
+    writeUsers(users);
+    return res.json({ success: true, message: 'signup successful' });
+  } catch (err) {
+    console.error('signup error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+    // For demo: return a simple success message. In production return a session or JWT.
+    return res.json({ success: true, message: 'login successful' });
+  } catch (err) {
+    console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Webhook endpoints to receive provider callbacks (simple logging + ack)
+app.post('/api/pay/mpesa/callback', (req, res) => {
+  try {
+    const payload = req.body;
+    const tx = { provider: 'mpesa', timestamp: new Date().toISOString(), payload };
+    const file = './transactions.json';
+    const arr = require('fs').existsSync(file) ? JSON.parse(require('fs').readFileSync(file)) : [];
+    arr.push(tx);
+    require('fs').writeFileSync(file, JSON.stringify(arr, null, 2));
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('mpesa callback error', err.message);
+    return res.status(500).end();
+  }
+});
+
+app.post('/api/pay/paypal/webhook', (req, res) => {
+  try {
+    const payload = req.body;
+    const tx = { provider: 'paypal', timestamp: new Date().toISOString(), payload };
+    const file = './transactions.json';
+    const arr = require('fs').existsSync(file) ? JSON.parse(require('fs').readFileSync(file)) : [];
+    arr.push(tx);
+    require('fs').writeFileSync(file, JSON.stringify(arr, null, 2));
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('paypal webhook error', err.message);
+    return res.status(500).end();
+  }
+});
+
+// Simple helper to expose MPesa token for debugging (DO NOT expose in production)
+app.get('/api/pay/mpesa/token', async (req, res) => {
+  try {
+    const token = await getMpesaAuth();
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));

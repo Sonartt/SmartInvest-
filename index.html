@@ -285,8 +285,33 @@
     function demoLogin(event) {
         event.preventDefault();
         const email = document.getElementById('loginEmail')?.value || '';
-        alert('Demo sign in successful for ' + (email || 'user'));
+        // Call real login endpoint
+        fetch('/api/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value })
+        }).then(r=>r.json()).then(data=>{
+            if (data.success) alert('Sign in successful'); else alert('Sign in failed: ' + (data.error||''));
+        }).catch(()=>alert('Network error'));
         event.target.reset();
+    }
+
+    async function handleSignup(event) {
+        event.preventDefault();
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        const acceptTerms = document.getElementById('acceptTerms').checked;
+        try {
+            const res = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, acceptTerms }) });
+            const data = await res.json();
+            if (data.success) {
+                alert('Signup successful — you can now sign in.');
+                event.target.reset();
+            } else {
+                alert('Signup failed: ' + (data.error||''));
+            }
+        } catch (err) {
+            alert('Network error');
+        }
     }
 </script>
 <!-- Sign In Section -->
@@ -313,6 +338,19 @@
 
             <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
     </form>
+
+        <hr class="my-6">
+
+        <h3 class="text-xl font-semibold mb-4 text-center">Create an account</h3>
+        <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4">
+            <input id="signupEmail" type="email" placeholder="Email" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
+            <input id="signupPassword" type="password" placeholder="Password" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
+            <div class="flex items-start gap-2">
+                <input id="acceptTerms" type="checkbox" class="mt-1" />
+                <label for="acceptTerms" class="text-sm">I agree to the <a href="/terms.html" class="text-purple-600 underline">Terms & Conditions</a> and acknowledge SmartInvest is not responsible for inconveniences encountered prior to signup.</label>
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Sign Up</button>
+        </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
       Demo only — no real authentication
