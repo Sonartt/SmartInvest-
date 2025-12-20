@@ -135,6 +135,7 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
 const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 
@@ -322,7 +323,7 @@ app.post('/api/pay/kcb/manual', (req, res) => {
 });
 
 // Admin endpoints
-app.get('/api/admin/kcb-transfers', (req, res) => {
+app.get('/api/admin/kcb-transfers', adminAuth, (req, res) => {
   try {
     const file = './transactions.json';
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
@@ -334,7 +335,7 @@ app.get('/api/admin/kcb-transfers', (req, res) => {
   }
 });
 
-app.post('/api/admin/kcb/mark-paid', (req, res) => {
+app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
   try {
     const { timestamp, note } = req.body;
     if (!timestamp) return res.status(400).json({ error: 'timestamp required' });
@@ -355,6 +356,13 @@ app.post('/api/admin/kcb/mark-paid', (req, res) => {
     console.error('mark paid error', e.message);
     return res.status(500).json({ error: e.message });
   }
+});
+
+// Serve admin.html protected by basic auth (if configured)
+app.get('/admin.html', adminAuth, (req, res) => {
+  const adminFile = path.join(__dirname, 'admin.html');
+  if (fs.existsSync(adminFile)) return res.sendFile(adminFile);
+  return res.status(404).send('admin.html not found');
 });
 
 // CSV export of KCB manual transfers
