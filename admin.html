@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — KCB Transfers</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="p-8 bg-gray-50">
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Pending KCB Manual Transfers</h1>
+    <div id="list">Loading…</div>
+  </div>
+
+<script>
+async function load() {
+  const res = await fetch('/api/admin/kcb-transfers');
+  const data = await res.json();
+  const list = document.getElementById('list');
+  if (!data.success) { list.textContent = 'Failed to load'; return; }
+  if (!data.transfers.length) { list.innerHTML = '<div class="text-gray-600">No transfers found.</div>'; return; }
+  const rows = data.transfers.map(t=>`<tr class="border-b"><td class="px-2 py-2">${t.timestamp}</td><td class="px-2 py-2">${t.name}<br/><small>${t.email}</small></td><td class="px-2 py-2">KES ${t.amount}</td><td class="px-2 py-2">${t.reference || ''}</td><td class="px-2 py-2">${t.status}</td><td class="px-2 py-2"><button onclick="markPaid('${t.timestamp}')" class="bg-green-600 text-white px-3 py-1 rounded">Mark paid</button></td></tr>`).join('');
+  list.innerHTML = `<table class="w-full text-sm"> <thead><tr class="text-left text-gray-600"><th class="px-2 py-2">Time</th><th class="px-2 py-2">Name/Email</th><th class="px-2 py-2">Amount</th><th class="px-2 py-2">Reference</th><th class="px-2 py-2">Status</th><th class="px-2 py-2">Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function markPaid(ts){
+  if (!confirm('Mark this transfer as paid?')) return;
+  const note = prompt('Optional note for this transfer');
+  const res = await fetch('/api/admin/kcb/mark-paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ timestamp: ts, note })});
+  const data = await res.json();
+  if (data.success) { alert('Marked paid'); load(); } else { alert('Failed: '+(data.error||'')); }
+}
+
+load();
+</script>
+</body>
+</html>

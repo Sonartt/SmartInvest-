@@ -120,6 +120,35 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 const USERS_FILE = './data/users.json';
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+
+// Setup mail transporter if SMTP config provided
+let mailer = null;
+if (process.env.SMTP_HOST) {
+  mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+  });
+}
+
+async function sendNotificationMail(opts={}){
+  if (!mailer) return;
+  const to = opts.to || process.env.NOTIFY_EMAIL;
+  if (!to) return;
+  try {
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || `no-reply@${process.env.KCB_ACCOUNT_NAME||'smartinvest'}.example`,
+      to,
+      subject: opts.subject || 'SmartInvest Notification',
+      text: opts.text || '',
+      html: opts.html
+    });
+  } catch (e) {
+    console.error('mail error', e.message);
+  }
+}
 
 function readUsers() {
   try {
@@ -230,10 +259,56 @@ app.post('/api/pay/kcb/manual', (req, res) => {
     arr.push(tx);
     fs.writeFileSync(file, JSON.stringify(arr, null, 2));
 
+    // send notification to admin (if configured)
+    sendNotificationMail({
+      subject: `New KCB manual transfer recorded — ${tx.amount} KES`,
+      text: `A new manual bank transfer was recorded:\n\nName: ${tx.name}\nEmail: ${tx.email}\nAmount: ${tx.amount}\nReference: ${tx.reference || tx.timestamp}\n\nAccount: ${tx.account.bank} ${tx.account.accountName} ${tx.account.accountNumber}`,
+      html: `<p>A new manual bank transfer was recorded:</p><ul><li>Name: ${tx.name}</li><li>Email: ${tx.email}</li><li>Amount: ${tx.amount}</li><li>Reference: ${tx.reference || tx.timestamp}</li></ul><p>Account: <strong>${tx.account.bank} — ${tx.account.accountName} — ${tx.account.accountNumber}</strong></p>`
+    });
+
+    // send confirmation to user
+    sendNotificationMail({ to: tx.email, subject: 'SmartInvest — Bank transfer recorded', text: `Thank you. Please pay KES ${tx.amount} to ${tx.account.accountNumber} (Ref: ${tx.reference || tx.timestamp}).` });
+
     return res.json({ success: true, message: 'manual bank transfer recorded', transaction: tx });
   } catch (err) {
     console.error('kcb manual error', err.message);
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin endpoints
+app.get('/api/admin/kcb-transfers', (req, res) => {
+  try {
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const only = arr.filter(t => t.provider === 'kcb_manual');
+    return res.json({ success: true, transfers: only });
+  } catch (e) {
+    console.error('admin list error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/kcb/mark-paid', (req, res) => {
+  try {
+    const { timestamp, note } = req.body;
+    if (!timestamp) return res.status(400).json({ error: 'timestamp required' });
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const idx = arr.findIndex(t => t.provider === 'kcb_manual' && t.timestamp === timestamp);
+    if (idx === -1) return res.status(404).json({ error: 'transfer not found' });
+    arr[idx].status = 'paid';
+    arr[idx].paidAt = new Date().toISOString();
+    if (note) arr[idx].note = note;
+    fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+
+    // notify user
+    sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer marked paid', text: `Your bank transfer of KES ${arr[idx].amount} has been marked as received. Thank you.` });
+
+    return res.json({ success: true, transfer: arr[idx] });
+  } catch (e) {
+    console.error('mark paid error', e.message);
+    return res.status(500).json({ error: e.message });
   }
 });
 
