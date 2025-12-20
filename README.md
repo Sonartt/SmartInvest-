@@ -7,15 +7,6 @@ SmartInvest is a static landing page focused on financial literacy and investmen
 - Landing page showcasing: Investment Academy, Insights, Tools, SME funding readiness, Community, Contact, and a demo Sign-In flow.
 - Includes demo payment buttons (M-Pesa and PayPal) and accessibility/SEO improvements.
 
-# SmartInvest-
-
-SmartInvest is a static landing page focused on financial literacy and investment tools for African users.
-
-## Summary
-
-- Landing page showcasing: Investment Academy, Insights, Tools, SME funding readiness, Community, Contact, and a demo Sign-In flow.
-- Includes demo payment buttons (M-Pesa and PayPal) and accessibility/SEO improvements.
-
 ## Local preview
 
 1. From the project root run a simple HTTP server:
