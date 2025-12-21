@@ -45,23 +45,22 @@ async function getMpesaAuth() {
 // MPESA STK Push (simplified for Daraja sandbox)
 app.post('/api/pay/mpesa', async (req, res) => {
   try {
-    const { amount, phone, accountReference } = req.body;
-    if (!amount || !phone) return res.status(400).json({ error: 'amount and phone required' });
+    // Default to 1000 KES if amount not provided
+    const { phone, accountReference } = req.body || {};
+    const amount = Number(req.body && req.body.amount) || 1000;
+    if (!phone) return res.status(400).json({ error: 'phone required' });
     const token = await getMpesaAuth();
-    // Use configured MPESA number instead of the old shortcode; default passkey set per request
+    // Prefer explicit MPESA_NUMBER; fall back to older env keys where present
     const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '174379';
-    const passkey = process.env.MPESA_PASSKEY || '0114383762';
-    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-    const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+    const passkey = process.env.MPESA_PASSKEY || '';
 
     const endpoint = process.env.MPESA_ENV === 'production'
       ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
       : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 
+    // Build body: if passkey is configured include Timestamp and Password, otherwise omit them
     const body = {
       BusinessShortCode: shortcode,
-      Password: password,
-      Timestamp: timestamp,
       TransactionType: 'CustomerPayBillOnline',
       Amount: amount,
       PartyA: phone,
@@ -71,6 +70,14 @@ app.post('/api/pay/mpesa', async (req, res) => {
       AccountReference: accountReference || process.env.MPESA_ACCOUNT_REF || 'SmartInvest',
       TransactionDesc: 'Payment'
     };
+    if (passkey) {
+      const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+      const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+      body.Password = password;
+      body.Timestamp = timestamp;
+    } else {
+      console.warn('MPESA_PASSKEY not configured — sending STK request without Password/Timestamp (may be rejected by provider)');
+    }
 
     const mpRes = await fetch(endpoint, {
       method: 'POST',
@@ -110,10 +117,14 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
     const url = process.env.PAYPAL_ENV === 'production'
       ? 'https://api-m.paypal.com/v2/checkout/orders'
       : 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
+    // Convert 1000 KES to USD (use env EXCHANGE_RATE_KES_USD if provided)
+    const rate = Number(process.env.EXCHANGE_RATE_KES_USD) || 0.0065;
+    const kesAmount = 1000; // fixed as requested
+    const usdAmount = Number((kesAmount * rate).toFixed(2));
     const purchase = {
       intent: 'CAPTURE',
       purchase_units: [ {
-        amount: { currency_code: 'USD', value: String(req.body.amount || '10') },
+        amount: { currency_code: 'USD', value: String(usdAmount) },
         custom_id: req.body.fileId || undefined,
         reference_id: req.body.fileId || undefined
       } ],
