@@ -51,7 +51,8 @@ app.post('/api/pay/mpesa', async (req, res) => {
     if (!phone) return res.status(400).json({ error: 'phone required' });
     const token = await getMpesaAuth();
     // Prefer explicit MPESA_NUMBER; fall back to older env keys where present
-    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '174379';
+    // Use explicit MPESA_NUMBER if provided; otherwise use the provided gateway number 0114383762 as fallback
+    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '0114383762';
     const passkey = process.env.MPESA_PASSKEY || '';
 
     const endpoint = process.env.MPESA_ENV === 'production'
