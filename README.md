@@ -15,7 +15,7 @@ SmartInvest is a static landing page focused on financial literacy and investmen
 python3 -m http.server 8000 --directory .
 ```
 
-2. Open the site at: <http://localhost:8000/index.html>
+1. Open the site at: <http://localhost:8000/index.html>
 
 ## Development notes
 
@@ -25,6 +25,14 @@ python3 -m http.server 8000 --directory .
 - Payments: demo payment options include M-Pesa, PayPal, and a simple manual Bank transfer (KCB). The Bank transfer option records a pending transfer and shows account details for manual deposit. Recorded transfers are logged to `transactions.json`.
 - Admin: there is a minimal admin UI at `/admin.html` to view and manage KCB manual transfers. You can enable HTTP Basic auth for the admin UI by setting `ADMIN_USER` and `ADMIN_PASS` in your local `.env`.
 - Export & Reconcile: the admin UI supports CSV export of transfers and a simple reconcile endpoint where you can paste bank statement entries (JSON array) to automatically match and mark pending transfers as paid.
+
+## Webhook simulation
+
+See `docs/webhooks.md` for instructions and scripts to simulate PayPal, M-Pesa and KCB webhook flows locally. The scripts are in the `tools/` folder.
+
+## Investment calculator
+
+There is a standalone investment and insurance calculator at `tools/investment_calculator.html`. It supports lump-sum and recurring investment projections, a simple insurance premium calculator, CSV export of results, and printing.
 
 ## Contributing
 

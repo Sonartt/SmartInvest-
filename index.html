@@ -90,6 +90,17 @@
     </section>
 
     <!-- Academy Section -->
+    <!-- Files / Marketplace Section -->
+    <section id="files" aria-label="Files" class="py-20 px-4 bg-white">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold mb-6 text-center gradient-text">Files & Resources</h2>
+            <p class="text-center text-gray-600 mb-6">Browse available files and purchase to get access.</p>
+            <div id="catalog" class="grid md:grid-cols-3 gap-6">
+                <div class="col-span-3 text-center text-gray-500">Loading catalog…</div>
+            </div>
+        </div>
+    </section>
+
     <section id="academy" aria-label="Academy" class="py-20 px-4 bg-white">
         <div class="max-w-7xl mx-auto">
             <h2 id="academy-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Academy</h2>
@@ -261,6 +272,34 @@
         }
     }
 
+    async function handleBuyMpesa(fileId) {
+        if (loading) return;
+        loading = true;
+        const btn = document.getElementById('mpesaBtn');
+        const msgDiv = document.getElementById('paymentMessage');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        msgDiv.textContent = '';
+        try {
+            const phone = btn.dataset.phone || '254114383762';
+            const res = await fetch('/api/pay/mpesa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: 1000, phone, accountReference: fileId })
+            });
+            const data = await res.json();
+            msgDiv.textContent = data.success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
+            msgDiv.className = data.success ? 'mt-4 text-sm text-green-300' : 'mt-4 text-sm text-red-300';
+        } catch (error) {
+            msgDiv.textContent = 'Network error. Please try again.';
+            msgDiv.className = 'mt-4 text-sm text-red-300';
+        } finally {
+            loading = false;
+            btn.disabled = false;
+            btn.textContent = 'Pay with M-Pesa';
+        }
+    }
+
     async function handlePayPalPay() {
         if (loading) return;
         loading = true;
@@ -273,6 +312,37 @@
         try {
             const res = await fetch('/api/pay/paypal/create-order', {
                 method: 'POST'
+            });
+            const data = await res.json();
+            if (data?.approveUrl) {
+                window.location.href = data.approveUrl;
+            } else {
+                msgDiv.textContent = 'PayPal order creation failed.';
+                msgDiv.className = 'mt-4 text-sm text-red-300';
+            }
+        } catch (error) {
+            msgDiv.textContent = 'Network error. Please try again.';
+            msgDiv.className = 'mt-4 text-sm text-red-300';
+        } finally {
+            loading = false;
+            btn.disabled = false;
+            btn.textContent = 'Pay with PayPal';
+        }
+    }
+
+    async function handleBuyPaypal(fileId, amount) {
+        if (loading) return;
+        loading = true;
+        const btn = document.getElementById('paypalBtn');
+        const msgDiv = document.getElementById('paymentMessage');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        msgDiv.textContent = '';
+        try {
+            const res = await fetch('/api/pay/paypal/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: amount || 10, fileId })
             });
             const data = await res.json();
             if (data?.approveUrl) {
@@ -328,6 +398,11 @@
         }
     }
 
+    function openBankForFile(fileId) {
+        toggleBankForm(true);
+        document.getElementById('bankReference').value = fileId;
+    }
+
     function handleContactSubmit(event) {
         event.preventDefault();
         alert('Thank you for your message! We will get back to you soon.');
@@ -343,6 +418,9 @@
             body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value })
         }).then(r=>r.json()).then(data=>{
             if (data.success) alert('Sign in successful'); else alert('Sign in failed: ' + (data.error||''));
+            if (data.success) {
+                try { localStorage.setItem('si_user_email', document.getElementById('loginEmail').value.toLowerCase()); } catch (e) {}
+            }
         }).catch(()=>alert('Network error'));
         event.target.reset();
     }
@@ -357,6 +435,7 @@
             const data = await res.json();
             if (data.success) {
                 alert('Signup successful — you can now sign in.');
+                try { localStorage.setItem('si_user_email', email.toLowerCase()); } catch (e) {}
                 event.target.reset();
             } else {
                 alert('Signup failed: ' + (data.error||''));
@@ -365,6 +444,55 @@
             alert('Network error');
         }
     }
+
+    // Fetch public catalog and render into #catalog
+    async function fetchCatalog() {
+        try {
+            const res = await fetch('/api/catalog');
+            const data = await res.json();
+            const el = document.getElementById('catalog');
+            if (!data.success || !Array.isArray(data.files)) {
+                el.innerHTML = '<div class="col-span-3 text-center text-red-500">Failed to load catalog.</div>';
+                return;
+            }
+            if (data.files.length === 0) {
+                el.innerHTML = '<div class="col-span-3 text-center text-gray-500">No files available.</div>';
+                return;
+            }
+            el.innerHTML = '';
+            data.files.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-lg p-6 shadow-sm';
+                card.innerHTML = `<h3 class="text-xl font-bold mb-2 text-purple-600">${escapeHtml(f.title)}</h3>
+                    <p class="text-gray-600 mb-3">${escapeHtml(f.description || '')}</p>
+                    <div class="mb-4 font-semibold">Price: ${escapeHtml(String(f.price || 0))} USD</div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-blue-500 text-white px-4 py-2 rounded" onclick="handleBuyPaypal('${f.id}', ${Number(f.price || 10)})">Buy with PayPal</button>
+                        <button class="bg-green-500 text-white px-4 py-2 rounded" onclick="handleBuyMpesa('${f.id}')">Pay M-Pesa</button>
+                        <button class="bg-gray-800 text-white px-4 py-2 rounded" onclick="openBankForFile('${f.id}')">Bank</button>
+                    </div>`;
+                el.appendChild(card);
+            });
+        } catch (e) {
+            const el = document.getElementById('catalog');
+            if (el) el.innerHTML = '<div class="col-span-3 text-center text-red-500">Error loading catalog.</div>';
+        }
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"'`]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;","`":"&#96;"}[c]; }); }
+
+    // When requesting download tokens, include purchaser email header if available
+    async function requestDownloadToken(fileId) {
+        const email = localStorage.getItem('si_user_email');
+        const body = { fileId, email };
+        const headers = { 'Content-Type': 'application/json' };
+        if (email) headers['x-user-email'] = email;
+        const res = await fetch('/api/download/request', { method: 'POST', headers, body: JSON.stringify(body) });
+        return res.json();
+    }
+
+    // Load catalog on page ready
+    try { window.addEventListener('load', fetchCatalog); } catch (e) {}
 </script>
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
