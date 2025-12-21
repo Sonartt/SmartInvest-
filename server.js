@@ -428,6 +428,7 @@ app.get('/admin.html', adminAuth, (req, res) => {
 // --- File marketplace: uploads, metadata, purchases, downloads ---
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const FILES_JSON = path.join(__dirname, 'data', 'files.json');
+const SCENARIOS_FILE = path.join(__dirname, 'data', 'scenarios.json');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
 if (!fs.existsSync(FILES_JSON)) fs.writeFileSync(FILES_JSON, JSON.stringify([], null, 2));
@@ -522,20 +523,7 @@ app.get('/download/:id', (req, res) => {
   } catch (e) { console.error('download error', e.message); return res.status(500).send('download failed'); }
 });
 
-// Ensure uploads and data dir exist
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-const FILES_META = path.join(__dirname, 'data', 'files.json');
-const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
-const DOWNLOAD_TOKENS = path.join(__dirname, 'data', 'download_tokens.json');
-const SCENARIOS_FILE = path.join(__dirname, 'data', 'scenarios.json');
-
-function readFilesMeta(){ try { return JSON.parse(fs.readFileSync(FILES_META, 'utf8')||'[]'); } catch(e){ return []; } }
-function writeFilesMeta(d){ fs.writeFileSync(FILES_META, JSON.stringify(d, null, 2)); }
-function readPurchases(){ try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
-function writePurchases(d){ fs.writeFileSync(PURCHASES_FILE, JSON.stringify(d, null, 2)); }
-function readTokens(){ try { return JSON.parse(fs.readFileSync(DOWNLOAD_TOKENS, 'utf8')||'{}'); } catch(e){ return {}; } }
-function writeTokens(d){ fs.writeFileSync(DOWNLOAD_TOKENS, JSON.stringify(d, null, 2)); }
+// (uploads/data initialization handled earlier in file)
 
 // Middleware: require that the requester is a purchaser. Checks for purchaser email
 // in header `x-user-email`, query `email` or request body `email`. Returns 402
@@ -581,16 +569,7 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
   } catch (e) { console.error('grantPurchase error', e.message); return null; }
 }
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) { cb(null, UPLOADS_DIR); },
-  filename: function (req, file, cb) {
-    const id = uuidv4();
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${id}-${safe}`);
-  }
-});
-const upload = multer({ storage });
+// Multer setup (already defined earlier)
 
 // Scenarios endpoints: store/load/delete simple calculator scenarios
 app.get('/api/scenarios', (req, res) => {
@@ -704,6 +683,66 @@ app.post('/api/admin/files/:id', adminAuth, (req, res) => {
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
 });
 
+// Messages: public messaging where visitors can post and admin can reply
+const MESSAGES_FILE = path.join(__dirname, 'data', 'messages.json');
+if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, JSON.stringify([], null, 2));
+
+function readMessages(){ try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
+function writeMessages(d){ fs.writeFileSync(MESSAGES_FILE, JSON.stringify(d, null, 2)); }
+
+// Public: post a message (name optional, email optional)
+app.post('/api/messages', express.json(), (req, res) => {
+  try {
+    const { name, email, message } = req.body || {};
+    if (!message || !String(message).trim()) return res.status(400).json({ error: 'message required' });
+    const msgs = readMessages();
+    const id = uuidv4();
+    const entry = { id, name: name || 'Visitor', email: email || '', message: String(message).trim(), replies: [], createdAt: new Date().toISOString() };
+    msgs.push(entry);
+    writeMessages(msgs);
+    // notify admin of new message
+    sendNotificationMail({ subject: 'New site message', text: `${entry.name} wrote: ${entry.message}`, html: `<p><strong>${entry.name}</strong>: ${entry.message}</p>` });
+    return res.json({ success: true, message: entry });
+  } catch (e) { console.error('post message error', e.message); return res.status(500).json({ error: e.message }); }
+});
+
+// Public: list messages (visible to everyone)
+app.get('/api/messages', (req, res) => {
+  try {
+    const msgs = readMessages();
+    return res.json({ success: true, messages: msgs });
+  } catch (e) { console.error('list messages error', e.message); return res.status(500).json({ error: e.message }); }
+});
+
+// Admin: list messages (full view)
+app.get('/api/admin/messages', adminAuth, (req, res) => {
+  try {
+    const msgs = readMessages();
+    return res.json({ success: true, messages: msgs });
+  } catch (e) { console.error('admin list messages error', e.message); return res.status(500).json({ error: e.message }); }
+});
+
+// Admin: reply to a message (only admin can reply)
+app.post('/api/admin/messages/:id/reply', adminAuth, express.json(), (req, res) => {
+  try {
+    const id = req.params.id;
+    const { reply } = req.body || {};
+    if (!reply || !String(reply).trim()) return res.status(400).json({ error: 'reply text required' });
+    const msgs = readMessages();
+    const idx = msgs.findIndex(m => m.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'message not found' });
+    const r = { id: uuidv4(), by: process.env.ADMIN_USER || 'admin', message: String(reply).trim(), at: new Date().toISOString() };
+    msgs[idx].replies = msgs[idx].replies || [];
+    msgs[idx].replies.push(r);
+    writeMessages(msgs);
+    // notify original sender if email provided
+    if (msgs[idx].email) {
+      sendNotificationMail({ to: msgs[idx].email, subject: 'Reply to your message on SmartInvest', text: r.message, html: `<p>${r.message}</p>` });
+    }
+    return res.json({ success: true, reply: r });
+  } catch (e) { console.error('reply message error', e.message); return res.status(500).json({ error: e.message }); }
+});
+
 // Admin: grant purchase to an email for a file (manual grant)
 app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   try {
@@ -811,5 +850,8 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 });
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// Serve tools folder (static files like the investment calculator)
+app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));

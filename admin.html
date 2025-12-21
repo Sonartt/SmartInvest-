@@ -14,6 +14,12 @@
       <form id="uploadForm" onsubmit="event.preventDefault(); uploadFile();" class="flex gap-2">
         <input type="file" id="fileInput" name="file" class="border p-1" />
         <input type="text" id="fileTitle" placeholder="Title" class="border p-1" />
+  
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mt-6">
+      <h1 class="text-2xl font-bold mb-4">Site Messages</h1>
+      <div class="mb-3 text-sm text-gray-600">Visitors can post messages; only admins may reply.</div>
+      <div id="adminMessages">Loading messages…</div>
+    </div>
         <input type="number" id="filePrice" placeholder="Price (USD)" class="border p-1 w-28" />
         <button class="bg-indigo-600 text-white px-3 py-1 rounded">Upload</button>
       </form>
@@ -134,7 +140,39 @@ async function reconcile(){
   }
 }
 
+// Messages admin helpers
+async function loadAdminMessages(){
+  try {
+    const res = await fetch('/api/admin/messages');
+    const d = await res.json();
+    const out = document.getElementById('adminMessages');
+    if (!d.success) return out.textContent = 'Failed to load messages';
+    if (!d.messages.length) return out.innerHTML = '<div class="text-gray-600">No messages.</div>';
+    const rows = d.messages.map(m=>{
+      const replies = (m.replies||[]).map(r=>`<div class="mt-2 p-2 bg-gray-50 border rounded"><strong>${r.by}</strong> <small class="text-xs text-gray-500">${r.at}</small><div>${r.message}</div></div>`).join('');
+      return `<div class="border-b py-2">
+        <div class="flex justify-between"><div><strong>${m.name}</strong> <small class="text-xs text-gray-500">${m.createdAt}</small></div><div class="text-sm">${m.email||''}</div></div>
+        <div class="mt-1">${m.message}</div>
+        ${replies}
+        <div class="mt-2 flex gap-2"><input id="reply_input_${m.id}" placeholder="Reply as admin" class="flex-1 border rounded p-1"/><button onclick="replyMessage('${m.id}')" class="bg-blue-600 text-white px-2 py-1 rounded">Reply</button></div>
+      </div>`;
+    }).join('');
+    out.innerHTML = rows;
+  } catch (e) { console.error('loadAdminMessages error', e); document.getElementById('adminMessages').textContent = 'Error loading messages'; }
+}
+
+async function replyMessage(id){
+  const el = document.getElementById('reply_input_'+id);
+  if (!el) return alert('Input not found');
+  const txt = el.value || '';
+  if (!txt.trim()) return alert('Enter reply');
+  const res = await fetch('/api/admin/messages/'+id+'/reply',{ method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ reply: txt }) });
+  const d = await res.json();
+  if (d.success) { alert('Replied'); el.value = ''; loadAdminMessages(); } else { alert('Failed: '+(d.error||'')); }
+}
+
 load();
+loadAdminMessages();
 </script>
 </body>
 </html>
