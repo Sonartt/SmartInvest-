@@ -80,13 +80,22 @@ app.post('/api/pay/mpesa', async (req, res) => {
       console.warn('MPESA_PASSKEY not configured — sending STK request without Password/Timestamp (may be rejected by provider)');
     }
 
+    // Log outgoing request (mask sensitive fields)
+    logMpesa({ stage: 'request', endpoint, body: maskMpesaBody(body) });
+
     const mpRes = await fetch(endpoint, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    const data = await mpRes.json();
-    return res.json({ success: true, data });
+
+    // Read raw response for logging and parsing
+    const raw = await mpRes.text();
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { /* not JSON */ }
+    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : raw, parsed: parsed || undefined });
+
+    return res.json({ success: true, data: parsed || raw });
   } catch (err) {
     console.error('mpesa error', err.message);
     return res.status(500).json({ error: err.message });
@@ -156,6 +165,25 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+
+// Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
+const LOG_DIR = path.join(__dirname, 'logs');
+if (!fs.existsSync(LOG_DIR)) try { fs.mkdirSync(LOG_DIR, { recursive: true }); } catch (e) { /* ignore */ }
+const MPESA_LOG = path.join(LOG_DIR, 'mpesa.log');
+function maskMpesaBody(b) {
+  try {
+    const copy = Object.assign({}, b);
+    if (copy && copy.Password) copy.Password = '[REDACTED]';
+    return copy;
+  } catch (e) { return b; }
+}
+function logMpesa(entry) {
+  if (String(process.env.MPESA_DEBUG).toLowerCase() !== 'true') return;
+  try {
+    const out = { ts: new Date().toISOString(), ...entry };
+    fs.appendFileSync(MPESA_LOG, JSON.stringify(out) + '\n');
+  } catch (e) { console.error('mpesa log write error', e && e.message); }
+}
 
 // Setup mail transporter if SMTP config provided
 let mailer = null;
