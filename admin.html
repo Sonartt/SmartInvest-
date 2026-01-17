@@ -41,6 +41,7 @@
       <div class="mb-2"><label class="block text-sm font-medium">Price (USD)</label><input id="filePrice" name="price" type="number" step="0.01" class="w-full border rounded p-2"/></div>
       <div class="mb-2"><label class="block text-sm font-medium">Description</label><input id="fileDescription" name="description" class="w-full border rounded p-2"/></div>
       <div class="mb-2"><label class="block text-sm font-medium">File (PDF or any)</label><input type="file" id="fileInput" name="file" class="w-full"/></div>
+      <div class="mb-2"><label class="flex items-center text-sm"><input type="checkbox" id="filePublished" name="published" class="mr-2"/> Publish immediately</label></div>
       <div class="flex gap-2">
         <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Upload</button>
         <button type="button" onclick="loadFiles()" class="bg-gray-200 px-3 py-1 rounded">Refresh files</button>
@@ -61,7 +62,7 @@ async function uploadFileMarketplace(){
   fd.append('title', document.getElementById('fileTitle').value);
   fd.append('price', document.getElementById('filePrice').value || 0);
   fd.append('description', document.getElementById('fileDescription').value || '');
-  fd.append('published', 'false');
+  fd.append('published', document.getElementById('filePublished').checked ? 'true' : 'false');
   document.getElementById('uploadStatus').textContent = 'Uploading…';
   const res = await fetch('/api/admin/files/upload', { method: 'POST', body: fd });
   const data = await res.json();
@@ -72,6 +73,7 @@ async function uploadFileMarketplace(){
   } else { 
     document.getElementById('uploadStatus').textContent = 'Upload failed: '+(data.error||''); 
   }
+}
 }
 
 async function loadFiles(){
