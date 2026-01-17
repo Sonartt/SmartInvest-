@@ -873,11 +873,14 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
-// Serve static files (HTML, CSS, images, etc.)
-app.use(express.static(__dirname, { 
-  extensions: ['html'],
-  index: 'index.html'
-}));
+// Serve specific HTML files (prevent exposing sensitive files like .env)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/terms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
 
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
