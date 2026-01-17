@@ -74,7 +74,6 @@ async function uploadFileMarketplace(){
     document.getElementById('uploadStatus').textContent = 'Upload failed: '+(data.error||''); 
   }
 }
-}
 
 async function loadFiles(){
   const res = await fetch('/api/admin/files');

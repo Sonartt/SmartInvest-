@@ -477,7 +477,7 @@ if (!fs.existsSync(SCENARIOS_FILE)) fs.writeFileSync(SCENARIOS_FILE, JSON.string
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     cb(null, `${id}-${safe}`);
   }
@@ -494,7 +494,7 @@ const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
 if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
 
 function readPurchases(){
-  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } catch(e){ return []; }
+  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } catch(e){ console.warn('Failed to read purchases:', e.message); return []; }
 }
 function writePurchases(arr){ fs.writeFileSync(PURCHASES_FILE, JSON.stringify(arr, null, 2)); }
 
@@ -503,7 +503,7 @@ const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
 if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
 
 function readTokens(){
-  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } catch(e){ return {}; }
+  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } catch(e){ console.warn('Failed to read tokens:', e.message); return {}; }
 }
 function writeTokens(obj){ fs.writeFileSync(TOKENS_FILE, JSON.stringify(obj, null, 2)); }
 
