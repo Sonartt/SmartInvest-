@@ -1,47 +1,206 @@
-# SmartInvest-
+# SmartInvest Africa
 
-SmartInvest is a static landing page focused on financial literacy and investment tools for African users.
+SmartInvest Africa is a comprehensive web application focused on democratizing investment knowledge, tools, and opportunities across Africa.
 
-## Summary
+## Features
 
-- Landing page showcasing: Investment Academy, Insights, Tools, SME funding readiness, Community, Contact, and a demo Sign-In flow.
-- Includes demo payment buttons (M-Pesa and PayPal) and accessibility/SEO improvements.
+- **Landing Page**: Investment Academy, Insights, Tools, SME funding readiness, Community, and Contact
+- **Payment Integration**: M-Pesa, PayPal, and KCB Bank manual transfers
+- **File Marketplace**: Upload, manage, and sell digital resources
+- **Admin Dashboard**: Manage transfers, files, and user messages
+- **Accessibility & SEO**: WCAG compliant with comprehensive SEO optimization
+- **Investment Calculator**: Standalone tool for investment and insurance projections
 
-## Local preview
+## Quick Start
 
-1. From the project root run a simple HTTP server:
+### Prerequisites
+
+- Node.js >= 18.0.0
+- npm or yarn
+
+### Installation
 
 ```bash
-python3 -m http.server 8000 --directory .
+# Clone the repository
+git clone https://github.com/Sonartt/SmartInvest-.git
+cd SmartInvest-
+
+# Install dependencies
+npm install
+
+# Copy environment example
+cp .env.example .env
+
+# Edit .env with your credentials
+nano .env
+
+# Start the server
+npm start
 ```
 
-1. Open the site at: <http://localhost:8000/index.html>
+The application will be available at `http://localhost:3000`
 
-## Development notes
+## Deployment
 
-- Built as a static HTML site that uses the Tailwind CDN.
-- Accessibility: added skip-link, ARIA landmarks, visible focus styles, and proper button types.
-- SEO: added meta description, Open Graph, Twitter card tags, canonical link, and JSON-LD Organization.
-- Payments: demo payment options include M-Pesa, PayPal, and a simple manual Bank transfer (KCB). The Bank transfer option records a pending transfer and shows account details for manual deposit. Recorded transfers are logged to `transactions.json`.
-- Admin: there is a minimal admin UI at `/admin.html` to view and manage KCB manual transfers. You can enable HTTP Basic auth for the admin UI by setting `ADMIN_USER` and `ADMIN_PASS` in your local `.env`.
-- Export & Reconcile: the admin UI supports CSV export of transfers and a simple reconcile endpoint where you can paste bank statement entries (JSON array) to automatically match and mark pending transfers as paid.
+### Vercel (Recommended)
 
-## Webhook simulation
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Sonartt/SmartInvest-)
 
-See `docs/webhooks.md` for instructions and scripts to simulate PayPal, M-Pesa and KCB webhook flows locally. The scripts are in the `tools/` folder.
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
 
-## Investment calculator
+### Other Platforms
 
-There is a standalone investment and insurance calculator at `tools/investment_calculator.html`. It supports lump-sum and recurring investment projections, a simple insurance premium calculator, CSV export of results, and printing.
+The application can also be deployed to:
+- Heroku
+- Railway
+- Render
+- AWS EC2/ECS
+- Digital Ocean
+
+## Environment Variables
+
+See `.env.example` for all available configuration options. Key variables:
+
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment (development/production)
+- `MPESA_*` - M-Pesa/Daraja API credentials
+- `PAYPAL_*` - PayPal API credentials
+- `SMTP_*` - Email configuration
+- `ADMIN_USER`, `ADMIN_PASS` - Admin authentication
+
+## API Endpoints
+
+### Public Endpoints
+
+- `GET /` - Main landing page
+- `GET /api/catalog` - List published files
+- `GET /api/messages` - Get public messages
+- `GET /api/scenarios` - Get saved calculator scenarios
+- `POST /api/pay/mpesa` - Initiate M-Pesa payment
+- `POST /api/pay/paypal/create-order` - Create PayPal order
+- `POST /api/pay/kcb/manual` - Record manual bank transfer
+
+### Admin Endpoints (requires authentication)
+
+- `GET /admin.html` - Admin dashboard
+- `GET /api/admin/kcb-transfers` - List KCB transfers
+- `POST /api/admin/files/upload` - Upload files
+- `GET /api/admin/files` - List all files
+- `POST /api/admin/files/:id` - Update file metadata
+- `POST /api/admin/files/:id/grant` - Grant file access to user
+
+## Project Structure
+
+```
+SmartInvest-/
+├── server.js              # Main server application
+├── index.html             # Landing page
+├── admin.html             # Admin dashboard
+├── terms.html             # Terms of service
+├── package.json           # Dependencies and scripts
+├── vercel.json            # Vercel deployment config
+├── .env.example           # Environment variables template
+├── data/                  # JSON data storage
+│   ├── users.json
+│   ├── files.json
+│   ├── purchases.json
+│   ├── messages.json
+│   └── scenarios.json
+├── uploads/               # User uploaded files
+├── tools/                 # Standalone tools
+│   └── investment_calculator.html
+└── docs/                  # Documentation
+    └── webhooks.md
+```
+
+## Testing
+
+```bash
+# Syntax check
+npm test
+
+# Start development server
+npm run dev
+```
+
+## Admin Panel
+
+Access the admin panel at `/admin.html`. Features include:
+
+- View and manage KCB manual transfers
+- Upload and manage marketplace files
+- Grant file access to users
+- View and reply to user messages
+- Export transfers to CSV
+- Reconcile bank statements
+
+Enable authentication by setting `ADMIN_USER` and `ADMIN_PASS` environment variables.
+
+## Security Notes
+
+⚠️ **Important Security Considerations:**
+
+1. Always use strong passwords for `ADMIN_USER` and `ADMIN_PASS`
+2. Never commit `.env` file to version control
+3. Use HTTPS in production
+4. Validate all webhook signatures
+5. For production, replace JSON file storage with a proper database
+6. Regularly update dependencies: `npm audit fix`
+
+## Development Notes
+
+- Built with Express.js 5.x and Node.js 18+
+- Uses JSON files for data storage (replace with database for production)
+- Payment webhooks require public HTTPS endpoints
+- Email notifications use Nodemailer (Ethereal test account in dev mode)
+
+## Webhook Simulation
+
+See `docs/webhooks.md` for instructions on testing webhooks locally.
+
+## Investment Calculator
+
+Access the standalone calculator at `/tools/investment_calculator.html`
+
+Features:
+- Lump-sum and recurring investment projections
+- Insurance premium calculator
+- CSV export and print support
+- Multiple scenario comparison
 
 ## Contributing
 
-- Open a PR with changes; keep the site static and minimal.
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -am 'Add new feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Submit a pull request
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 
-- Add a license file if you plan to open-source this project.
+This project is licensed under the ISC License.
 
-## Contact
+## Support
 
-- Repository: [SmartInvest- on GitHub](https://github.com/Sonartt/SmartInvest)
+For issues and questions:
+- GitHub Issues: [SmartInvest- Issues](https://github.com/Sonartt/SmartInvest-/issues)
+- Documentation: Check `docs/` folder
+
+## Changelog
+
+### Version 1.0.0 (Latest)
+
+- Fixed duplicate endpoints and functions
+- Added missing helper functions for purchases and tokens
+- Improved admin panel UI and functionality
+- Added Vercel deployment support
+- Updated dependencies and fixed security vulnerabilities
+- Added comprehensive environment variable documentation
+- Improved error handling and logging
+
+---
+
+**SmartInvest Africa** - Democratizing investment knowledge, tools and opportunity across Africa. 🌍
+

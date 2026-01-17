@@ -873,7 +873,19 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
+// Serve static files (HTML, CSS, images, etc.)
+app.use(express.static(__dirname, { 
+  extensions: ['html'],
+  index: 'index.html'
+}));
+
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
+// Export app for Vercel serverless
+module.exports = app;
+
+// Start server only if not in serverless environment
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Payment API listening on ${PORT}`));
+}
