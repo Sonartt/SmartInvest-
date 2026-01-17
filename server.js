@@ -477,7 +477,7 @@ if (!fs.existsSync(SCENARIOS_FILE)) fs.writeFileSync(SCENARIOS_FILE, JSON.string
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     cb(null, `${id}-${safe}`);
   }
@@ -489,41 +489,23 @@ function readFilesMeta(){
 }
 function writeFilesMeta(arr){ fs.writeFileSync(FILES_JSON, JSON.stringify(arr, null, 2)); }
 
-// Public: list files available for purchase/download — now restricted to purchasers.
-app.get('/api/files', requirePaidUser, (req, res) => {
-  try {
-    const files = readFilesMeta();
-    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
-    const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
-});
+// Purchases file helpers
+const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
+if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
 
-// Admin: upload a file with metadata (title, price, description)
-app.post('/api/admin/upload', adminAuth, upload.single('file'), (req, res) => {
-  try {
-    const { title, price, description } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'file is required (multipart form-data field name: file)' });
-    const meta = readFilesMeta();
-    const id = crypto.randomUUID();
-    const item = {
-      id,
-      title: title || req.file.originalname,
-      description: description || '',
-      price: Number(price || 0),
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      uploadedAt: new Date().toISOString()
-    };
-    meta.push(item);
-    writeFilesMeta(meta);
-    return res.json({ success: true, file: item });
-  } catch (e) { console.error('upload error', e.message); return res.status(500).json({ error: e.message }); }
-});
+function readPurchases(){
+  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } catch(e){ console.warn('Failed to read purchases:', e.message); return []; }
+}
+function writePurchases(arr){ fs.writeFileSync(PURCHASES_FILE, JSON.stringify(arr, null, 2)); }
+
+// Tokens file helpers
+const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
+
+function readTokens(){
+  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } catch(e){ console.warn('Failed to read tokens:', e.message); return {}; }
+}
+function writeTokens(obj){ fs.writeFileSync(TOKENS_FILE, JSON.stringify(obj, null, 2)); }
 
 // Admin: delete file metadata and file
 app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
@@ -891,7 +873,22 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
+// Serve specific HTML files (prevent exposing sensitive files like .env)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/terms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
+
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
+// Export app for Vercel serverless
+module.exports = app;
+
+// Start server only if not in serverless environment
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Payment API listening on ${PORT}`));
+}
