@@ -3,176 +3,773 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin — KCB Transfers</title>
+  <title>Admin Dashboard — SmartInvest</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn { padding: 0.5rem 1rem; border: none; background: #e5e7eb; cursor: pointer; }
+    .tab-btn.active { background: #2563eb; color: white; }
+  </style>
 </head>
-<body class="p-8 bg-gray-50">
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">Pending KCB Manual Transfers</h1>
-    <h2 class="text-xl font-semibold mt-4 mb-2">Admin — Manage Files</h2>
-    <div class="mb-4">
-      <form id="uploadForm" onsubmit="event.preventDefault(); uploadFile();" class="flex gap-2">
-        <input type="file" id="fileInput" name="file" class="border p-1" />
-        <input type="text" id="fileTitle" placeholder="Title" class="border p-1" />
-  
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mt-6">
-      <h1 class="text-2xl font-bold mb-4">Site Messages</h1>
-      <div class="mb-3 text-sm text-gray-600">Visitors can post messages; only admins may reply.</div>
-      <div id="adminMessages">Loading messages…</div>
+<body class="p-4 bg-gray-100">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white p-6 rounded shadow mb-4">
+      <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+      <p class="text-gray-600">Manage users, payments, files, messages, and premium access</p>
     </div>
-        <input type="number" id="filePrice" placeholder="Price (USD)" class="border p-1 w-28" />
-        <button class="bg-indigo-600 text-white px-3 py-1 rounded">Upload</button>
-      </form>
-      <div id="uploadStatus" class="text-sm text-gray-600 mt-2"></div>
+
+    <!-- Tabs Navigation -->
+    <div class="flex gap-2 mb-4 flex-wrap bg-white p-2 rounded shadow">
+      <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('users')">Users & Sessions</button>
+      <button class="tab-btn" onclick="switchTab('premium')">Premium Access</button>
+      <button class="tab-btn" onclick="switchTab('files')">File Manager</button>
+      <button class="tab-btn" onclick="switchTab('messages')">Support Messages</button>
+      <button class="tab-btn" onclick="switchTab('payments')">Payments</button>
+      <button class="tab-btn" onclick="switchTab('email')">Email Tools</button>
     </div>
-    <div class="flex gap-2 mb-4">
-      <button id="exportBtn" onclick="exportCsv()" class="bg-blue-600 text-white px-3 py-1 rounded">Export CSV</button>
-      <button id="reloadBtn" onclick="load()" class="bg-gray-200 px-3 py-1 rounded">Reload</button>
-    </div>
-    <div id="list">Loading…</div>
-    <div class="mt-6">
-      <h2 class="font-semibold mb-2">Files</h2>
-      <div id="filesList">Loading files…</div>
-    </div>
-    <div class="mt-6">
-      <h2 class="font-semibold mb-2">Reconcile bank entries (paste JSON array)</h2>
-      <textarea id="reconcileData" rows="6" class="w-full border rounded p-2"></textarea>
-      <div class="flex gap-2 mt-2">
-        <button onclick="reconcile()" class="bg-green-600 text-white px-3 py-1 rounded">Reconcile</button>
-        <button onclick="document.getElementById('reconcileData').value='';" class="bg-gray-200 px-3 py-1 rounded">Clear</button>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-content active bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Dashboard Overview</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <div class="bg-blue-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Total Users</div>
+          <div id="stat-users" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-green-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Premium Users</div>
+          <div id="stat-premium" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-purple-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Files Uploaded</div>
+          <div id="stat-files" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-orange-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Pending Messages</div>
+          <div id="stat-messages" class="text-3xl font-bold">-</div>
+        </div>
       </div>
-      <div id="reconcileResult" class="mt-3 text-sm text-gray-700"></div>
+      <button onclick="refreshDashboard()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Refresh Stats</button>
+    </div>
+
+    <!-- Users & Sessions Tab -->
+    <div id="users" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Users & Active Sessions</h2>
+      
+      <div class="mb-4">
+        <h3 class="font-semibold mb-2">Registered Users</h3>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="userSearch" placeholder="Search by email or name..." class="flex-1 border rounded p-2">
+          <button onclick="searchUsers()" class="bg-blue-600 text-white px-4 py-2 rounded">Search</button>
+          <button onclick="loadAllUsers()" class="bg-gray-600 text-white px-4 py-2 rounded">Load All</button>
+        </div>
+        <div id="usersList" class="text-sm text-gray-600">Click "Load All" to view users...</div>
+      </div>
+
+      <div class="mb-4 border-t pt-4">
+        <h3 class="font-semibold mb-2">Active Sessions</h3>
+        <div id="sessionsList" class="text-sm text-gray-600">Loading sessions...</div>
+        <button onclick="loadActiveSessions()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">Refresh Sessions</button>
+      </div>
+    </div>
+
+    <!-- Premium Access Tab -->
+    <div id="premium" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Grant Premium Access</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-blue-50">
+        <h3 class="font-semibold mb-2">Grant Premium to User</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="email" id="premiumEmail" placeholder="User email" class="border rounded p-2">
+          <input type="number" id="premiumDays" placeholder="Days of access" class="border rounded p-2" value="30">
+          <input type="text" id="premiumReason" placeholder="Reason (optional)" class="col-span-2 border rounded p-2">
+          <button onclick="grantPremiumAccess()" class="col-span-2 bg-green-600 text-white px-4 py-2 rounded">Grant Premium</button>
+        </div>
+        <div id="premiumStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Revoke Premium Access</h3>
+        <div class="flex gap-2">
+          <input type="email" id="revokeEmail" placeholder="User email" class="flex-1 border rounded p-2">
+          <button onclick="revokePremiumAccess()" class="bg-red-600 text-white px-4 py-2 rounded">Revoke</button>
+        </div>
+        <div id="revokeStatus" class="text-sm mt-2"></div>
+      </div>
+    </div>
+
+    <!-- File Manager Tab -->
+    <div id="files" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">File Manager</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-gray-50">
+        <h3 class="font-semibold mb-2">Upload File</h3>
+        <form onsubmit="uploadFile(event)" class="space-y-2">
+          <input type="text" id="fileTitle" placeholder="File title" class="w-full border rounded p-2" required>
+          <input type="number" id="filePrice" placeholder="Price (USD)" class="w-full border rounded p-2" step="0.01" value="0">
+          <textarea id="fileDescription" placeholder="Description (optional)" class="w-full border rounded p-2 h-20"></textarea>
+          <input type="file" id="fileInput" class="w-full border rounded p-2" required>
+          <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+        </form>
+        <div id="uploadStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Files Library</h3>
+        <div class="flex gap-2 mb-2">
+          <button onclick="loadFiles()" class="bg-blue-600 text-white px-4 py-2 rounded">Load Files</button>
+          <button onclick="exportFilesList()" class="bg-green-600 text-white px-4 py-2 rounded">Export List</button>
+        </div>
+        <div id="filesList" class="text-sm text-gray-600 max-h-96 overflow-y-auto">Click "Load Files" to view...</div>
+      </div>
+    </div>
+
+    <!-- Support Messages Tab -->
+    <div id="messages" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Support Messages & Chat</h2>
+      
+      <div class="flex gap-2 mb-4">
+        <button onclick="loadMessages()" class="bg-blue-600 text-white px-4 py-2 rounded">Load Messages</button>
+        <button onclick="refreshMessages()" class="bg-gray-600 text-white px-4 py-2 rounded">Refresh</button>
+      </div>
+
+      <div id="messagesList" class="space-y-3 max-h-96 overflow-y-auto">
+        <div class="text-gray-600 text-sm">Click "Load Messages" to view support tickets...</div>
+      </div>
+    </div>
+
+    <!-- Payments Tab -->
+    <div id="payments" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Payment Management</h2>
+      
+      <div class="mb-4">
+        <h3 class="font-semibold mb-2">KCB Manual Transfers</h3>
+        <div id="kcbTransfersList" class="text-sm text-gray-600 max-h-96 overflow-y-auto">Loading transfers...</div>
+        <button onclick="loadKCBTransfers()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">Load Transfers</button>
+        <button onclick="exportKCBCSV()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded">Export CSV</button>
+      </div>
+
+      <div class="border-t pt-4">
+        <h3 class="font-semibold mb-2">Reconcile Bank Entries</h3>
+        <textarea id="reconcileData" placeholder="Paste JSON array of bank entries..." class="w-full border rounded p-2 h-24"></textarea>
+        <div class="flex gap-2 mt-2">
+          <button onclick="reconcileBankEntries()" class="bg-green-600 text-white px-4 py-2 rounded">Reconcile</button>
+          <button onclick="document.getElementById('reconcileData').value=''" class="bg-gray-400 text-white px-4 py-2 rounded">Clear</button>
+        </div>
+        <div id="reconcileResult" class="text-sm mt-2 text-gray-600"></div>
+      </div>
+
+      <div class="border-t pt-4 mt-4">
+        <h3 class="font-semibold mb-2">Request Payment Review</h3>
+        <p class="text-sm text-gray-600 mb-2">For payments where automatic acceptance failed</p>
+        <div class="flex gap-2">
+          <input type="text" id="paymentId" placeholder="Payment ID or Transaction ID" class="flex-1 border rounded p-2">
+          <button onclick="requestPaymentReview()" class="bg-orange-600 text-white px-4 py-2 rounded">Request Review</button>
+        </div>
+        <div id="reviewStatus" class="text-sm mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Email Tools Tab -->
+    <div id="email" class="tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Email Tools</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-blue-50">
+        <h3 class="font-semibold mb-2">Send Email to User</h3>
+        <div class="space-y-2">
+          <input type="email" id="emailTo" placeholder="Recipient email" class="w-full border rounded p-2" required>
+          <input type="text" id="emailSubject" placeholder="Subject" class="w-full border rounded p-2" required>
+          <textarea id="emailBody" placeholder="Email body (HTML or plain text)" class="w-full border rounded p-2 h-32" required></textarea>
+          <button onclick="sendEmail()" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Send Email</button>
+        </div>
+        <div id="emailStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Send Bulk Email</h3>
+        <div class="space-y-2">
+          <input type="text" id="bulkSubject" placeholder="Subject" class="w-full border rounded p-2" required>
+          <textarea id="bulkBody" placeholder="Email body" class="w-full border rounded p-2 h-24" required></textarea>
+          <select id="bulkRecipients" class="w-full border rounded p-2">
+            <option value="">-- Select Recipients --</option>
+            <option value="all-users">All Users</option>
+            <option value="premium-users">Premium Users Only</option>
+            <option value="free-users">Free Users Only</option>
+            <option value="inactive">Inactive Users (7+ days)</option>
+          </select>
+          <button onclick="sendBulkEmail()" class="w-full bg-green-600 text-white px-4 py-2 rounded">Send Bulk Email</button>
+        </div>
+        <div id="bulkStatus" class="text-sm mt-2"></div>
+      </div>
     </div>
   </div>
 
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mt-6">
-    <h1 class="text-2xl font-bold mb-4">File Marketplace (Admin)</h1>
-    <form id="uploadForm" class="mb-4">
-      <div class="mb-2"><label class="block text-sm font-medium">Title</label><input name="title" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">Price (USD)</label><input name="price" type="number" step="0.01" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">Description</label><input name="description" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">File (PDF or any)</label><input type="file" name="file" class="w-full"/></div>
-      <div class="flex gap-2"><button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Upload</button><button type="button" onclick="loadFiles()" class="bg-gray-200 px-3 py-1 rounded">Refresh files</button></div>
-    </form>
-    <div id="filesList">Loading files…</div>
-  </div>
+  <script>
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (tabName === 'dashboard') refreshDashboard();
+      if (tabName === 'users') loadAllUsers();
+      if (tabName === 'messages') loadMessages();
+      if (tabName === 'payments') loadKCBTransfers();
+    }
 
-<script>
-async function uploadFile(){
-  const inp = document.getElementById('fileInput');
-  if (!inp.files.length) return alert('Pick a file');
-  const fd = new FormData(); fd.append('file', inp.files[0]);
-  fd.append('title', document.getElementById('fileTitle').value);
-  fd.append('price', document.getElementById('filePrice').value || 0);
-  document.getElementById('uploadStatus').textContent = 'Uploading…';
-  const res = await fetch('/api/admin/files/upload', { method: 'POST', body: fd });
-  const data = await res.json();
-  if (data.success) { document.getElementById('uploadStatus').textContent = 'Uploaded'; loadFiles(); } else { document.getElementById('uploadStatus').textContent = 'Upload failed: '+(data.error||''); }
-}
+    async function refreshDashboard() {
+      try {
+        const res = await fetch('/api/admin/dashboard-stats');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('stat-users').textContent = data.totalUsers || '0';
+          document.getElementById('stat-premium').textContent = data.premiumUsers || '0';
+          document.getElementById('stat-files').textContent = data.filesCount || '0';
+          document.getElementById('stat-messages').textContent = data.pendingMessages || '0';
+        }
+      } catch (e) {
+        console.error('Dashboard error:', e);
+      }
+    }
 
-async function loadFiles(){
-  const res = await fetch('/api/admin/files');
-  const d = await res.json();
-  const out = document.getElementById('filesList');
-  if (!d.success) return out.textContent = 'Failed to load files';
-  if (!d.files.length) return out.innerHTML = '<div class="text-gray-600">No files uploaded.</div>';
-  const rows = d.files.map(f=>`<tr class="border-b text-sm"><td class="px-2 py-2">${f.title}<br/><small>${f.originalName}</small></td><td class="px-2 py-2">$${f.price}</td><td class="px-2 py-2">${f.published?'<span class="text-green-600">Published</span>':'<span class="text-yellow-600">Draft</span>'}</td><td class="px-2 py-2"><button onclick="togglePublish('${f.id}',${f.published})" class="bg-gray-200 px-2 py-1 rounded">Toggle</button> <button onclick="grant('${f.id}')" class="bg-blue-600 text-white px-2 py-1 rounded">Grant</button> <button onclick="createToken('${f.id}')" class="bg-indigo-600 text-white px-2 py-1 rounded">Create token</button></td></tr>`).join('');
-  out.innerHTML = `<table class="w-full"><thead><tr class="text-left text-gray-600"><th class="px-2 py-2">Title</th><th class="px-2 py-2">Price</th><th class="px-2 py-2">Status</th><th class="px-2 py-2">Action</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
+    // === USERS & SESSIONS ===
+    async function loadAllUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+        const list = document.getElementById('usersList');
+        
+        if (!data.success || !data.users.length) {
+          list.innerHTML = '<div class="text-gray-600">No users found.</div>';
+          return;
+        }
 
-async function togglePublish(id,current){
-  const res = await fetch('/api/admin/files/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ published: !current })});
-  const d = await res.json(); if (d.success) loadFiles(); else alert('Failed');
-}
+        const rows = data.users.map(u => `
+          <div class="border rounded p-2 mb-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <strong>${u.name || 'N/A'}</strong><br>
+                <small class="text-gray-600">${u.email}</small><br>
+                <small class="text-xs text-gray-500">Registered: ${u.createdAt || 'N/A'}</small>
+              </div>
+              <div class="text-right">
+                <span class="text-xs bg-${u.isPremium ? 'green' : 'gray'}-100 px-2 py-1 rounded">${u.isPremium ? 'Premium' : 'Free'}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
 
-async function grant(id){
-  const email = prompt('Email to grant access to'); if (!email) return;
-  const res = await fetch('/api/admin/files/'+id+'/grant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ email })});
-  const d = await res.json(); if (d.success) alert('Granted'); else alert('Failed: '+(d.error||''));
-}
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('usersList').innerHTML = '<div class="text-red-600">Error loading users</div>';
+      }
+    }
 
-async function createToken(id){
-  const email = prompt('Email to create a download token for'); if (!email) return;
-  // first ensure purchase exists (admin might have granted already). Try request token directly.
-  const res = await fetch('/api/download/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ fileId: id, email })});
-  const d = await res.json(); if (d.success) { prompt('Download URL (copy):', d.url); } else { alert('Failed: '+(d.error||'')); }
-}
+    async function searchUsers() {
+      const email = document.getElementById('userSearch').value;
+      if (!email) return alert('Enter email to search');
+      
+      try {
+        const res = await fetch(`/api/admin/users?search=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        const list = document.getElementById('usersList');
+        
+        if (!data.users.length) {
+          list.innerHTML = '<div class="text-gray-600">No users found.</div>';
+          return;
+        }
 
-loadFiles();
-async function load() {
-  const res = await fetch('/api/admin/kcb-transfers');
-  const data = await res.json();
-  const list = document.getElementById('list');
-  if (!data.success) { list.textContent = 'Failed to load'; return; }
-  if (!data.transfers.length) { list.innerHTML = '<div class="text-gray-600">No transfers found.</div>'; return; }
-  const rows = data.transfers.map(t=>`<tr class="border-b"><td class="px-2 py-2">${t.timestamp}</td><td class="px-2 py-2">${t.name}<br/><small>${t.email}</small></td><td class="px-2 py-2">KES ${t.amount}</td><td class="px-2 py-2">${t.reference || ''}</td><td class="px-2 py-2">${t.status}</td><td class="px-2 py-2"><button onclick="markPaid('${t.timestamp}')" class="bg-green-600 text-white px-3 py-1 rounded">Mark paid</button></td></tr>`).join('');
-  list.innerHTML = `<table class="w-full text-sm"> <thead><tr class="text-left text-gray-600"><th class="px-2 py-2">Time</th><th class="px-2 py-2">Name/Email</th><th class="px-2 py-2">Amount</th><th class="px-2 py-2">Reference</th><th class="px-2 py-2">Status</th><th class="px-2 py-2">Action</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
+        const rows = data.users.map(u => `
+          <div class="border rounded p-2 mb-2">
+            <strong>${u.name || 'N/A'}</strong> - ${u.email}
+            <div class="text-xs text-gray-600 mt-1">Status: ${u.isPremium ? 'Premium' : 'Free'}</div>
+          </div>
+        `).join('');
 
-async function markPaid(ts){
-  if (!confirm('Mark this transfer as paid?')) return;
-  const note = prompt('Optional note for this transfer');
-  const res = await fetch('/api/admin/kcb/mark-paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ timestamp: ts, note })});
-  const data = await res.json();
-  if (data.success) { alert('Marked paid'); load(); } else { alert('Failed: '+(data.error||'')); }
-}
+        list.innerHTML = rows;
+      } catch (e) {
+        alert('Search error: ' + e.message);
+      }
+    }
 
-async function exportCsv(){
-  const res = await fetch('/api/admin/kcb-export');
-  if (!res.ok) return alert('Export failed');
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'kcb-transfers.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-}
+    async function loadActiveSessions() {
+      try {
+        const res = await fetch('/api/admin/sessions');
+        const data = await res.json();
+        const list = document.getElementById('sessionsList');
+        
+        if (!data.success || !data.sessions.length) {
+          list.innerHTML = '<div class="text-gray-600">No active sessions.</div>';
+          return;
+        }
 
-async function reconcile(){
-  const txt = document.getElementById('reconcileData').value;
-  if (!txt) return alert('Paste JSON array of bank entries first');
-  let arr;
-  try { arr = JSON.parse(txt); } catch(e){ return alert('Invalid JSON'); }
-  const res = await fetch('/api/admin/kcb/reconcile',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({ entries: arr })});
-  const data = await res.json();
-  if (data.success) {
-    document.getElementById('reconcileResult').textContent = `Matched: ${data.summary.matched}, Unmatched: ${data.summary.unmatched}`;
-    load();
-  } else {
-    document.getElementById('reconcileResult').textContent = 'Reconcile failed: '+(data.error||'');
-  }
-}
+        const rows = data.sessions.map(s => `
+          <div class="border rounded p-2 mb-2 text-sm">
+            <strong>${s.userEmail}</strong><br>
+            <small class="text-gray-600">IP: ${s.ip || 'N/A'} | Last: ${s.lastActivity || 'N/A'}</small>
+          </div>
+        `).join('');
 
-// Messages admin helpers
-async function loadAdminMessages(){
-  try {
-    const res = await fetch('/api/admin/messages');
-    const d = await res.json();
-    const out = document.getElementById('adminMessages');
-    if (!d.success) return out.textContent = 'Failed to load messages';
-    if (!d.messages.length) return out.innerHTML = '<div class="text-gray-600">No messages.</div>';
-    const rows = d.messages.map(m=>{
-      const replies = (m.replies||[]).map(r=>`<div class="mt-2 p-2 bg-gray-50 border rounded"><strong>${r.by}</strong> <small class="text-xs text-gray-500">${r.at}</small><div>${r.message}</div></div>`).join('');
-      return `<div class="border-b py-2">
-        <div class="flex justify-between"><div><strong>${m.name}</strong> <small class="text-xs text-gray-500">${m.createdAt}</small></div><div class="text-sm">${m.email||''}</div></div>
-        <div class="mt-1">${m.message}</div>
-        ${replies}
-        <div class="mt-2 flex gap-2"><input id="reply_input_${m.id}" placeholder="Reply as admin" class="flex-1 border rounded p-1"/><button onclick="replyMessage('${m.id}')" class="bg-blue-600 text-white px-2 py-1 rounded">Reply</button></div>
-      </div>`;
-    }).join('');
-    out.innerHTML = rows;
-  } catch (e) { console.error('loadAdminMessages error', e); document.getElementById('adminMessages').textContent = 'Error loading messages'; }
-}
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('sessionsList').innerHTML = '<div class="text-red-600">Error loading sessions</div>';
+      }
+    }
 
-async function replyMessage(id){
-  const el = document.getElementById('reply_input_'+id);
-  if (!el) return alert('Input not found');
-  const txt = el.value || '';
-  if (!txt.trim()) return alert('Enter reply');
-  const res = await fetch('/api/admin/messages/'+id+'/reply',{ method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ reply: txt }) });
-  const d = await res.json();
-  if (d.success) { alert('Replied'); el.value = ''; loadAdminMessages(); } else { alert('Failed: '+(d.error||'')); }
-}
+    // === PREMIUM ACCESS ===
+    async function grantPremiumAccess() {
+      const email = document.getElementById('premiumEmail').value;
+      const days = parseInt(document.getElementById('premiumDays').value) || 30;
+      const reason = document.getElementById('premiumReason').value;
 
-load();
-loadAdminMessages();
-</script>
+      if (!email) return alert('Enter email');
+
+      try {
+        const res = await fetch('/api/admin/grant-premium', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, days, reason })
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('premiumStatus');
+
+        if (data.success) {
+          status.textContent = `✓ Premium granted to ${email} for ${days} days`;
+          status.className = 'text-sm text-green-600 mt-2';
+          document.getElementById('premiumEmail').value = '';
+          document.getElementById('premiumDays').value = '30';
+          document.getElementById('premiumReason').value = '';
+        } else {
+          status.textContent = '✗ Error: ' + (data.error || 'Failed');
+          status.className = 'text-sm text-red-600 mt-2';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function revokePremiumAccess() {
+      const email = document.getElementById('revokeEmail').value;
+      if (!email) return alert('Enter email');
+
+      if (!confirm('Revoke premium for ' + email + '?')) return;
+
+      try {
+        const res = await fetch('/api/admin/revoke-premium', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('revokeStatus');
+
+        if (data.success) {
+          status.textContent = `✓ Premium revoked for ${email}`;
+          status.className = 'text-sm text-green-600 mt-2';
+          document.getElementById('revokeEmail').value = '';
+        } else {
+          status.textContent = '✗ Error: ' + (data.error || 'Failed');
+          status.className = 'text-sm text-red-600 mt-2';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // === FILE MANAGER ===
+    async function uploadFile(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('fileTitle').value;
+      const price = document.getElementById('filePrice').value;
+      const description = document.getElementById('fileDescription').value;
+      const fileInput = document.getElementById('fileInput');
+
+      if (!fileInput.files.length) return alert('Select a file');
+
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      fd.append('title', title);
+      fd.append('price', price);
+      fd.append('description', description);
+
+      try {
+        const res = await fetch('/api/admin/files/upload', {
+          method: 'POST',
+          body: fd
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('uploadStatus');
+
+        if (data.success) {
+          status.textContent = '✓ File uploaded successfully';
+          status.className = 'text-sm text-green-600';
+          document.getElementById('fileTitle').value = '';
+          document.getElementById('filePrice').value = '0';
+          document.getElementById('fileDescription').value = '';
+          fileInput.value = '';
+          setTimeout(loadFiles, 1000);
+        } else {
+          status.textContent = '✗ Upload failed: ' + (data.error || '');
+          status.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        document.getElementById('uploadStatus').textContent = '✗ Error: ' + e.message;
+        document.getElementById('uploadStatus').className = 'text-sm text-red-600';
+      }
+    }
+
+    async function loadFiles() {
+      try {
+        const res = await fetch('/api/admin/files');
+        const data = await res.json();
+        const list = document.getElementById('filesList');
+
+        if (!data.success || !data.files.length) {
+          list.innerHTML = '<div class="text-gray-600">No files uploaded.</div>';
+          return;
+        }
+
+        const rows = data.files.map(f => `
+          <div class="border rounded p-2 mb-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <strong>${f.title}</strong><br>
+                <small class="text-gray-600">Price: $${f.price}</small><br>
+                <small class="text-xs text-gray-500">${f.originalName}</small>
+              </div>
+              <div class="space-x-1">
+                <button onclick="togglePublish('${f.id}',${f.published})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">${f.published ? 'Unpublish' : 'Publish'}</button>
+                <button onclick="deleteFile('${f.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('filesList').innerHTML = '<div class="text-red-600">Error loading files</div>';
+      }
+    }
+
+    async function togglePublish(id, current) {
+      try {
+        const res = await fetch(`/api/admin/files/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ published: !current })
+        });
+
+        const data = await res.json();
+        if (data.success) loadFiles();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function deleteFile(id) {
+      if (!confirm('Delete this file?')) return;
+
+      try {
+        const res = await fetch(`/api/admin/files/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('File deleted');
+          loadFiles();
+        } else {
+          alert('Error: ' + (data.error || 'Failed'));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    function exportFilesList() {
+      alert('Export functionality to be implemented');
+    }
+
+    // === MESSAGES ===
+    async function loadMessages() {
+      try {
+        const res = await fetch('/api/admin/messages');
+        const data = await res.json();
+        const list = document.getElementById('messagesList');
+
+        if (!data.success || !data.messages.length) {
+          list.innerHTML = '<div class="text-gray-600">No messages.</div>';
+          return;
+        }
+
+        const rows = data.messages.map(m => `
+          <div class="border rounded p-3 bg-gray-50">
+            <div class="flex justify-between">
+              <div>
+                <strong>${m.name}</strong><br>
+                <small class="text-gray-600">${m.email}</small>
+              </div>
+              <small class="text-gray-500">${m.createdAt}</small>
+            </div>
+            <div class="mt-2 text-sm">${m.message}</div>
+            ${(m.replies || []).map(r => `
+              <div class="mt-2 p-2 bg-white border-l-4 border-blue-600">
+                <strong class="text-blue-600">Admin Reply:</strong><br>
+                <small class="text-gray-500">${r.at}</small>
+                <div class="text-sm mt-1">${r.message}</div>
+              </div>
+            `).join('')}
+            <div class="mt-2 flex gap-2">
+              <input id="reply_${m.id}" type="text" placeholder="Your reply..." class="flex-1 border rounded p-2 text-sm">
+              <button onclick="replyMessage('${m.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Reply</button>
+            </div>
+          </div>
+        `).join('');
+
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('messagesList').innerHTML = '<div class="text-red-600">Error loading messages</div>';
+      }
+    }
+
+    async function replyMessage(id) {
+      const input = document.getElementById(`reply_${id}`);
+      const text = input.value.trim();
+
+      if (!text) return alert('Enter a reply');
+
+      try {
+        const res = await fetch(`/api/admin/messages/${id}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reply: text })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          input.value = '';
+          loadMessages();
+        } else {
+          alert('Error: ' + (data.error || 'Failed'));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    function refreshMessages() {
+      loadMessages();
+    }
+
+    // === PAYMENTS ===
+    async function loadKCBTransfers() {
+      try {
+        const res = await fetch('/api/admin/kcb-transfers');
+        const data = await res.json();
+        const list = document.getElementById('kcbTransfersList');
+
+        if (!data.success || !data.transfers.length) {
+          list.innerHTML = '<div class="text-gray-600">No transfers found.</div>';
+          return;
+        }
+
+        const rows = data.transfers.map(t => `
+          <div class="border rounded p-2 mb-2 text-sm">
+            <div class="flex justify-between">
+              <div>
+                <strong>${t.name}</strong> (${t.email})<br>
+                <small class="text-gray-600">KES ${t.amount} - Ref: ${t.reference || 'N/A'}</small>
+              </div>
+              <div class="text-right">
+                <span class="text-xs bg-${t.status === 'paid' ? 'green' : 'yellow'}-100 px-2 py-1 rounded">${t.status}</span><br>
+                <small class="text-gray-500">${t.timestamp}</small>
+              </div>
+            </div>
+            ${t.status !== 'paid' ? `<button onclick="markPaid('${t.timestamp}')" class="mt-1 bg-green-600 text-white px-2 py-1 rounded text-xs">Mark Paid</button>` : ''}
+          </div>
+        `).join('');
+
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('kcbTransfersList').innerHTML = '<div class="text-red-600">Error loading transfers</div>';
+      }
+    }
+
+    async function markPaid(ts) {
+      const note = prompt('Optional note for this transfer:');
+      
+      try {
+        const res = await fetch('/api/admin/kcb/mark-paid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ timestamp: ts, note })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('Transfer marked as paid');
+          loadKCBTransfers();
+        } else {
+          alert('Error: ' + (data.error || 'Failed'));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function exportKCBCSV() {
+      try {
+        const res = await fetch('/api/admin/kcb-export');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'kcb-transfers.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Export failed: ' + e.message);
+      }
+    }
+
+    async function reconcileBankEntries() {
+      const txt = document.getElementById('reconcileData').value.trim();
+      if (!txt) return alert('Paste JSON array');
+
+      let arr;
+      try {
+        arr = JSON.parse(txt);
+      } catch (e) {
+        return alert('Invalid JSON: ' + e.message);
+      }
+
+      try {
+        const res = await fetch('/api/admin/kcb/reconcile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entries: arr })
+        });
+
+        const data = await res.json();
+        const result = document.getElementById('reconcileResult');
+
+        if (data.success) {
+          result.textContent = `✓ Matched: ${data.summary.matched}, Unmatched: ${data.summary.unmatched}`;
+          result.className = 'text-sm text-green-600 mt-2';
+          loadKCBTransfers();
+        } else {
+          result.textContent = '✗ Error: ' + (data.error || '');
+          result.className = 'text-sm text-red-600 mt-2';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function requestPaymentReview() {
+      const paymentId = document.getElementById('paymentId').value.trim();
+      if (!paymentId) return alert('Enter payment ID');
+
+      try {
+        const res = await fetch('/api/admin/payment-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId })
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('reviewStatus');
+
+        if (data.success) {
+          status.textContent = `✓ Review requested for payment ${paymentId}`;
+          status.className = 'text-sm text-green-600';
+          document.getElementById('paymentId').value = '';
+        } else {
+          status.textContent = '✗ Error: ' + (data.error || 'Failed');
+          status.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // === EMAIL TOOLS ===
+    async function sendEmail() {
+      const to = document.getElementById('emailTo').value;
+      const subject = document.getElementById('emailSubject').value;
+      const body = document.getElementById('emailBody').value;
+
+      if (!to || !subject || !body) return alert('Fill all fields');
+
+      try {
+        const res = await fetch('/api/admin/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to, subject, body })
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('emailStatus');
+
+        if (data.success) {
+          status.textContent = '✓ Email sent to ' + to;
+          status.className = 'text-sm text-green-600';
+          document.getElementById('emailTo').value = '';
+          document.getElementById('emailSubject').value = '';
+          document.getElementById('emailBody').value = '';
+        } else {
+          status.textContent = '✗ Error: ' + (data.error || 'Failed');
+          status.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function sendBulkEmail() {
+      const subject = document.getElementById('bulkSubject').value;
+      const body = document.getElementById('bulkBody').value;
+      const recipients = document.getElementById('bulkRecipients').value;
+
+      if (!subject || !body || !recipients) return alert('Fill all fields');
+
+      try {
+        const res = await fetch('/api/admin/send-bulk-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, body, recipients })
+        });
+
+        const data = await res.json();
+        const status = document.getElementById('bulkStatus');
+
+        if (data.success) {
+          status.textContent = `✓ Email sent to ${data.sentCount} recipients`;
+          status.className = 'text-sm text-green-600';
+          document.getElementById('bulkSubject').value = '';
+          document.getElementById('bulkBody').value = '';
+          document.getElementById('bulkRecipients').value = '';
+        } else {
+          status.textContent = '✗ Error: ' + (data.error || 'Failed');
+          status.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // Initial load
+    window.addEventListener('load', () => {
+      refreshDashboard();
+    });
+  </script>
 </body>
 </html>
