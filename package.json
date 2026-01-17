@@ -7,7 +7,11 @@
     "start": "node server.js",
     "dev": "node server.js",
     "vercel-build": "echo 'Build complete'",
-    "test": "node -c server.js && echo 'Syntax check passed'"
+    "test": "node -c server.js && echo 'Syntax check passed'",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "check": "npm test && npm audit"
   },
   "engines": {
     "node": ">=18.0.0"
