@@ -4,6 +4,7 @@
 
 ### Date: January 17, 2026
 ### Version: 1.0.0
+### Last Updated: January 17, 2026 (Multer Security Fix)
 
 ---
 
@@ -15,16 +16,25 @@
 **Issues Found**:
 - nodemailer <= 7.0.10 (DoS vulnerability, email domain issues)
 - qs < 6.14.1 (DoS via memory exhaustion)
+- **multer < 2.0.2 (Multiple DoS vulnerabilities)**
+  - DoS via unhandled exception from malformed request
+  - DoS via unhandled exception
+  - DoS from maliciously crafted requests
+  - DoS via memory leaks from unclosed streams
 
 **Actions Taken**:
 - Updated nodemailer from 6.9.4 to 7.0.12
 - Updated qs dependency via npm audit fix
-- **Result**: 0 vulnerabilities remaining
+- **Updated multer from 1.4.5-lts.2 to 2.0.2** ⚡
+- **Result**: 0 vulnerabilities remaining ✅
 
 **Verification**:
 ```bash
 npm audit
 # found 0 vulnerabilities ✓
+
+# GitHub Advisory Database Check
+# All dependencies clean ✓
 ```
 
 ---
