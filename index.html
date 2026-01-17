@@ -46,6 +46,120 @@
                 color: #4C1D95;
                 border-radius: 0.25rem;
             }
+            /* Chat Widget Styles */
+            .chat-widget {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1000;
+            }
+            .chat-button {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+                color: white;
+                border: none;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+            }
+            .chat-button:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 16px rgba(124, 58, 237, 0.6);
+            }
+            .chat-window {
+                position: fixed;
+                bottom: 90px;
+                right: 20px;
+                width: 350px;
+                height: 500px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+                z-index: 999;
+            }
+            .chat-window.active {
+                display: flex;
+            }
+            .chat-header {
+                background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+                color: white;
+                padding: 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .chat-messages {
+                flex: 1;
+                padding: 16px;
+                overflow-y: auto;
+                background: #F9FAFB;
+            }
+            .chat-message {
+                margin-bottom: 12px;
+                padding: 10px 14px;
+                border-radius: 12px;
+                max-width: 80%;
+                word-wrap: break-word;
+            }
+            .chat-message.user {
+                background: #7C3AED;
+                color: white;
+                margin-left: auto;
+                text-align: right;
+            }
+            .chat-message.bot {
+                background: white;
+                color: #1F2937;
+                margin-right: auto;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+            .chat-input-container {
+                padding: 16px;
+                background: white;
+                border-top: 1px solid #E5E7EB;
+                display: flex;
+                gap: 8px;
+            }
+            .chat-input {
+                flex: 1;
+                border: 1px solid #D1D5DB;
+                border-radius: 20px;
+                padding: 8px 16px;
+                outline: none;
+            }
+            .chat-input:focus {
+                border-color: #7C3AED;
+            }
+            .chat-send-btn {
+                background: #7C3AED;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .chat-send-btn:hover {
+                background: #6D28D9;
+            }
+            @media (max-width: 640px) {
+                .chat-window {
+                    width: calc(100vw - 40px);
+                    height: calc(100vh - 120px);
+                    right: 20px;
+                    bottom: 90px;
+                }
+            }
         </style>
 </head>
 <body class="antialiased">
@@ -491,6 +605,68 @@
         return res.json();
     }
 
+    // Chat Support Functions
+    function toggleChat() {
+        const chatWindow = document.getElementById('chatWindow');
+        const chatBtn = document.getElementById('chatBtn');
+        chatWindow.classList.toggle('active');
+        if (chatWindow.classList.contains('active')) {
+            chatBtn.textContent = '✕';
+            document.getElementById('chatInput').focus();
+        } else {
+            chatBtn.textContent = '💬';
+        }
+    }
+
+    function handleChatKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendChatMessage();
+        }
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Add user message to chat
+        const messagesContainer = document.getElementById('chatMessages');
+        const userMsg = document.createElement('div');
+        userMsg.className = 'chat-message user';
+        userMsg.textContent = message;
+        messagesContainer.appendChild(userMsg);
+        input.value = '';
+
+        // Send to backend
+        try {
+            const res = await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'Visitor', email: '', message })
+            });
+            const data = await res.json();
+            
+            // Show bot response
+            const botMsg = document.createElement('div');
+            botMsg.className = 'chat-message bot';
+            if (data.success) {
+                botMsg.innerHTML = '✅ Thank you! Your message has been received. Our team will review it and respond soon.<br><br>For immediate assistance, you can:<br>• Check our FAQ section<br>• Email us at support@smartinvest.africa<br>• Call us at +254 XXX XXX XXX';
+            } else {
+                botMsg.textContent = 'Sorry, there was an error sending your message. Please try again.';
+            }
+            messagesContainer.appendChild(botMsg);
+            
+            // Auto-scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (err) {
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'chat-message bot';
+            errorMsg.textContent = 'Network error. Please check your connection and try again.';
+            messagesContainer.appendChild(errorMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
     // Load catalog on page ready
     try { window.addEventListener('load', fetchCatalog); } catch (e) {}
 </script>
@@ -537,6 +713,38 @@
     </p>
   </div>
 </section>
+
+    <!-- Chat Support Widget -->
+    <div class="chat-widget">
+        <button class="chat-button" onclick="toggleChat()" id="chatBtn" aria-label="Open chat support">
+            💬
+        </button>
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <div>
+                    <div class="font-bold">SmartInvest Support</div>
+                    <div class="text-xs text-purple-100">We're here to help!</div>
+                </div>
+                <button onclick="toggleChat()" class="text-white hover:text-purple-200" aria-label="Close chat">✕</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message bot">
+                    👋 Hello! Welcome to SmartInvest Africa. How can I help you today?
+                </div>
+                <div class="chat-message bot">
+                    You can ask about:<br>
+                    • Investment courses<br>
+                    • Payment options<br>
+                    • File marketplace<br>
+                    • General inquiries
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." onkeypress="handleChatKeyPress(event)">
+                <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message">→</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

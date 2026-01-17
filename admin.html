@@ -3,10 +3,121 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin — KCB Transfers</title>
+  <title>SmartInvest Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .dashboard-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+    }
+    .nav-tab:hover {
+      background: #F3F4F6;
+    }
+    .nav-tab.active {
+      border-bottom-color: #7C3AED;
+      color: #7C3AED;
+      font-weight: 600;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
 </head>
-<body class="p-8 bg-gray-50">
+<body class="bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-2xl font-bold text-purple-600">SmartInvest Admin</h1>
+          <p class="text-sm text-gray-500">Dashboard & Management Console</p>
+        </div>
+        <div class="flex gap-3">
+          <a href="/" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition">View Site</a>
+          <button onclick="refreshAllData()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">🔄 Refresh All</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="bg-white border-b">
+    <div class="max-w-7xl mx-auto px-4">
+      <nav class="flex gap-1">
+        <div class="nav-tab active" onclick="switchTab('overview')">📊 Overview</div>
+        <div class="nav-tab" onclick="switchTab('messages')">💬 Messages</div>
+        <div class="nav-tab" onclick="switchTab('transfers')">💰 Transfers</div>
+        <div class="nav-tab" onclick="switchTab('files')">📁 Files</div>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Overview Tab -->
+    <div id="overview" class="tab-content active">
+      <div class="grid md:grid-cols-3 gap-6 mb-6">
+        <div class="stat-card">
+          <div class="text-sm opacity-90">Total Messages</div>
+          <div class="text-3xl font-bold mt-2" id="statMessages">0</div>
+          <div class="text-xs opacity-75 mt-1">All time</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-sm opacity-90">Pending Transfers</div>
+          <div class="text-3xl font-bold mt-2" id="statTransfers">0</div>
+          <div class="text-xs opacity-75 mt-1">Awaiting confirmation</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-sm opacity-90">Total Files</div>
+          <div class="text-3xl font-bold mt-2" id="statFiles">0</div>
+          <div class="text-xs opacity-75 mt-1">In marketplace</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6 dashboard-card">
+        <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          <button onclick="switchTab('messages')" class="bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-purple-700">💬 View Messages</div>
+            <div class="text-sm text-gray-600 mt-1">Respond to visitor inquiries</div>
+          </button>
+          <button onclick="switchTab('transfers')" class="bg-blue-100 hover:bg-blue-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-blue-700">💰 Review Transfers</div>
+            <div class="text-sm text-gray-600 mt-1">Mark payments as received</div>
+          </button>
+          <button onclick="switchTab('files')" class="bg-green-100 hover:bg-green-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-green-700">📁 Manage Files</div>
+            <div class="text-sm text-gray-600 mt-1">Upload and organize resources</div>
+          </button>
+          <button onclick="downloadReport()" class="bg-yellow-100 hover:bg-yellow-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-yellow-700">📊 Download Report</div>
+            <div class="text-sm text-gray-600 mt-1">Export all data as CSV</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages Tab -->
+    <div id="messages" class="tab-content">
   <!-- Site Messages Section -->
   <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mb-6">
     <h1 class="text-2xl font-bold mb-4">Site Messages</h1>
@@ -14,45 +125,124 @@
     <div id="adminMessages">Loading messages…</div>
   </div>
 
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Site Messages</h2>
+        <div class="mb-3 text-sm text-gray-600">Visitors can post messages; only admins may reply.</div>
+        <div id="adminMessages">Loading messages…</div>
+      </div>
+    </div>
+
+    <!-- Transfers Tab -->
+    <div id="transfers" class="tab-content">
   <!-- KCB Transfers Section -->
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mb-6">
-    <h1 class="text-2xl font-bold mb-4">Pending KCB Manual Transfers</h1>
-    <div class="flex gap-2 mb-4">
-      <button id="exportBtn" onclick="exportCsv()" class="bg-blue-600 text-white px-3 py-1 rounded">Export CSV</button>
-      <button id="reloadBtn" onclick="load()" class="bg-gray-200 px-3 py-1 rounded">Reload</button>
-    </div>
-    <div id="list">Loading…</div>
-    <div class="mt-6">
-      <h2 class="font-semibold mb-2">Reconcile bank entries (paste JSON array)</h2>
-      <textarea id="reconcileData" rows="6" class="w-full border rounded p-2"></textarea>
-      <div class="flex gap-2 mt-2">
-        <button onclick="reconcile()" class="bg-green-600 text-white px-3 py-1 rounded">Reconcile</button>
-        <button onclick="document.getElementById('reconcileData').value='';" class="bg-gray-200 px-3 py-1 rounded">Clear</button>
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Pending KCB Manual Transfers</h2>
+        <div class="flex gap-2 mb-4">
+          <button id="exportBtn" onclick="exportCsv()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">📥 Export CSV</button>
+          <button id="reloadBtn" onclick="load()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
+        </div>
+        <div id="list">Loading…</div>
+        <div class="mt-6">
+          <h3 class="font-semibold mb-2">Reconcile bank entries (paste JSON array)</h3>
+          <textarea id="reconcileData" rows="6" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
+          <div class="flex gap-2 mt-2">
+            <button onclick="reconcile()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition">✅ Reconcile</button>
+            <button onclick="document.getElementById('reconcileData').value='';" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">Clear</button>
+          </div>
+          <div id="reconcileResult" class="mt-3 text-sm text-gray-700"></div>
+        </div>
       </div>
-      <div id="reconcileResult" class="mt-3 text-sm text-gray-700"></div>
     </div>
-  </div>
 
+    <!-- Files Tab -->
+    <div id="files" class="tab-content">
   <!-- File Marketplace Section -->
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">File Marketplace (Admin)</h1>
-    <form id="uploadForm" class="mb-4" onsubmit="event.preventDefault(); uploadFileMarketplace();">
-      <div class="mb-2"><label class="block text-sm font-medium">Title</label><input id="fileTitle" name="title" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">Price (USD)</label><input id="filePrice" name="price" type="number" step="0.01" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">Description</label><input id="fileDescription" name="description" class="w-full border rounded p-2"/></div>
-      <div class="mb-2"><label class="block text-sm font-medium">File (PDF or any)</label><input type="file" id="fileInput" name="file" class="w-full"/></div>
-      <div class="mb-2"><label class="flex items-center text-sm"><input type="checkbox" id="filePublished" name="published" class="mr-2"/> Publish immediately</label></div>
-      <div class="flex gap-2">
-        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Upload</button>
-        <button type="button" onclick="loadFiles()" class="bg-gray-200 px-3 py-1 rounded">Refresh files</button>
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">File Marketplace (Admin)</h2>
+        <form id="uploadForm" class="mb-6 bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300" onsubmit="event.preventDefault(); uploadFileMarketplace();">
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Title</label><input id="fileTitle" name="title" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="Enter file title"/></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Price (USD)</label><input id="filePrice" name="price" type="number" step="0.01" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="0.00"/></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Description</label><textarea id="fileDescription" name="description" rows="3" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="Describe the file..."></textarea></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">File (PDF or any)</label><input type="file" id="fileInput" name="file" class="w-full border rounded-lg p-2 bg-white"/></div>
+          <div class="mb-3"><label class="flex items-center text-sm"><input type="checkbox" id="filePublished" name="published" class="mr-2 w-4 h-4"/> <span class="font-medium">Publish immediately</span></label></div>
+          <div class="flex gap-2">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">📤 Upload File</button>
+            <button type="button" onclick="loadFiles()" class="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-medium transition">🔄 Refresh</button>
+          </div>
+          <div id="uploadStatus" class="text-sm mt-3"></div>
+        </form>
+        <div id="filesList">Loading files…</div>
       </div>
-      <div id="uploadStatus" class="text-sm text-gray-600 mt-2"></div>
-    </form>
-    <div id="filesList">Loading files…</div>
-  </div>
+    </div>
 
+  </div>
 
 <script>
+// Tab Switching
+function switchTab(tabName) {
+  // Hide all tabs
+  const tabs = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  
+  // Remove active from all nav items
+  const navTabs = document.querySelectorAll('.nav-tab');
+  navTabs.forEach(nav => nav.classList.remove('active'));
+  
+  // Show selected tab
+  document.getElementById(tabName).classList.add('active');
+  
+  // Add active to clicked nav
+  event.target.classList.add('active');
+}
+
+// Refresh All Data
+async function refreshAllData() {
+  await Promise.all([loadFiles(), load(), loadAdminMessages(), updateStats()]);
+  alert('✅ All data refreshed!');
+}
+
+// Update Dashboard Stats
+async function updateStats() {
+  try {
+    // Get messages count
+    const msgRes = await fetch('/api/admin/messages');
+    const msgData = await msgRes.json();
+    document.getElementById('statMessages').textContent = msgData.success ? msgData.messages.length : '0';
+    
+    // Get transfers count
+    const transRes = await fetch('/api/admin/kcb-transfers');
+    const transData = await transRes.json();
+    const pending = transData.success ? transData.transfers.filter(t => t.status === 'pending').length : 0;
+    document.getElementById('statTransfers').textContent = pending;
+    
+    // Get files count
+    const filesRes = await fetch('/api/admin/files');
+    const filesData = await filesRes.json();
+    document.getElementById('statFiles').textContent = filesData.success ? filesData.files.length : '0';
+  } catch (e) {
+    console.error('Failed to update stats', e);
+  }
+}
+
+// Download Report
+async function downloadReport() {
+  try {
+    const response = await fetch('/api/admin/kcb-export');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smartinvest-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    alert('✅ Report downloaded!');
+  } catch (e) {
+    alert('❌ Failed to download report');
+  }
+}
+
 // File marketplace upload
 async function uploadFileMarketplace(){
   const inp = document.getElementById('fileInput');
@@ -176,8 +366,11 @@ async function replyMessage(id){
   if (d.success) { alert('Replied'); el.value = ''; loadAdminMessages(); } else { alert('Failed: '+(d.error||'')); }
 }
 
+// Initialize on page load
 load();
+loadFiles();
 loadAdminMessages();
+updateStats();
 </script>
 </body>
 </html>
