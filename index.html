@@ -412,17 +412,37 @@
     function demoLogin(event) {
         event.preventDefault();
         const email = document.getElementById('loginEmail')?.value || '';
+        const password = document.getElementById('loginPassword')?.value || '';
+        
         // Call real login endpoint
         fetch('/api/auth/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value })
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
         }).then(r=>r.json()).then(data=>{
-            if (data.success) alert('Sign in successful'); else alert('Sign in failed: ' + (data.error||''));
             if (data.success) {
-                try { localStorage.setItem('si_user_email', document.getElementById('loginEmail').value.toLowerCase()); } catch (e) {}
+                // Store token and user info
+                try { 
+                    localStorage.setItem('si_token', data.token);
+                    localStorage.setItem('si_user_email', data.user.email.toLowerCase());
+                    localStorage.setItem('si_user_role', data.user.role);
+                } catch (e) {
+                    console.error('Failed to save login data:', e);
+                }
+                
+                // Redirect based on role
+                if (data.user.role === 'admin') {
+                    window.location.href = '/admin.html';
+                } else {
+                    window.location.href = '/user.html';
+                }
+            } else {
+                alert('Sign in failed: ' + (data.error||''));
             }
-        }).catch(()=>alert('Network error'));
-        event.target.reset();
+        }).catch(err => {
+            console.error('Login error:', err);
+            alert('Network error');
+        });
     }
 
     async function handleSignup(event) {
