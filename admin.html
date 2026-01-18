@@ -119,6 +119,24 @@
           <input type="text" id="fileTitle" placeholder="File title" class="w-full border rounded p-2" required>
           <input type="number" id="filePrice" placeholder="Price (USD)" class="w-full border rounded p-2" step="0.01" value="0">
           <textarea id="fileDescription" placeholder="Description (optional)" class="w-full border rounded p-2 h-20"></textarea>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <select id="fileCategory" class="border rounded p-2">
+              <option value="">Select Category (optional)</option>
+              <option value="Investing 101">Investing 101</option>
+              <option value="Trading Essentials">Trading Essentials</option>
+              <option value="SME Funding">SME Funding</option>
+              <option value="Digital Assets & Crypto">Digital Assets & Crypto</option>
+              <option value="Advanced">Advanced</option>
+              <option value="Other">Other</option>
+            </select>
+            
+            <div class="flex items-center gap-2 border rounded p-2 bg-white">
+              <input type="checkbox" id="filePremiumOnly" class="w-4 h-4">
+              <label for="filePremiumOnly" class="text-sm">Premium Only</label>
+            </div>
+          </div>
+          
           <input type="file" id="fileInput" class="w-full border rounded p-2" required>
           <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
         </form>
@@ -436,6 +454,8 @@
       const title = document.getElementById('fileTitle').value;
       const price = document.getElementById('filePrice').value;
       const description = document.getElementById('fileDescription').value;
+      const category = document.getElementById('fileCategory').value;
+      const premiumOnly = document.getElementById('filePremiumOnly').checked;
       const fileInput = document.getElementById('fileInput');
 
       if (!fileInput.files.length) return alert('Select a file');
@@ -445,6 +465,8 @@
       fd.append('title', title);
       fd.append('price', price);
       fd.append('description', description);
+      fd.append('category', category);
+      fd.append('premiumOnly', premiumOnly);
 
       try {
         const res = await fetch('/api/admin/files/upload', {
@@ -462,6 +484,8 @@
           document.getElementById('fileTitle').value = '';
           document.getElementById('filePrice').value = '0';
           document.getElementById('fileDescription').value = '';
+          document.getElementById('fileCategory').value = '';
+          document.getElementById('filePremiumOnly').checked = false;
           fileInput.value = '';
           setTimeout(loadFiles, 1000);
         } else {
@@ -489,12 +513,16 @@
           <div class="border rounded p-2 mb-2">
             <div class="flex justify-between items-start">
               <div>
-                <strong>${f.title}</strong><br>
+                <strong>${f.title}</strong>
+                ${f.premiumOnly ? '<span class="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Premium Only</span>' : ''}
+                ${f.category ? '<span class="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">' + f.category + '</span>' : ''}
+                <br>
                 <small class="text-gray-600">Price: $${f.price}</small><br>
                 <small class="text-xs text-gray-500">${f.originalName}</small>
               </div>
               <div class="space-x-1">
                 <button onclick="togglePublish('${f.id}',${f.published})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">${f.published ? 'Unpublish' : 'Publish'}</button>
+                <button onclick="editFile('${f.id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Edit</button>
                 <button onclick="deleteFile('${f.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
               </div>
             </div>
@@ -537,6 +565,42 @@
           loadFiles();
         } else {
           alert('Error: ' + (data.error || 'Failed'));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function editFile(id) {
+      try {
+        const res = await fetch('/api/admin/files', {
+          headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        const file = data.files.find(f => f.id === id);
+        
+        if (!file) return alert('File not found');
+        
+        const category = prompt('Category (leave empty for none):\nOptions: Investing 101, Trading Essentials, SME Funding, Digital Assets & Crypto, Advanced, Other', file.category || '');
+        if (category === null) return; // User cancelled
+        
+        const premiumOnly = confirm('Mark as Premium Only?\n\nCurrent: ' + (file.premiumOnly ? 'Yes' : 'No'));
+        
+        const updateRes = await fetch(`/api/admin/files/${id}`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ 
+            category: category,
+            premiumOnly: premiumOnly
+          })
+        });
+        
+        const updateData = await updateRes.json();
+        if (updateData.success) {
+          alert('File updated successfully');
+          loadFiles();
+        } else {
+          alert('Error: ' + (updateData.error || 'Failed'));
         }
       } catch (e) {
         alert('Error: ' + e.message);

@@ -1171,7 +1171,7 @@ app.delete('/api/scenarios/:id', adminAuth, (req, res) => {
 app.post('/api/admin/files/upload', adminAuth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'file required' });
-    const { title, description, price, published } = req.body;
+    const { title, description, price, published, premiumOnly, category } = req.body;
     const files = readFilesMeta();
     const id = uuidv4();
     const entry = {
@@ -1184,6 +1184,8 @@ app.post('/api/admin/files/upload', adminAuth, upload.single('file'), (req, res)
       mime: req.file.mimetype,
       price: Number(price) || 0,
       published: published === 'true' || false,
+      premiumOnly: premiumOnly === 'true' || false,
+      category: category || '',
       createdAt: new Date().toISOString()
     };
     files.push(entry);
@@ -1204,8 +1206,21 @@ app.get('/api/files', requirePaidUser, (req, res) => {
     const files = readFilesMeta().filter(f => f.published);
     const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
     const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
+    
+    // Check if user has premium access
+    const hasPremium = purchases.some(p => p.fileId === 'premium-access');
+    
+    // Filter files based on ownership and premium status
+    let accessibleFiles = files.filter(f => {
+      // If file is premium only, check if user has premium access
+      if (f.premiumOnly && !hasPremium) {
+        return false;
+      }
+      // User must own the file or it must be free
+      return ownedIds.includes(f.id) || f.price === 0;
+    });
+    
+    return res.json({ success: true, files: accessibleFiles });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
@@ -1214,7 +1229,14 @@ app.get('/api/files', requirePaidUser, (req, res) => {
 // Public catalog: list published files (title, price, id) for browsing before purchase
 app.get('/api/catalog', (req, res) => {
   try {
-    const files = readFilesMeta().filter(f => f.published).map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+    const files = readFilesMeta().filter(f => f.published).map(f => ({ 
+      id: f.id, 
+      title: f.title, 
+      price: f.price, 
+      description: f.description,
+      premiumOnly: f.premiumOnly || false,
+      category: f.category || ''
+    }));
     return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
@@ -1228,8 +1250,18 @@ app.post('/api/admin/files/:id', adminAuth, (req, res) => {
     const files = readFilesMeta();
     const idx = files.findIndex(f=>f.id===id);
     if (idx===-1) return res.status(404).json({ error: 'file not found' });
-    const allowed = ['title','description','price','published'];
-    allowed.forEach(k=>{ if (k in req.body) files[idx][k] = (k==='price'? Number(req.body[k]) : (k==='published'? (req.body[k]===true || req.body[k]==='true') : req.body[k])); });
+    const allowed = ['title','description','price','published','premiumOnly','category'];
+    allowed.forEach(k=>{ 
+      if (k in req.body) {
+        if (k === 'price') {
+          files[idx][k] = Number(req.body[k]);
+        } else if (k === 'published' || k === 'premiumOnly') {
+          files[idx][k] = (req.body[k] === true || req.body[k] === 'true');
+        } else {
+          files[idx][k] = req.body[k];
+        }
+      }
+    });
     writeFilesMeta(files);
     return res.json({ success: true, file: files[idx] });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }

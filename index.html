@@ -487,9 +487,20 @@
             data.files.forEach(f => {
                 const card = document.createElement('div');
                 card.className = 'bg-white border border-gray-200 rounded-lg p-6 shadow-sm';
+                
+                let badges = '';
+                if (f.premiumOnly) {
+                    badges += '<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded mr-1">Premium Only</span>';
+                }
+                if (f.category) {
+                    badges += '<span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">' + escapeHtml(f.category) + '</span>';
+                }
+                
                 card.innerHTML = `<h3 class="text-xl font-bold mb-2 text-purple-600">${escapeHtml(f.title)}</h3>
+                    ${badges ? '<div class="mb-2">' + badges + '</div>' : ''}
                     <p class="text-gray-600 mb-3">${escapeHtml(f.description || '')}</p>
                     <div class="mb-4 font-semibold">Price: ${escapeHtml(String(f.price || 0))} USD</div>
+                    ${f.premiumOnly ? '<p class="text-xs text-orange-600 mb-3">⚠️ Requires premium access</p>' : ''}
                     <div class="flex gap-2">
                         <button class="flex-1 bg-blue-500 text-white px-4 py-2 rounded" onclick="handleBuyPaypal('${f.id}', ${Number(f.price || 10)})">Buy with PayPal</button>
                         <button class="bg-green-500 text-white px-4 py-2 rounded" onclick="handleBuyMpesa('${f.id}')">Pay M-Pesa</button>
