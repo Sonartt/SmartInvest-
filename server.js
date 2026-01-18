@@ -1397,6 +1397,9 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
+// Serve static files (HTML, CSS, JS)
+app.use(express.static(__dirname));
+
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
