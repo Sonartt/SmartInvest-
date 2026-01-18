@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "email": "admin@smartinvest.com",
+    "passwordHash": "$2a$10$wWVytIyuBiwS8MTAB3CodeNq0AbMNAeU73KhabLavkYojAr1gahte",
+    "role": "admin",
+    "createdAt": "2026-01-18T12:02:07.463Z"
+  },
+  {
+    "email": "user@smartinvest.com",
+    "passwordHash": "$2a$10$Jqya78ikL1gluFzz6oHRS.FfL0Y32IOEnq9yKh2YBD.uU4SxnkxUC",
+    "role": "user",
+    "createdAt": "2026-01-18T12:02:17.797Z"
+  }
+]

@@ -4,6 +4,8 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const session = require('express-session');
 
 const app = express();
 app.use(cors({
@@ -205,8 +207,6 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
-const session = require('express-session');
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');
