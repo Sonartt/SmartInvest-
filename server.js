@@ -16,7 +16,10 @@ app.use(bodyParser.json());
 
 // Session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'smartinvest-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || (() => {
+    console.warn('⚠️  WARNING: Using default SESSION_SECRET. Set SESSION_SECRET environment variable in production!');
+    return 'smartinvest-secret-key-change-in-production';
+  })(),
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -200,7 +203,10 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 const USERS_FILE = './data/users.json';
 const PURCHASES_FILE = './data/purchases.json';
 const TOKENS_FILE = './data/tokens.json';
-const JWT_SECRET = process.env.JWT_SECRET || 'smartinvest-jwt-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.warn('⚠️  WARNING: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!');
+  return 'smartinvest-jwt-secret-change-in-production';
+})();
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -883,10 +889,10 @@ app.post('/api/admin/send-bulk-email', adminAuth, (req, res) => {
     if (recipients === 'all-users') {
       targetUsers = users;
     } else if (recipients === 'premium-users') {
-      const premiumEmails = purchases.map(p => p.email.toLowerCase());
+      const premiumEmails = purchases.filter(p => p.email).map(p => p.email.toLowerCase());
       targetUsers = users.filter(u => premiumEmails.includes(u.email.toLowerCase()));
     } else if (recipients === 'free-users') {
-      const premiumEmails = purchases.map(p => p.email.toLowerCase());
+      const premiumEmails = purchases.filter(p => p.email).map(p => p.email.toLowerCase());
       targetUsers = users.filter(u => !premiumEmails.includes(u.email.toLowerCase()));
     }
     
