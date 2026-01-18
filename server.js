@@ -4,16 +4,37 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// JWT configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
+
 // Basic auth for admin routes if ADMIN_USER is set
 function adminAuth(req, res, next) {
   const adminUser = process.env.ADMIN_USER;
-  if (!adminUser) return next(); // no auth configured
   const auth = req.headers.authorization;
+  
+  // Support Bearer JWT tokens with admin:true
+  if (auth && auth.startsWith('Bearer ')) {
+    try {
+      const token = auth.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.admin === true) {
+        req.adminEmail = decoded.email;
+        return next();
+      }
+    } catch (e) {
+      // Invalid JWT, fall through to Basic auth or reject
+    }
+  }
+  
+  // Support Basic auth
+  if (!adminUser) return next(); // no auth configured
   if (!auth || !auth.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
     return res.status(401).end('Unauthorized');
@@ -255,6 +276,40 @@ function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+// Purchases data store helpers
+const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
+if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
+
+function readPurchases() {
+  try {
+    const raw = fs.readFileSync(PURCHASES_FILE, 'utf8');
+    return JSON.parse(raw || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function writePurchases(purchases) {
+  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(purchases, null, 2));
+}
+
+// Download tokens store helpers
+const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
+
+function readTokens() {
+  try {
+    const raw = fs.readFileSync(TOKENS_FILE, 'utf8');
+    return JSON.parse(raw || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeTokens(tokens) {
+  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
+}
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, acceptTerms } = req.body;
@@ -267,7 +322,12 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
-    const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
+    const user = { 
+      email: email.toLowerCase(), 
+      passwordHash: hash, 
+      admin: false, // default non-admin user
+      createdAt: new Date().toISOString() 
+    };
     users.push(user);
     writeUsers(users);
     return res.json({ success: true, message: 'signup successful' });
@@ -286,11 +346,33 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    // For demo: return a simple success message. In production return a session or JWT.
-    return res.json({ success: true, message: 'login successful' });
+    
+    // Determine admin status: either from user record OR if email matches ADMIN_USER
+    const adminUser = process.env.ADMIN_USER;
+    const isAdmin = user.admin === true || (adminUser && email.toLowerCase() === adminUser.toLowerCase());
+    
+    // Issue JWT with email and admin status
+    const token = jwt.sign({ email: user.email, admin: isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    
+    return res.json({ success: true, token, admin: isAdmin, email: user.email });
   } catch (err) {
     console.error('login error', err.message);
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Validate JWT and return user info
+app.get('/api/auth/me', (req, res) => {
+  try {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'missing or invalid authorization header' });
+    }
+    const token = auth.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return res.json({ success: true, email: decoded.email, admin: decoded.admin || false });
+  } catch (err) {
+    return res.status(401).json({ error: 'invalid or expired token' });
   }
 });
 
@@ -571,7 +653,22 @@ app.get('/download/:id', (req, res) => {
 // accessible only to paying users.
 function requirePaidUser(req, res, next) {
   try {
-    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    
+    // If no email in headers/query/body, try to extract from Authorization Bearer token
+    if (!email) {
+      const auth = req.headers.authorization;
+      if (auth && auth.startsWith('Bearer ')) {
+        try {
+          const token = auth.split(' ')[1];
+          const decoded = jwt.verify(token, JWT_SECRET);
+          email = decoded.email;
+        } catch (e) {
+          // Invalid JWT, proceed without email
+        }
+      }
+    }
+    
     if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
