@@ -341,16 +341,28 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
+    // Generate unique User ID - format: SI-YYYYMMDD-XXXXX
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const userId = `SI-${dateStr}-${randomPart}`;
+    
     // Default role is 'user'. Admin role must be set manually in the data file or via admin endpoint
     const user = { 
+      userId,
       email: email.toLowerCase(), 
       passwordHash: hash, 
       role: 'user',
+      twoFactorEnabled: false,
       createdAt: new Date().toISOString() 
     };
     users.push(user);
     writeUsers(users);
-    return res.json({ success: true, message: 'signup successful' });
+    return res.json({ 
+      success: true, 
+      message: 'signup successful',
+      userId: userId,
+      email: email.toLowerCase()
+    });
   } catch (err) {
     console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
@@ -413,6 +425,132 @@ app.post('/api/auth/logout', (req, res) => {
   }
 });
 
+// Password reset request - sends 2FA code
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email, userId } = req.body;
+    if (!email) return res.status(400).json({ error: 'email or userId required' });
+    
+    const users = readUsers();
+    const user = users.find(u => 
+      u.email.toLowerCase() === email.toLowerCase() || 
+      (userId && u.userId === userId)
+    );
+    
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ success: true, message: '2FA code sent if account exists' });
+    }
+    
+    // Generate 6-digit 2FA code
+    const twoFactorCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpiry = Date.now() + (15 * 60 * 1000); // 15 minutes
+    
+    // Store 2FA code temporarily
+    user.passwordResetCode = twoFactorCode;
+    user.passwordResetExpiry = codeExpiry;
+    writeUsers(users);
+    
+    // Send 2FA code via email
+    await sendNotificationMail({
+      to: user.email,
+      subject: 'SmartInvest - Password Reset Code',
+      text: `Your password reset code is: ${twoFactorCode}\n\nThis code will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>Your password reset verification code is:</p>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0;">
+            ${twoFactorCode}
+          </div>
+          <p>This code will expire in 15 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
+        </div>
+      `
+    });
+    
+    return res.json({ 
+      success: true, 
+      message: '2FA code sent to your email',
+      userId: user.userId // Return userId for reference
+    });
+  } catch (err) {
+    console.error('forgot password error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify 2FA code and reset password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, userId, code, newPassword } = req.body;
+    if (!code || !newPassword) {
+      return res.status(400).json({ error: 'code and newPassword required' });
+    }
+    if ((!email && !userId)) {
+      return res.status(400).json({ error: 'email or userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => 
+      (email && u.email.toLowerCase() === email.toLowerCase()) || 
+      (userId && u.userId === userId)
+    );
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    const user = users[userIndex];
+    
+    // Verify 2FA code
+    if (!user.passwordResetCode || user.passwordResetCode !== code) {
+      return res.status(401).json({ error: 'invalid verification code' });
+    }
+    
+    // Check if code expired
+    if (!user.passwordResetExpiry || Date.now() > user.passwordResetExpiry) {
+      return res.status(401).json({ error: 'verification code expired' });
+    }
+    
+    // Reset password
+    const hash = bcrypt.hashSync(newPassword, 10);
+    users[userIndex].passwordHash = hash;
+    
+    // Clear reset code
+    delete users[userIndex].passwordResetCode;
+    delete users[userIndex].passwordResetExpiry;
+    
+    // Enable 2FA for this user
+    users[userIndex].twoFactorEnabled = true;
+    
+    writeUsers(users);
+    
+    // Send confirmation email
+    await sendNotificationMail({
+      to: user.email,
+      subject: 'SmartInvest - Password Reset Successful',
+      text: `Your password has been successfully reset. 2FA has been enabled for your account for additional security.\n\nIf you didn't make this change, please contact support immediately.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Password Reset Successful</h2>
+          <p>Your password has been successfully reset.</p>
+          <p><strong>Two-Factor Authentication (2FA) has been enabled</strong> for your account for additional security.</p>
+          <p style="color: #dc2626; font-weight: bold;">If you didn't make this change, please contact support immediately.</p>
+        </div>
+      `
+    });
+    
+    return res.json({ 
+      success: true, 
+      message: 'password reset successful. 2FA enabled for your account.'
+    });
+  } catch (err) {
+    console.error('reset password error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Middleware to verify JWT token
 function verifyToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1] || req.headers['x-access-token'];
@@ -452,8 +590,10 @@ app.get('/api/auth/me', verifyToken, (req, res) => {
     return res.json({
       success: true,
       user: {
+        userId: user.userId,
         email: user.email,
         role: user.role || 'user',
+        twoFactorEnabled: user.twoFactorEnabled || false,
         createdAt: user.createdAt
       }
     });

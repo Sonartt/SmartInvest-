@@ -32,14 +32,22 @@ const existing = users.find(u => u.email.toLowerCase() === adminEmail.toLowerCas
 if (existing) {
   console.log(`Admin user ${adminEmail} already exists. Updating role to admin...`);
   existing.role = 'admin';
+  if (!existing.userId) {
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
+    existing.userId = `SI-${dateStr}-ADMIN`;
+  }
   writeUsers(users);
 } else {
   console.log(`Creating admin user ${adminEmail}...`);
   const hash = bcrypt.hashSync(adminPassword, 10);
+  const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
   const user = {
+    userId: `SI-${dateStr}-ADMIN`,
     email: adminEmail.toLowerCase(),
     passwordHash: hash,
     role: 'admin',
+    twoFactorEnabled: false,
     createdAt: new Date().toISOString()
   };
   users.push(user);
@@ -49,5 +57,6 @@ if (existing) {
 console.log(`✓ Admin user ready:
   Email: ${adminEmail}
   Password: ${adminPassword}
+  User ID: SI-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-ADMIN
   
 Please change the password after first login in production!`);

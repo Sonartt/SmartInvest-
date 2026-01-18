@@ -120,12 +120,22 @@
           <h3 class="text-xl font-bold mb-4">Profile Settings</h3>
           <div class="space-y-4">
             <div>
+              <label class="block text-sm font-semibold mb-1">User ID</label>
+              <input type="text" id="profileUserId" readonly class="w-full border rounded px-3 py-2 bg-gray-100 font-mono" />
+              <p class="text-xs text-gray-500 mt-1">Save this ID for password recovery</p>
+            </div>
+            <div>
               <label class="block text-sm font-semibold mb-1">Email</label>
               <input type="email" id="profileEmail" readonly class="w-full border rounded px-3 py-2 bg-gray-100" />
             </div>
             <div>
               <label class="block text-sm font-semibold mb-1">Role</label>
               <input type="text" id="profileRole" readonly class="w-full border rounded px-3 py-2 bg-gray-100" />
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Two-Factor Authentication</label>
+              <input type="text" id="profile2FA" readonly class="w-full border rounded px-3 py-2 bg-gray-100" />
+              <p class="text-xs text-gray-500 mt-1">Automatically enabled after password reset</p>
             </div>
             <div>
               <label class="block text-sm font-semibold mb-1">Member Since</label>
@@ -164,8 +174,10 @@
 
         document.getElementById('userEmail').textContent = userInfo.email;
         document.getElementById('accountStatus').textContent = userInfo.role === 'admin' ? 'Admin' : 'User';
+        document.getElementById('profileUserId').value = userInfo.userId || '-';
         document.getElementById('profileEmail').value = userInfo.email;
         document.getElementById('profileRole').value = userInfo.role || 'user';
+        document.getElementById('profile2FA').value = userInfo.twoFactorEnabled ? 'Enabled' : 'Disabled';
         document.getElementById('profileCreatedAt').value = userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : '-';
         document.getElementById('memberSince').textContent = userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : '-';
 

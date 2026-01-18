@@ -454,8 +454,12 @@
             const res = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, acceptTerms }) });
             const data = await res.json();
             if (data.success) {
-                alert('Signup successful — you can now sign in.');
-                try { localStorage.setItem('si_user_email', email.toLowerCase()); } catch (e) {}
+                // Show user ID in alert
+                alert(`Signup successful!\n\nYour User ID: ${data.userId}\n\nPlease save this ID for password recovery.\n\nYou can now sign in with your email and password.`);
+                try { 
+                    localStorage.setItem('si_user_email', email.toLowerCase());
+                    localStorage.setItem('si_user_id', data.userId);
+                } catch (e) {}
                 event.target.reset();
             } else {
                 alert('Signup failed: ' + (data.error||''));
@@ -501,6 +505,120 @@
 
     function escapeHtml(s) { return String(s).replace(/[&<>"'`]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;","`":"&#96;"}[c]; }); }
 
+    // Forgot Password Functions
+    let resetUserId = null;
+    let resetEmail = null;
+
+    function showForgotPassword() {
+        document.getElementById('forgotPasswordForm').style.display = 'block';
+        document.getElementById('forgotStep1').style.display = 'block';
+        document.getElementById('forgotStep2').style.display = 'none';
+        document.getElementById('forgotMessage').textContent = '';
+    }
+
+    function hideForgotPassword() {
+        document.getElementById('forgotPasswordForm').style.display = 'none';
+        document.getElementById('forgotEmail').value = '';
+        document.getElementById('forgotUserId').value = '';
+        document.getElementById('resetCode').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('forgotMessage').textContent = '';
+        resetUserId = null;
+        resetEmail = null;
+    }
+
+    async function requestPasswordReset() {
+        const email = document.getElementById('forgotEmail').value.trim();
+        const userId = document.getElementById('forgotUserId').value.trim();
+        const msgDiv = document.getElementById('forgotMessage');
+
+        if (!email && !userId) {
+            msgDiv.textContent = 'Please enter your email or User ID';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, userId })
+            });
+
+            const data = await res.json();
+            
+            if (data.success) {
+                resetEmail = email;
+                resetUserId = data.userId || userId;
+                
+                msgDiv.textContent = 'Verification code sent! Check your email.';
+                msgDiv.className = 'mt-2 text-sm text-green-600';
+                
+                // Show step 2
+                document.getElementById('forgotStep1').style.display = 'none';
+                document.getElementById('forgotStep2').style.display = 'block';
+            } else {
+                msgDiv.textContent = 'Error: ' + (data.error || 'Failed to send code');
+                msgDiv.className = 'mt-2 text-sm text-red-600';
+            }
+        } catch (err) {
+            msgDiv.textContent = 'Network error. Please try again.';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+        }
+    }
+
+    async function resetPassword() {
+        const code = document.getElementById('resetCode').value.trim();
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const msgDiv = document.getElementById('forgotMessage');
+
+        if (!code || !newPassword || !confirmPassword) {
+            msgDiv.textContent = 'Please fill all fields';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            msgDiv.textContent = 'Passwords do not match';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            msgDiv.textContent = 'Password must be at least 6 characters';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: resetEmail, 
+                    userId: resetUserId,
+                    code, 
+                    newPassword 
+                })
+            });
+
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Password reset successful! 2FA has been enabled for your account.\n\nYou can now sign in with your new password.');
+                hideForgotPassword();
+            } else {
+                msgDiv.textContent = 'Error: ' + (data.error || 'Failed to reset password');
+                msgDiv.className = 'mt-2 text-sm text-red-600';
+            }
+        } catch (err) {
+            msgDiv.textContent = 'Network error. Please try again.';
+            msgDiv.className = 'mt-2 text-sm text-red-600';
+        }
+    }
+
     // When requesting download tokens, include purchaser email header if available
     async function requestDownloadToken(fileId) {
         const email = localStorage.getItem('si_user_email');
@@ -537,7 +655,36 @@
       />
 
             <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
+            
+            <div class="text-center">
+                <button type="button" onclick="showForgotPassword()" class="text-purple-600 text-sm hover:underline">Forgot Password?</button>
+            </div>
     </form>
+
+        <!-- Forgot Password Form -->
+        <div id="forgotPasswordForm" style="display:none;" class="mt-4 p-4 border border-purple-200 rounded-lg bg-purple-50">
+            <h3 class="text-lg font-semibold mb-3">Reset Password</h3>
+            <div id="forgotStep1" class="space-y-3">
+                <p class="text-sm text-gray-600">Enter your email or User ID to receive a verification code</p>
+                <input id="forgotEmail" type="email" placeholder="Email" class="w-full border border-gray-300 rounded px-4 py-2" />
+                <input id="forgotUserId" type="text" placeholder="User ID (optional)" class="w-full border border-gray-300 rounded px-4 py-2" />
+                <div class="flex gap-2">
+                    <button onclick="requestPasswordReset()" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Send Code</button>
+                    <button onclick="hideForgotPassword()" class="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+            <div id="forgotStep2" style="display:none;" class="space-y-3">
+                <p class="text-sm text-gray-600">Enter the 6-digit code sent to your email</p>
+                <input id="resetCode" type="text" placeholder="6-digit code" maxlength="6" class="w-full border border-gray-300 rounded px-4 py-2" />
+                <input id="newPassword" type="password" placeholder="New Password" class="w-full border border-gray-300 rounded px-4 py-2" />
+                <input id="confirmPassword" type="password" placeholder="Confirm New Password" class="w-full border border-gray-300 rounded px-4 py-2" />
+                <div class="flex gap-2">
+                    <button onclick="resetPassword()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Reset Password</button>
+                    <button onclick="hideForgotPassword()" class="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+            </div>
+            <div id="forgotMessage" class="mt-2 text-sm"></div>
+        </div>
 
         <hr class="my-6">
 
@@ -551,10 +698,6 @@
             </div>
             <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Sign Up</button>
         </form>
-
-    <p class="text-center text-sm text-gray-500 mt-4">
-      Demo only — no real authentication
-    </p>
   </div>
 </section>
 
