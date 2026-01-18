@@ -11,7 +11,11 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.warn('WARNING: JWT_SECRET not configured! Generating a random secret for this session.');
+  console.warn('This is NOT suitable for production. Set JWT_SECRET in your .env file.');
+  return require('crypto').randomBytes(64).toString('hex');
+})();
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
 
 // Basic auth for admin routes if ADMIN_USER is set
@@ -23,7 +27,10 @@ function adminAuth(req, res, next) {
   if (auth && auth.startsWith('Bearer ')) {
     try {
       const token = auth.split(' ')[1];
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET, {
+        issuer: 'smartinvest',
+        audience: 'smartinvest-api'
+      });
       if (decoded.admin === true) {
         req.adminEmail = decoded.email;
         return next();
@@ -352,7 +359,15 @@ app.post('/api/auth/login', async (req, res) => {
     const isAdmin = user.admin === true || (adminUser && email.toLowerCase() === adminUser.toLowerCase());
     
     // Issue JWT with email and admin status
-    const token = jwt.sign({ email: user.email, admin: isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign(
+      { email: user.email, admin: isAdmin },
+      JWT_SECRET,
+      { 
+        expiresIn: JWT_EXPIRES,
+        issuer: 'smartinvest',
+        audience: 'smartinvest-api'
+      }
+    );
     
     return res.json({ success: true, token, admin: isAdmin, email: user.email });
   } catch (err) {
@@ -369,10 +384,18 @@ app.get('/api/auth/me', (req, res) => {
       return res.status(401).json({ error: 'missing or invalid authorization header' });
     }
     const token = auth.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      issuer: 'smartinvest',
+      audience: 'smartinvest-api'
+    });
     return res.json({ success: true, email: decoded.email, admin: decoded.admin || false });
   } catch (err) {
-    return res.status(401).json({ error: 'invalid or expired token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'token expired' });
+    } else if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'invalid token' });
+    }
+    return res.status(401).json({ error: 'authentication failed' });
   }
 });
 
@@ -661,7 +684,10 @@ function requirePaidUser(req, res, next) {
       if (auth && auth.startsWith('Bearer ')) {
         try {
           const token = auth.split(' ')[1];
-          const decoded = jwt.verify(token, JWT_SECRET);
+          const decoded = jwt.verify(token, JWT_SECRET, {
+            issuer: 'smartinvest',
+            audience: 'smartinvest-api'
+          });
           email = decoded.email;
         } catch (e) {
           // Invalid JWT, proceed without email

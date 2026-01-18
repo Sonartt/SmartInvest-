@@ -443,7 +443,11 @@
 
     function authHeaders() {
         const token = localStorage.getItem('si_auth_token');
-        return token ? { 'Authorization': `Bearer ${token}` } : {};
+        // Validate token format (should be JWT with 3 parts separated by dots)
+        if (token && typeof token === 'string' && token.split('.').length === 3) {
+            return { 'Authorization': `Bearer ${token}` };
+        }
+        return {};
     }
 
     function handleLogout() {
