@@ -425,12 +425,12 @@
             if (data.success && data.token) {
                 localStorage.setItem('si_auth_token', data.token);
                 localStorage.setItem('si_user_email', email.toLowerCase());
-                localStorage.setItem('si_is_admin', data.isAdmin ? 'true' : 'false');
+                localStorage.setItem('si_is_admin', data.admin ? 'true' : 'false');
                 
                 alert('Sign in successful');
                 event.target.reset();
                 
-                if (data.isAdmin) {
+                if (data.admin) {
                     document.getElementById('admin-section').style.display = 'block';
                 }
             } else {
