@@ -29,10 +29,10 @@ MPESA_ENV=sandbox              # Use 'production' in production
 MPESA_NUMBER=171414           # Your business short code
 MPESA_PASSKEY=your_passkey    # From Safaricom
 MPESA_POCHI_NAME=SmartInvest  # Your business name
-MPESA_CALLBACK_URL=https://yourdomain.com/api/pochi/callback
+MPESA_CALLBACK_URL=https://smartinvestsi.com/api/pochi/callback
 
 # App Configuration
-APP_URL=https://yourdomain.com
+APP_URL=https://smartinvestsi.com
 ```
 
 ### 2. Get Credentials

@@ -10,7 +10,7 @@ MPESA_ENV=sandbox
 MPESA_NUMBER=171414                    # Your Pochi Short Code
 MPESA_PASSKEY=bfb279f9aa9bdbcf...     # From Safaricom
 MPESA_POCHI_NAME=SmartInvest
-MPESA_CALLBACK_URL=https://yourdomain.com/api/pochi/callback
+MPESA_CALLBACK_URL=https://smartinvestsi.com/api/pochi/callback
 ```
 
 ### 2. Mount Routes in server.js

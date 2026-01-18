@@ -171,6 +171,17 @@
         </div>
         <div id="reviewStatus" class="text-sm mt-2"></div>
       </div>
+
+      <div class="border-t pt-4 mt-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h3 class="font-semibold">All Payment Ledger</h3>
+            <p class="text-sm text-gray-600">Mpesa, PayPal, and manual KCB with user details</p>
+          </div>
+          <button onclick="loadPaymentsLedger()" class="bg-blue-600 text-white px-3 py-2 rounded">Load Payments</button>
+        </div>
+        <div id="paymentsLedger" class="text-sm text-gray-700 max-h-96 overflow-y-auto border rounded p-3 bg-gray-50">Click "Load Payments" to view the latest ledger.</div>
+      </div>
     </div>
 
     <!-- Email Tools Tab -->
@@ -698,6 +709,47 @@
         }
       } catch (e) {
         alert('Error: ' + e.message);
+      }
+    }
+
+    async function loadPaymentsLedger() {
+      try {
+        const res = await fetch('/api/admin/payments');
+        const data = await res.json();
+        const list = document.getElementById('paymentsLedger');
+
+        if (!data.success) {
+          list.innerHTML = '<div class="text-red-600">Error loading payments ledger.</div>';
+          return;
+        }
+
+        if (!data.payments.length) {
+          list.innerHTML = '<div class="text-gray-600">No payments recorded yet.</div>';
+          return;
+        }
+
+        const rows = data.payments.map(p => `
+          <div class="bg-white border rounded p-3 mb-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-xs uppercase tracking-wide text-gray-500">${p.provider}</div>
+                <div class="font-semibold">${p.amount ? p.amount : 'N/A'} ${p.currency || ''}</div>
+                <div class="text-xs text-gray-600">${p.fileTitle ? 'File: ' + p.fileTitle : ''}</div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs px-2 py-1 rounded bg-${p.status === 'success' || p.status === 'paid' ? 'green' : p.status === 'pending' ? 'yellow' : 'red'}-100">${p.status}</span><br>
+                <small class="text-gray-500">${p.createdAt || ''}</small>
+              </div>
+            </div>
+            <div class="text-xs text-gray-700 mt-2">User: ${p.email || 'N/A'} ${p.phone ? '(' + p.phone + ')' : ''}</div>
+            <div class="text-xs text-gray-600">Reference: ${p.reference || 'N/A'} ${p.receipt ? ' • Receipt: ' + p.receipt : ''}</div>
+            ${p.note ? `<div class="text-xs text-gray-600">Note: ${p.note}</div>` : ''}
+          </div>
+        `).join('');
+
+        list.innerHTML = rows;
+      } catch (e) {
+        document.getElementById('paymentsLedger').innerHTML = '<div class="text-red-600">Error loading payments</div>';
       }
     }
 

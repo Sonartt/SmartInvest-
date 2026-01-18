@@ -267,9 +267,51 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
-    const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
+    const user = { 
+      email: email.toLowerCase(), 
+      passwordHash: hash, 
+      createdAt: new Date().toISOString(),
+      isPremium: false,
+      activityLogs: [{ timestamp: new Date().toISOString(), action: 'account_created', ip: req.ip }]
+    };
     users.push(user);
     writeUsers(users);
+    
+    // Send welcome email with terms and conditions
+    const subject = 'Welcome to SmartInvest Africa — Terms & Conditions';
+    const html = `
+      <h2>Welcome to SmartInvest Africa!</h2>
+      <p>Thank you for creating an account. We're excited to help you on your investment journey.</p>
+      
+      <h3>Getting Started:</h3>
+      <ol>
+        <li>Explore our free resources and tools</li>
+        <li>Upgrade to Premium for full access to courses and advanced features</li>
+        <li>Join our community and connect with fellow investors</li>
+      </ol>
+
+      <h3>Terms & Conditions:</h3>
+      <p>By using SmartInvest Africa, you agree to:</p>
+      <ul>
+        <li>Provide accurate and truthful information</li>
+        <li>Use our services in compliance with all applicable laws</li>
+        <li>Respect intellectual property rights</li>
+        <li>Not engage in fraudulent or harmful activities</li>
+      </ul>
+
+      <h3>Privacy & Data Protection:</h3>
+      <p>Your data is protected under GDPR and local data protection laws. We never sell your information.</p>
+
+      <h3>Legal Disclaimer:</h3>
+      <p>SmartInvest Africa provides educational content only. We do not provide financial advice. 
+      All investment decisions are your own responsibility. Investments carry risk.</p>
+
+      <p>Full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Complete Terms</a></p>
+      
+      <p>Questions? Contact: ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
+    `;
+    sendNotificationMail({ to: email, subject, html });
+    
     return res.json({ success: true, message: 'signup successful' });
   } catch (err) {
     console.error('signup error', err.message);
@@ -286,10 +328,75 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    // For demo: return a simple success message. In production return a session or JWT.
-    return res.json({ success: true, message: 'login successful' });
+    
+    // Log activity
+    logUserActivity(email, 'login', req.ip);
+    
+    // Return user status including premium
+    return res.json({ 
+      success: true, 
+      message: 'login successful',
+      isPremium: user.isPremium || false,
+      premiumExpiresAt: user.premiumExpiresAt || null
+    });
   } catch (err) {
     console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Password reset request
+app.post('/api/auth/reset-password-request', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      // Don't reveal if email exists
+      return res.json({ success: true, message: 'If account exists, reset email sent' });
+    }
+    
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    writeUsers(users);
+    
+    // Send reset email with activity logs
+    sendPasswordResetEmail(email, token);
+    logUserActivity(email, 'password_reset_requested', req.ip);
+    
+    return res.json({ success: true, message: 'If account exists, reset email sent' });
+  } catch (err) {
+    console.error('reset password request error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Password reset confirm
+app.post('/api/auth/reset-password-confirm', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword required' });
+    
+    const users = readUsers();
+    const user = users.find(u => u.resetToken === token && u.resetTokenExpiry > Date.now());
+    if (!user) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    
+    // Update password
+    user.passwordHash = bcrypt.hashSync(newPassword, 10);
+    delete user.resetToken;
+    delete user.resetTokenExpiry;
+    writeUsers(users);
+    
+    logUserActivity(user.email, 'password_reset_completed', req.ip);
+    sendNotificationMail({ to: user.email, subject: 'Password Changed', text: 'Your SmartInvest password was successfully changed.' });
+    
+    return res.json({ success: true, message: 'Password reset successful' });
+  } catch (err) {
+    console.error('reset password confirm error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -320,6 +427,32 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
       const items = (stk && stk.CallbackMetadata && stk.CallbackMetadata.Item) || (body && body.CallbackMetadata && body.CallbackMetadata.Item) || [];
       const accItem = Array.isArray(items) ? items.find(i => (String(i.Name||i.name||'')).toLowerCase() === 'accountreference' || (String(i.Name||i.name||'')).toLowerCase() === 'account') : null;
       const acctVal = accItem && accItem.Value ? String(accItem.Value).trim() : null;
+      const resultCode = stk && stk.ResultCode !== undefined ? stk.ResultCode : null;
+      
+      // Auto-grant premium on successful payment
+      if (resultCode === 0) {
+        const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber' || i.name==='PhoneNumber') || items.find(i=>i.Name==='phone')) : null;
+        if (phone && phone.Value) {
+          const phoneNum = String(phone.Value);
+          const email = phoneNum + '@mpesa.local';
+          // Ensure user exists
+          const users = readUsers();
+          let user = users.find(u => u.email === email);
+          if (!user) {
+            user = {
+              email,
+              passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
+              createdAt: new Date().toISOString(),
+              createdVia: 'mpesa_payment',
+              phone: phoneNum
+            };
+            users.push(user);
+            writeUsers(users);
+          }
+          grantPremium(email, 30, 'mpesa_payment', 'system');
+        }
+      }
+      
       if (acctVal) {
         const files = readFilesMeta();
         const match = files.find(f => f.id === acctVal);
@@ -348,6 +481,26 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
     // Strict mapping: only honor explicit PayPal fields `custom_id`, `reference_id` or `invoice_id` matching a file id
     try {
       const resource = payload.resource || payload.body || payload;
+      const eventType = payload.event_type || '';
+      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
+      
+      // Auto-grant premium on successful payment
+      if ((eventType === 'PAYMENT.CAPTURE.COMPLETED' || eventType === 'CHECKOUT.ORDER.APPROVED') && payerEmail) {
+        const users = readUsers();
+        let user = users.find(u => u.email.toLowerCase() === payerEmail.toLowerCase());
+        if (!user) {
+          user = {
+            email: payerEmail.toLowerCase(),
+            passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
+            createdAt: new Date().toISOString(),
+            createdVia: 'paypal_payment'
+          };
+          users.push(user);
+          writeUsers(users);
+        }
+        grantPremium(payerEmail, 30, 'paypal_payment', 'system');
+      }
+      
       const files = readFilesMeta();
       let fileId = null;
       const pus = (resource.purchase_units || resource.purchaseUnits || []);
@@ -359,7 +512,6 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
         }
         if (fileId) break;
       }
-      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
       if (fileId) grantPurchase(fileId, payerEmail, 'paypal', { raw: payload });
     } catch (e) { console.error('paypal grant detection error', e.message); }
     return res.status(200).json({ received: true });
@@ -416,6 +568,14 @@ app.post('/api/pay/kcb/manual', (req, res) => {
 app.get('/api/admin/kcb-transfers', adminAuth, (req, res) => {
   try {
     const file = './transactions.json';
+
+// Consolidated payments ledger for admins
+app.get('/api/admin/payments', adminAuth, (req, res) => {
+  const files = readFilesMeta();
+  const payments = readTransactions().map(tx => summarizeTransaction(tx, files));
+  const purchases = readPurchases();
+  return res.json({ success: true, payments, purchases });
+});
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const only = arr.filter(t => t.provider === 'kcb_manual');
     return res.json({ success: true, transfers: only });
@@ -438,6 +598,24 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     if (note) arr[idx].note = note;
     fs.writeFileSync(file, JSON.stringify(arr, null, 2));
 
+    // Auto-grant premium to user
+    const email = arr[idx].email;
+    if (email) {
+      const users = readUsers();
+      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        user = {
+          email: email.toLowerCase(),
+          passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
+          createdAt: new Date().toISOString(),
+          createdVia: 'kcb_payment'
+        };
+        users.push(user);
+        writeUsers(users);
+      }
+      grantPremium(email, 30, 'kcb_manual_payment', process.env.ADMIN_USER || 'admin');
+    }
+
     // notify user
     sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer marked paid', text: `Your bank transfer of KES ${arr[idx].amount} has been marked as received. Thank you.` });
 
@@ -454,6 +632,87 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     return res.json({ success: true, transfer: arr[idx] });
   } catch (e) {
     console.error('mark paid error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: list all users with full details including premium status
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const sanitized = users.map(u => ({
+      email: u.email,
+      createdAt: u.createdAt,
+      createdVia: u.createdVia,
+      isPremium: u.isPremium || false,
+      premiumExpiresAt: u.premiumExpiresAt,
+      premiumGrantedAt: u.premiumGrantedAt,
+      premiumReason: u.premiumReason,
+      premiumGrantedBy: u.premiumGrantedBy,
+      phone: u.phone,
+      activityLogs: (u.activityLogs || []).slice(-10)
+    }));
+    return res.json({ success: true, users: sanitized });
+  } catch (e) {
+    console.error('admin users list error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: manually grant premium to a user
+app.post('/api/admin/grant-premium', adminAuth, (req, res) => {
+  try {
+    const { email, days, reason } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const daysNum = Number(days) || 30;
+    const grantedBy = process.env.ADMIN_USER || 'admin';
+    const user = grantPremium(email, daysNum, reason || 'manual_admin_grant', grantedBy);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    return res.json({ success: true, user: { email: user.email, isPremium: user.isPremium, premiumExpiresAt: user.premiumExpiresAt } });
+  } catch (e) {
+    console.error('grant premium error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: revoke premium from a user
+app.post('/api/admin/revoke-premium', adminAuth, (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user.isPremium = false;
+    user.premiumRevokedAt = new Date().toISOString();
+    delete user.premiumExpiresAt;
+    writeUsers(users);
+    sendNotificationMail({ to: email, subject: 'Premium Access Revoked', text: 'Your premium access has been revoked by an administrator.' });
+    return res.json({ success: true });
+  } catch (e) {
+    console.error('revoke premium error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: dashboard stats
+app.get('/api/admin/dashboard-stats', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const files = readFilesMeta();
+    const messages = readMessages();
+    const purchases = readPurchases();
+    const premiumUsers = users.filter(u => u.isPremium && (!u.premiumExpiresAt || new Date(u.premiumExpiresAt) > new Date()));
+    return res.json({
+      success: true,
+      totalUsers: users.length,
+      premiumUsers: premiumUsers.length,
+      filesCount: files.length,
+      pendingMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
+      totalPurchases: purchases.length
+    });
+  } catch (e) {
+    console.error('dashboard stats error', e.message);
     return res.status(500).json({ error: e.message });
   }
 });
@@ -565,6 +824,96 @@ app.get('/download/:id', (req, res) => {
 
 // (uploads/data initialization handled earlier in file)
 
+// Read saved transactions from disk (mpesa, paypal, kcb_manual, etc.)
+function readTransactions() {
+  try {
+    const file = './transactions.json';
+    if (!fs.existsSync(file)) return [];
+    const raw = fs.readFileSync(file, 'utf8') || '[]';
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('readTransactions error', e.message);
+    return [];
+  }
+}
+
+// Summarize a raw transaction into a compact, admin-friendly shape
+function summarizeTransaction(tx, files = []) {
+  const base = {
+    provider: tx.provider || 'unknown',
+    createdAt: tx.timestamp || tx.time || new Date().toISOString(),
+    status: tx.status || 'pending',
+    amount: tx.amount || null,
+    currency: tx.currency || null,
+    email: tx.email || null,
+    phone: tx.phone || null,
+    reference: tx.reference || null,
+    receipt: tx.receipt || null,
+    note: tx.note || null
+  };
+
+  const cleanLower = (s) => (s ? String(s).toLowerCase() : '');
+
+  // Provider-specific enrichment
+  if ((tx.provider || '').toLowerCase() === 'mpesa') {
+    const payload = tx.payload || {};
+    const body = payload.Body || payload.body || payload;
+    const stk = (body && (body.stkCallback || body.STKCallback)) || body || {};
+    const items = (stk.CallbackMetadata && stk.CallbackMetadata.Item) || [];
+    const findItem = (name) => items.find(i => cleanLower(i.Name) === name || cleanLower(i.name) === name);
+    const amount = findItem('amount')?.Value || null;
+    const phone = findItem('phonenumber')?.Value || findItem('msisdn')?.Value || null;
+    const receipt = findItem('mpesareceiptnumber')?.Value || null;
+    const account = findItem('accountreference')?.Value || findItem('account')?.Value || null;
+    const resultCode = stk.ResultCode;
+    const status = resultCode === 0 ? 'success' : (resultCode === 1032 ? 'timeout' : 'failed');
+
+    base.amount = amount || base.amount;
+    base.currency = 'KES';
+    base.phone = phone || base.phone;
+    base.email = base.email || (phone ? `${phone}@mpesa.local` : null);
+    base.reference = account || base.reference;
+    base.receipt = receipt || base.receipt;
+    base.status = status || base.status;
+    base.description = stk.ResultDesc || base.description;
+  }
+
+  if ((tx.provider || '').toLowerCase() === 'paypal') {
+    const payload = tx.payload || {};
+    const resource = payload.resource || payload.body || payload;
+    const pu = (resource.purchase_units || resource.purchaseUnits || [])[0] || {};
+    const amountObj = pu.amount || {};
+    const amount = Number(amountObj.value || base.amount) || null;
+    const currency = amountObj.currency_code || base.currency || 'USD';
+    const reference = pu.custom_id || pu.reference_id || pu.invoice_id || base.reference;
+    const email = resource?.payer?.email_address || base.email;
+    const status = resource?.status || payload?.event_type || base.status;
+
+    base.amount = amount;
+    base.currency = currency;
+    base.reference = reference;
+    base.email = email;
+    base.status = status;
+  }
+
+  if ((tx.provider || '').toLowerCase() === 'kcb_manual') {
+    base.status = tx.status || base.status;
+    base.amount = tx.amount || base.amount;
+    base.currency = base.currency || 'KES';
+    base.email = tx.email || base.email;
+    base.reference = tx.reference || base.reference;
+    base.account = tx.account || null;
+  }
+
+  // Map reference to a file name if possible
+  if (base.reference) {
+    const match = files.find(f => f.id === base.reference);
+    if (match) base.fileTitle = match.title;
+  }
+
+  return base;
+}
+
 // Middleware: require that the requester is a purchaser. Checks for purchaser email
 // in header `x-user-email`, query `email` or request body `email`. Returns 402
 // if no purchase found for that email. This enforces that file listings are
@@ -585,8 +934,175 @@ function requirePaidUser(req, res, next) {
   }
 }
 
+// Middleware: require premium access (admin bypass allowed)
+function requirePremium(req, res, next) {
+  try {
+    // Admin bypass: check for admin auth
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith('Basic ')) {
+      const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+      const [user, pass] = creds.split(':');
+      if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
+        req.isAdmin = true;
+        return next();
+      }
+    }
+    
+    // Check for user email and premium status
+    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    if (!email) return res.status(402).json({ error: 'Premium access required: please sign in', premiumRequired: true });
+    
+    const e = String(email).toLowerCase();
+    if (!hasPremium(e)) {
+      return res.status(402).json({ 
+        error: 'Premium subscription required', 
+        premiumRequired: true,
+        upgradeUrl: `${process.env.BASE_URL || ''}/premium`
+      });
+    }
+    
+    req.userEmail = e;
+    return next();
+  } catch (e) {
+    console.error('requirePremium error', e && e.message);
+    return res.status(500).json({ error: 'server error' });
+  }
+}
+
 function readScenarios(){ try { return JSON.parse(fs.readFileSync(SCENARIOS_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeScenarios(d){ fs.writeFileSync(SCENARIOS_FILE, JSON.stringify(d, null, 2)); }
+
+// Grant premium access to a user (by email) for specified days
+function grantPremium(email, days = 30, reason = 'payment', grantedBy = 'system') {
+  try {
+    if (!email) return null;
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return null;
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    user.isPremium = true;
+    user.premiumExpiresAt = expiresAt;
+    user.premiumGrantedAt = new Date().toISOString();
+    user.premiumReason = reason;
+    user.premiumGrantedBy = grantedBy;
+    writeUsers(users);
+    // Send premium welcome email with terms and content details
+    sendPremiumWelcomeEmail(email);
+    return user;
+  } catch (e) {
+    console.error('grantPremium error', e.message);
+    return null;
+  }
+}
+
+// Check if user has active premium
+function hasPremium(email) {
+  try {
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user || !user.isPremium) return false;
+    if (user.premiumExpiresAt && new Date(user.premiumExpiresAt) < new Date()) {
+      user.isPremium = false;
+      writeUsers(users);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Send welcome email with terms, laws, conditions, and premium content description
+function sendPremiumWelcomeEmail(email) {
+  const subject = 'Welcome to SmartInvest Premium — Terms & Content Access';
+  const html = `
+    <h2>Welcome to SmartInvest Premium!</h2>
+    <p>Thank you for joining SmartInvest Africa Premium. Your account now has full access to exclusive content.</p>
+    
+    <h3>Premium Content Includes:</h3>
+    <ul>
+      <li><strong>Investment Academy:</strong> 50+ video lessons covering Investing 101, Trading Essentials, SME Funding, and Digital Assets</li>
+      <li><strong>Advanced Tools:</strong> Portfolio tracker, risk profiler, AI-powered recommendations</li>
+      <li><strong>VIP Community:</strong> Exclusive forum, weekly webinars, and direct mentor access</li>
+      <li><strong>Premium Files:</strong> Downloadable resources, templates, and guides</li>
+    </ul>
+
+    <h3>Terms and Conditions:</h3>
+    <p>By using SmartInvest Premium, you agree to:</p>
+    <ul>
+      <li>Use content for personal educational purposes only</li>
+      <li>Not share, redistribute, or resell any premium content</li>
+      <li>Respect intellectual property rights of all materials</li>
+      <li>Comply with all applicable laws and regulations in your jurisdiction</li>
+    </ul>
+
+    <h3>Legal Framework:</h3>
+    <p>SmartInvest Africa operates under:</p>
+    <ul>
+      <li>Data Protection: GDPR and local data protection laws</li>
+      <li>Financial Services: Licensed under applicable African financial regulations</li>
+      <li>Consumer Protection: Full compliance with consumer rights legislation</li>
+      <li>Anti-Money Laundering (AML): KYC procedures as required by law</li>
+    </ul>
+
+    <h3>Disclaimer:</h3>
+    <p>Investment education and tools are provided for informational purposes. SmartInvest Africa does not provide financial advice. 
+    All investment decisions are your responsibility. Past performance does not guarantee future results.</p>
+
+    <p>For full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Terms & Conditions</a></p>
+    
+    <p>Questions? Contact us at ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
+  `;
+  const text = `Welcome to SmartInvest Premium! You now have access to: Investment Academy (50+ lessons), Advanced Tools, VIP Community, and Premium Files. By using our service you agree to our Terms & Conditions and applicable laws. Full terms at ${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html`;
+  sendNotificationMail({ to: email, subject, html, text });
+}
+
+// Send password reset email with user activity logs
+function sendPasswordResetEmail(email, resetToken) {
+  try {
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return;
+    
+    const logs = user.activityLogs || [];
+    const recentLogs = logs.slice(-10).reverse();
+    const logHtml = recentLogs.map(l => `<li>${l.timestamp}: ${l.action} ${l.ip ? '(IP: ' + l.ip + ')' : ''}</li>`).join('');
+    
+    const subject = 'Password Reset Request — SmartInvest';
+    const resetUrl = `${process.env.BASE_URL || 'https://smartinvest.africa'}/reset-password?token=${resetToken}`;
+    const html = `
+      <h2>Password Reset Request</h2>
+      <p>We received a request to reset your password for ${email}.</p>
+      <p><a href="${resetUrl}" style="background: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a></p>
+      <p>This link expires in 1 hour.</p>
+      
+      <h3>Recent Account Activity:</h3>
+      <ul>${logHtml || '<li>No recent activity</li>'}</ul>
+      
+      <p><small>If you didn't request this reset, please ignore this email and contact support immediately.</small></p>
+    `;
+    const text = `Password reset requested for ${email}. Reset link: ${resetUrl} (expires in 1 hour). Recent activity: ${recentLogs.map(l => l.timestamp + ': ' + l.action).join('; ')}`;
+    sendNotificationMail({ to: email, subject, html, text });
+  } catch (e) {
+    console.error('sendPasswordResetEmail error', e.message);
+  }
+}
+
+// Log user activity
+function logUserActivity(email, action, ip = null) {
+  try {
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return;
+    user.activityLogs = user.activityLogs || [];
+    user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
+    // Keep only last 100 logs
+    if (user.activityLogs.length > 100) user.activityLogs = user.activityLogs.slice(-100);
+    writeUsers(users);
+  } catch (e) {
+    console.error('logUserActivity error', e.message);
+  }
+}
 
 // Grant a purchase for a fileId and email (idempotent)
 function grantPurchase(fileId, email, provider='manual', meta={}){
@@ -611,15 +1127,15 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
 
 // Multer setup (already defined earlier)
 
-// Scenarios endpoints: store/load/delete simple calculator scenarios
-app.get('/api/scenarios', (req, res) => {
+// Scenarios endpoints: store/load/delete simple calculator scenarios (premium required)
+app.get('/api/scenarios', requirePremium, (req, res) => {
   try {
     const list = readScenarios();
     return res.json({ success: true, scenarios: list });
   } catch (e) { console.error('scenarios list error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/scenarios/:id', (req, res) => {
+app.get('/api/scenarios/:id', requirePremium, (req, res) => {
   try {
     const id = req.params.id;
     const list = readScenarios();
@@ -629,7 +1145,7 @@ app.get('/api/scenarios/:id', (req, res) => {
   } catch (e) { console.error('get scenario error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/scenarios', express.json(), (req, res) => {
+app.post('/api/scenarios', requirePremium, express.json(), (req, res) => {
   try {
     const body = req.body || {};
     const name = body.name || ('scenario-' + Date.now());
@@ -893,5 +1409,249 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
+
+// Premium Academy Content API (requires premium subscription)
+app.get('/api/academy/courses', requirePremium, (req, res) => {
+  const courses = [
+    { id: 'investing-101', title: 'Investing 101', level: 'Beginner', lessons: 15, duration: '3 hours' },
+    { id: 'trading-essentials', title: 'Trading Essentials', level: 'Intermediate', lessons: 20, duration: '5 hours' },
+    { id: 'sme-funding', title: 'SME Funding Readiness', level: 'SME', lessons: 12, duration: '4 hours' },
+    { id: 'digital-assets', title: 'Digital Assets & Crypto', level: 'Advanced', lessons: 18, duration: '6 hours' }
+  ];
+  return res.json({ success: true, courses });
+});
+
+app.get('/api/academy/courses/:id', requirePremium, (req, res) => {
+  const courseContent = {
+    'investing-101': { title: 'Investing 101', modules: ['Basics', 'Risk Management', 'Diversification'] },
+    'trading-essentials': { title: 'Trading Essentials', modules: ['Market Analysis', 'Trading Psychology', 'Risk Control'] },
+    'sme-funding': { title: 'SME Funding Readiness', modules: ['Pitching', 'Valuation', 'Investor Relations'] },
+    'digital-assets': { title: 'Digital Assets & Crypto', modules: ['Custody', 'Security', 'Strategy'] }
+  };
+  const course = courseContent[req.params.id];
+  if (!course) return res.status(404).json({ error: 'Course not found' });
+  return res.json({ success: true, course });
+});
+
+// Premium Tools API
+app.get('/api/tools/portfolio', requirePremium, (req, res) => {
+  return res.json({ success: true, message: 'Portfolio tracker data', isPremium: true });
+});
+
+app.get('/api/tools/risk-profiler', requirePremium, (req, res) => {
+  return res.json({ success: true, message: 'Risk profiler data', isPremium: true });
+});
+
+app.get('/api/tools/recommendations', requirePremium, (req, res) => {
+  return res.json({ success: true, message: 'AI recommendations', isPremium: true });
+});
+
+app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
+
+// Serve download by token
+app.get('/download/:token', (req, res) => {
+  try {
+    const token = req.params.token;
+    const tokens = readTokens();
+    const entry = tokens[token];
+    if (!entry) return res.status(404).send('Invalid or expired token');
+    if (Date.now() > entry.expireAt) { delete tokens[token]; writeTokens(tokens); return res.status(410).send('Token expired'); }
+    const files = readFilesMeta(); const file = files.find(f=>f.id===entry.fileId);
+    if (!file) return res.status(404).send('File not found');
+    const filePath = path.join(UPLOADS_DIR, file.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).send('File missing');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName.replace(/\"/g,'') }"`);
+    return res.sendFile(filePath);
+  } catch(e){ console.error('download error', e.message); return res.status(500).send('Server error'); }
+});
+
+// CSV export of KCB manual transfers
+app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
+  try {
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const rows = arr.filter(t => t.provider === 'kcb_manual');
+    const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
+    const csv = [header.join(',')].concat(rows.map(r => {
+      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    })).join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error('export error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Reconcile bank entries: accepts JSON { entries: [...] }
+app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body) ? req.body : (req.body.entries || []);
+    if (!incoming || !incoming.length) return res.status(400).json({ error: 'no entries provided' });
+    const file = './transactions.json';
+    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+    const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
+    const results = { matched: [], unmatched: [] };
+    incoming.forEach(entry => {
+      const ref = (entry.reference || entry.ref || '').toString().trim();
+      const amt = Number(entry.amount || entry.value || 0);
+      let found = null;
+      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
+      if (!found) {
+        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
+      }
+      if (found) {
+        const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
+        arr[idx].status = 'paid';
+        arr[idx].paidAt = new Date().toISOString();
+        arr[idx].reconciledWith = entry;
+        results.matched.push({ transaction: arr[idx], entry });
+        // notify user
+        sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
+      } else {
+        results.unmatched.push(entry);
+      }
+    });
+    fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+    return res.json({ success: true, summary: { matched: results.matched.length, unmatched: results.unmatched.length }, results });
+  } catch (e) {
+    console.error('reconcile error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// Serve tools folder (static files like the investment calculator)
+app.use('/tools', express.static(path.join(__dirname, 'tools')));
+
+// Add / replace snippets in server.js as instructed below
+
+// 1) Near top of server.js (with the other requires) add:
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+// (Ensure bcrypt, fs, uuidv4 etc. remain where they are)
+
+// 2) After you initialize Express / after app.use(bodyParser.json()); add:
+app.use(cookieParser());
+
+// 3) Add config constants (near other config/env usage)
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
+
+// 4) Add the helper verifyTokenFromReq (place near other helpers)
+function verifyTokenFromReq(req) {
+  const auth = (req.headers.authorization || '').toString();
+  let token = null;
+  if (auth && auth.startsWith('Bearer ')) token = auth.split(' ')[1];
+  if (!token && req.cookies && req.cookies.si_token) token = req.cookies.si_token;
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    return null;
+  }
+}
+
+// 5) Replace the existing adminAuth implementation with this one
+function adminAuth(req, res, next) {
+  const adminUserEnv = process.env.ADMIN_USER;
+  const payload = verifyTokenFromReq(req);
+  if (payload && payload.admin) {
+    req.user = { email: payload.email, admin: true };
+    return next();
+  }
+
+  // Fallback: Basic auth if ADMIN_USER configured
+  const auth = (req.headers.authorization || '').toString();
+  if (adminUserEnv && auth && auth.startsWith('Basic ')) {
+    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+    const [user, pass] = creds.split(':');
+    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
+      req.user = { email: user, admin: true };
+      return next();
+    }
+    res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
+    return res.status(401).end('Unauthorized');
+  }
+
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+// 6) Replace/augment requirePaidUser to accept session cookie email
+function requirePaidUser(req, res, next) {
+  try {
+    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    if (!email) {
+      const payload = verifyTokenFromReq(req);
+      if (payload && payload.email) email = payload.email;
+    }
+    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email= or sign in' });
+    const e = String(email).toLowerCase();
+    const purchases = readPurchases();
+    const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
+    if (!ok) return res.status(402).json({ error: 'No purchases found for this email' });
+    req.purchaserEmail = e;
+    return next();
+  } catch (e) {
+    console.error('requirePaidUser error', e && e.message);
+    return res.status(500).json({ error: 'server error' });
+  }
+}
+
+// 7) Update /api/auth/login to set HttpOnly cookie (replace existing handler)
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+
+    // Determine admin flag: explicit user.admin OR ADMIN_USER env match
+    const isAdmin = !!((process.env.ADMIN_USER && String(email).toLowerCase() === String(process.env.ADMIN_USER).toLowerCase()) || user.admin);
+
+    const token = jwt.sign({ email: user.email, admin: !!isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+
+    // Cookie options
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: (function() {
+        const m = String(JWT_EXPIRES || '12h');
+        if (/^\d+$/.test(m)) return Number(m) * 1000;
+        const match = m.match(/^(\d+)h$/);
+        if (match) return Number(match[1]) * 60 * 60 * 1000;
+        return 1000 * 60 * 60 * 12;
+      })()
+    };
+    res.cookie('si_token', token, cookieOptions);
+
+    return res.json({ success: true, email: user.email, admin: !!isAdmin });
+  } catch (err) {
+    console.error('login error', err && err.message);
+    return res.status(500).json({ error: err && err.message });
+  }
+});
+
+// 8) Add logout endpoint to clear cookie
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('si_token', { path: '/' });
+  return res.json({ success: true });
+});
+
+// 9) Add /api/auth/me to introspect token (header or cookie)
+app.get('/api/auth/me', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
+  return res.json({ success: true, email: payload.email, admin: !!payload.admin });
+});
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
