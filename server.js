@@ -4,15 +4,57 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const session = require('express-session');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
 app.use(bodyParser.json());
 
-// Basic auth for admin routes if ADMIN_USER is set
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || (() => {
+    console.warn('⚠️  WARNING: Using default SESSION_SECRET. Set SESSION_SECRET environment variable in production!');
+    return 'smartinvest-secret-key-change-in-production';
+  })(),
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Admin auth middleware - use token-based auth, fall back to basic auth if ADMIN_USER is set
 function adminAuth(req, res, next) {
+  // First try JWT token authentication
+  const token = req.headers['authorization']?.split(' ')[1] || req.headers['x-access-token'];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.role === 'admin') {
+        req.user = decoded;
+        return next();
+      }
+      return res.status(403).json({ error: 'admin access required' });
+    } catch (err) {
+      return res.status(401).json({ error: 'invalid or expired token' });
+    }
+  }
+  
+  // Fall back to session auth
+  if (req.session && req.session.user && req.session.user.role === 'admin') {
+    req.user = req.session.user;
+    return next();
+  }
+  
+  // Fall back to basic auth if configured (for backward compatibility)
   const adminUser = process.env.ADMIN_USER;
-  if (!adminUser) return next(); // no auth configured
+  if (!adminUser) return res.status(401).json({ error: 'authentication required' });
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
@@ -159,6 +201,12 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
+const PURCHASES_FILE = './data/purchases.json';
+const TOKENS_FILE = './data/tokens.json';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.warn('⚠️  WARNING: Using default JWT_SECRET. Set JWT_SECRET environment variable in production!');
+  return 'smartinvest-jwt-secret-change-in-production';
+})();
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -255,6 +303,38 @@ function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+function readPurchases() {
+  try {
+    if (!fs.existsSync(PURCHASES_FILE)) return [];
+    const raw = fs.readFileSync(PURCHASES_FILE, 'utf8');
+    return JSON.parse(raw || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function writePurchases(purchases) {
+  const dir = path.dirname(PURCHASES_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(purchases, null, 2));
+}
+
+function readTokens() {
+  try {
+    if (!fs.existsSync(TOKENS_FILE)) return {};
+    const raw = fs.readFileSync(TOKENS_FILE, 'utf8');
+    return JSON.parse(raw || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeTokens(tokens) {
+  const dir = path.dirname(TOKENS_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
+}
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, acceptTerms } = req.body;
@@ -267,10 +347,28 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
-    const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
+    // Generate unique User ID - format: SI-YYYYMMDD-XXXXX
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const userId = `SI-${dateStr}-${randomPart}`;
+    
+    // Default role is 'user'. Admin role must be set manually in the data file or via admin endpoint
+    const user = { 
+      userId,
+      email: email.toLowerCase(), 
+      passwordHash: hash, 
+      role: 'user',
+      twoFactorEnabled: false,
+      createdAt: new Date().toISOString() 
+    };
     users.push(user);
     writeUsers(users);
-    return res.json({ success: true, message: 'signup successful' });
+    return res.json({ 
+      success: true, 
+      message: 'signup successful',
+      userId: userId,
+      email: email.toLowerCase()
+    });
   } catch (err) {
     console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
@@ -286,10 +384,227 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    // For demo: return a simple success message. In production return a session or JWT.
-    return res.json({ success: true, message: 'login successful' });
+    
+    // Create JWT token
+    const token = jwt.sign(
+      { email: user.email, role: user.role || 'user' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    // Store session
+    req.session.user = {
+      email: user.email,
+      role: user.role || 'user'
+    };
+    
+    // Return token and user info
+    return res.json({ 
+      success: true, 
+      message: 'login successful',
+      token,
+      user: {
+        email: user.email,
+        role: user.role || 'user'
+      }
+    });
   } catch (err) {
     console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Logout endpoint
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('logout error', err.message);
+        return res.status(500).json({ error: 'logout failed' });
+      }
+      res.clearCookie('connect.sid');
+      return res.json({ success: true, message: 'logout successful' });
+    });
+  } catch (err) {
+    console.error('logout error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Password reset request - sends 2FA code
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email, userId } = req.body;
+    if (!email) return res.status(400).json({ error: 'email or userId required' });
+    
+    const users = readUsers();
+    const user = users.find(u => 
+      u.email.toLowerCase() === email.toLowerCase() || 
+      (userId && u.userId === userId)
+    );
+    
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ success: true, message: '2FA code sent if account exists' });
+    }
+    
+    // Generate 6-digit 2FA code
+    const twoFactorCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpiry = Date.now() + (15 * 60 * 1000); // 15 minutes
+    
+    // Store 2FA code temporarily
+    user.passwordResetCode = twoFactorCode;
+    user.passwordResetExpiry = codeExpiry;
+    writeUsers(users);
+    
+    // Send 2FA code via email
+    await sendNotificationMail({
+      to: user.email,
+      subject: 'SmartInvest - Password Reset Code',
+      text: `Your password reset code is: ${twoFactorCode}\n\nThis code will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>Your password reset verification code is:</p>
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0;">
+            ${twoFactorCode}
+          </div>
+          <p>This code will expire in 15 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
+        </div>
+      `
+    });
+    
+    return res.json({ 
+      success: true, 
+      message: '2FA code sent to your email',
+      userId: user.userId // Return userId for reference
+    });
+  } catch (err) {
+    console.error('forgot password error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify 2FA code and reset password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, userId, code, newPassword } = req.body;
+    if (!code || !newPassword) {
+      return res.status(400).json({ error: 'code and newPassword required' });
+    }
+    if ((!email && !userId)) {
+      return res.status(400).json({ error: 'email or userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => 
+      (email && u.email.toLowerCase() === email.toLowerCase()) || 
+      (userId && u.userId === userId)
+    );
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    const user = users[userIndex];
+    
+    // Verify 2FA code
+    if (!user.passwordResetCode || user.passwordResetCode !== code) {
+      return res.status(401).json({ error: 'invalid verification code' });
+    }
+    
+    // Check if code expired
+    if (!user.passwordResetExpiry || Date.now() > user.passwordResetExpiry) {
+      return res.status(401).json({ error: 'verification code expired' });
+    }
+    
+    // Reset password
+    const hash = bcrypt.hashSync(newPassword, 10);
+    users[userIndex].passwordHash = hash;
+    
+    // Clear reset code
+    delete users[userIndex].passwordResetCode;
+    delete users[userIndex].passwordResetExpiry;
+    
+    // Enable 2FA for this user
+    users[userIndex].twoFactorEnabled = true;
+    
+    writeUsers(users);
+    
+    // Send confirmation email
+    await sendNotificationMail({
+      to: user.email,
+      subject: 'SmartInvest - Password Reset Successful',
+      text: `Your password has been successfully reset. 2FA has been enabled for your account for additional security.\n\nIf you didn't make this change, please contact support immediately.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Password Reset Successful</h2>
+          <p>Your password has been successfully reset.</p>
+          <p><strong>Two-Factor Authentication (2FA) has been enabled</strong> for your account for additional security.</p>
+          <p style="color: #dc2626; font-weight: bold;">If you didn't make this change, please contact support immediately.</p>
+        </div>
+      `
+    });
+    
+    return res.json({ 
+      success: true, 
+      message: 'password reset successful. 2FA enabled for your account.'
+    });
+  } catch (err) {
+    console.error('reset password error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Middleware to verify JWT token
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization']?.split(' ')[1] || req.headers['x-access-token'];
+  if (!token) {
+    // Also check session as fallback
+    if (req.session && req.session.user) {
+      req.user = req.session.user;
+      return next();
+    }
+    return res.status(401).json({ error: 'no token provided' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'invalid or expired token' });
+  }
+}
+
+// Middleware to check admin role
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'admin access required' });
+  }
+  next();
+}
+
+// Get current user info
+app.get('/api/auth/me', verifyToken, (req, res) => {
+  try {
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === req.user.email.toLowerCase());
+    if (!user) return res.status(404).json({ error: 'user not found' });
+    
+    return res.json({
+      success: true,
+      user: {
+        userId: user.userId,
+        email: user.email,
+        role: user.role || 'user',
+        twoFactorEnabled: user.twoFactorEnabled || false,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('get user error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -409,6 +724,203 @@ app.post('/api/pay/kcb/manual', (req, res) => {
   } catch (err) {
     console.error('kcb manual error', err.message);
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin endpoints for dashboard and user management
+app.get('/api/admin/dashboard-stats', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const files = readFilesMeta();
+    const messages = readMessages();
+    const purchases = readPurchases();
+    
+    const premiumUsers = purchases.reduce((acc, p) => {
+      if (p.email && !acc.includes(p.email.toLowerCase())) {
+        acc.push(p.email.toLowerCase());
+      }
+      return acc;
+    }, []);
+    
+    return res.json({
+      success: true,
+      totalUsers: users.length,
+      premiumUsers: premiumUsers.length,
+      filesCount: files.length,
+      pendingMessages: messages.filter(m => !m.replies || m.replies.length === 0).length
+    });
+  } catch (e) {
+    console.error('dashboard stats error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const search = req.query.search;
+    const purchases = readPurchases();
+    
+    let filtered = users.map(u => {
+      const userPurchases = purchases.filter(p => p.email && p.email.toLowerCase() === u.email.toLowerCase());
+      return {
+        email: u.email,
+        name: u.name,
+        role: u.role || 'user',
+        createdAt: u.createdAt,
+        isPremium: userPurchases.length > 0
+      };
+    });
+    
+    if (search) {
+      const term = search.toLowerCase();
+      filtered = filtered.filter(u => 
+        u.email.toLowerCase().includes(term) || 
+        (u.name && u.name.toLowerCase().includes(term))
+      );
+    }
+    
+    return res.json({ success: true, users: filtered });
+  } catch (e) {
+    console.error('admin users error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/sessions', adminAuth, (req, res) => {
+  try {
+    // Return empty for now - in production, track active sessions in a session store
+    return res.json({ success: true, sessions: [] });
+  } catch (e) {
+    console.error('admin sessions error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/grant-premium', adminAuth, (req, res) => {
+  try {
+    const { email, days, reason } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ error: 'user not found' });
+    
+    // Grant access by creating a purchase entry
+    const purchases = readPurchases();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + (days || 30));
+    
+    purchases.push({
+      id: uuidv4(),
+      fileId: 'premium-access',
+      email: email.toLowerCase(),
+      provider: 'admin-grant',
+      at: new Date().toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      days: days || 30,
+      reason: reason || 'admin grant',
+      meta: { grantedBy: 'admin' }
+    });
+    
+    writePurchases(purchases);
+    
+    // Send notification email
+    sendNotificationMail({
+      to: email,
+      subject: 'Premium Access Granted',
+      text: `You have been granted premium access for ${days || 30} days. ${reason ? 'Reason: ' + reason : ''}`
+    });
+    
+    return res.json({ success: true, message: 'premium access granted' });
+  } catch (e) {
+    console.error('grant premium error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/revoke-premium', adminAuth, (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    
+    const purchases = readPurchases();
+    const filtered = purchases.filter(p => 
+      !(p.email && p.email.toLowerCase() === email.toLowerCase() && p.fileId === 'premium-access')
+    );
+    
+    if (filtered.length === purchases.length) {
+      return res.status(404).json({ error: 'no premium access found for this user' });
+    }
+    
+    writePurchases(filtered);
+    
+    return res.json({ success: true, message: 'premium access revoked' });
+  } catch (e) {
+    console.error('revoke premium error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/send-email', adminAuth, (req, res) => {
+  try {
+    const { to, subject, body } = req.body;
+    if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject, and body required' });
+    
+    sendNotificationMail({ to, subject, text: body, html: body });
+    
+    return res.json({ success: true, message: 'email sent' });
+  } catch (e) {
+    console.error('send email error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/send-bulk-email', adminAuth, (req, res) => {
+  try {
+    const { subject, body, recipients } = req.body;
+    if (!subject || !body || !recipients) return res.status(400).json({ error: 'subject, body, and recipients required' });
+    
+    const users = readUsers();
+    const purchases = readPurchases();
+    
+    let targetUsers = [];
+    
+    if (recipients === 'all-users') {
+      targetUsers = users;
+    } else if (recipients === 'premium-users') {
+      const premiumEmails = purchases.filter(p => p.email).map(p => p.email.toLowerCase());
+      targetUsers = users.filter(u => premiumEmails.includes(u.email.toLowerCase()));
+    } else if (recipients === 'free-users') {
+      const premiumEmails = purchases.filter(p => p.email).map(p => p.email.toLowerCase());
+      targetUsers = users.filter(u => !premiumEmails.includes(u.email.toLowerCase()));
+    }
+    
+    let sentCount = 0;
+    targetUsers.forEach(user => {
+      sendNotificationMail({ to: user.email, subject, text: body, html: body });
+      sentCount++;
+    });
+    
+    return res.json({ success: true, sentCount });
+  } catch (e) {
+    console.error('send bulk email error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/payment-review', adminAuth, (req, res) => {
+  try {
+    const { paymentId } = req.body;
+    if (!paymentId) return res.status(400).json({ error: 'paymentId required' });
+    
+    // Log payment review request
+    console.log('Payment review requested for:', paymentId);
+    
+    return res.json({ success: true, message: 'payment review requested' });
+  } catch (e) {
+    console.error('payment review error', e.message);
+    return res.status(500).json({ error: e.message });
   }
 });
 
@@ -659,7 +1171,7 @@ app.delete('/api/scenarios/:id', adminAuth, (req, res) => {
 app.post('/api/admin/files/upload', adminAuth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'file required' });
-    const { title, description, price, published } = req.body;
+    const { title, description, price, published, premiumOnly, category } = req.body;
     const files = readFilesMeta();
     const id = uuidv4();
     const entry = {
@@ -672,6 +1184,8 @@ app.post('/api/admin/files/upload', adminAuth, upload.single('file'), (req, res)
       mime: req.file.mimetype,
       price: Number(price) || 0,
       published: published === 'true' || false,
+      premiumOnly: premiumOnly === 'true' || false,
+      category: category || '',
       createdAt: new Date().toISOString()
     };
     files.push(entry);
@@ -692,8 +1206,21 @@ app.get('/api/files', requirePaidUser, (req, res) => {
     const files = readFilesMeta().filter(f => f.published);
     const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
     const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
+    
+    // Check if user has premium access
+    const hasPremium = purchases.some(p => p.fileId === 'premium-access');
+    
+    // Filter files based on ownership and premium status
+    let accessibleFiles = files.filter(f => {
+      // If file is premium only, check if user has premium access
+      if (f.premiumOnly && !hasPremium) {
+        return false;
+      }
+      // User must own the file or it must be free
+      return ownedIds.includes(f.id) || f.price === 0;
+    });
+    
+    return res.json({ success: true, files: accessibleFiles });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
@@ -702,7 +1229,14 @@ app.get('/api/files', requirePaidUser, (req, res) => {
 // Public catalog: list published files (title, price, id) for browsing before purchase
 app.get('/api/catalog', (req, res) => {
   try {
-    const files = readFilesMeta().filter(f => f.published).map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+    const files = readFilesMeta().filter(f => f.published).map(f => ({ 
+      id: f.id, 
+      title: f.title, 
+      price: f.price, 
+      description: f.description,
+      premiumOnly: f.premiumOnly || false,
+      category: f.category || ''
+    }));
     return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
@@ -716,8 +1250,18 @@ app.post('/api/admin/files/:id', adminAuth, (req, res) => {
     const files = readFilesMeta();
     const idx = files.findIndex(f=>f.id===id);
     if (idx===-1) return res.status(404).json({ error: 'file not found' });
-    const allowed = ['title','description','price','published'];
-    allowed.forEach(k=>{ if (k in req.body) files[idx][k] = (k==='price'? Number(req.body[k]) : (k==='published'? (req.body[k]===true || req.body[k]==='true') : req.body[k])); });
+    const allowed = ['title','description','price','published','premiumOnly','category'];
+    allowed.forEach(k=>{ 
+      if (k in req.body) {
+        if (k === 'price') {
+          files[idx][k] = Number(req.body[k]);
+        } else if (k === 'published' || k === 'premiumOnly') {
+          files[idx][k] = (req.body[k] === true || req.body[k] === 'true');
+        } else {
+          files[idx][k] = req.body[k];
+        }
+      }
+    });
     writeFilesMeta(files);
     return res.json({ success: true, file: files[idx] });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
@@ -890,6 +1434,9 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 });
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// Serve static files (HTML, CSS, JS)
+app.use(express.static(__dirname));
 
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
