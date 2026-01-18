@@ -539,5 +539,558 @@ async function requestDownloadToken(fileId) {
   const res = await fetch('/api/download/request', { method: 'POST', headers, body: JSON.stringify(body) });
   return res.json();
 }
+async function loadPaymentsLedger() {
+  const list = document.getElementById('paymentsLedger');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading ledger...</div>';
 
-aସ
+  try {
+    const res = await fetch('/api/admin/payments');
+    const data = await res.json();
+
+    if (!data.success) {
+      list.innerHTML = '<div class="text-red-600">Error loading payments ledger.</div>';
+      return;
+    }
+
+    if (!data.payments?.length) {
+      list.innerHTML = '<div class="text-gray-600">No payments recorded yet.</div>';
+      return;
+    }
+
+    list.innerHTML = data.payments.map(p => `
+      <div class="bg-white border rounded p-3 mb-2">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-gray-500">${p.provider || 'gateway'}</div>
+            <div class="font-semibold">${p.amount ? p.amount : 'N/A'} ${p.currency || ''}</div>
+            <div class="text-xs text-gray-600">${p.fileTitle ? 'File: ' + p.fileTitle : ''}</div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs px-2 py-1 rounded bg-${p.status === 'success' || p.status === 'paid' ? 'green' : p.status === 'pending' ? 'yellow' : 'red'}-100">${p.status || 'pending'}</span><br>
+            <small class="text-gray-500">${p.createdAt || ''}</small>
+          </div>
+        </div>
+        <div class="text-xs text-gray-700 mt-2">User: ${p.email || 'N/A'} ${p.phone ? '(' + p.phone + ')' : ''}</div>
+        <div class="text-xs text-gray-600">Reference: ${p.reference || 'N/A'} ${p.receipt ? ' • Receipt: ' + p.receipt : ''}</div>
+        ${p.note ? `<div class="text-xs text-gray-600">Note: ${p.note}</div>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading payments</div>';
+  }
+}
+
+function switchTab(evt, tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn === evt?.currentTarget);
+  });
+  document.querySelectorAll('.tab-content').forEach(panel => {
+    panel.classList.toggle('active', panel.id === tabName);
+  });
+
+  switch (tabName) {
+    case 'dashboard':
+      refreshDashboard();
+      break;
+    case 'users':
+      loadAllUsers();
+      loadActiveSessions();
+      break;
+    case 'files':
+      loadFiles();
+      break;
+    case 'messages':
+      loadMessages();
+      break;
+    case 'payments':
+      loadPaymentsLedger();
+      loadKCBTransfers();
+      break;
+    default:
+      break;
+  }
+}
+
+async function refreshDashboard() {
+  const usersEl = document.getElementById('stat-users');
+  const premiumEl = document.getElementById('stat-premium');
+  const filesEl = document.getElementById('stat-files');
+  const messagesEl = document.getElementById('stat-messages');
+  if (!usersEl || !premiumEl || !filesEl || !messagesEl) return;
+
+  usersEl.textContent = premiumEl.textContent = filesEl.textContent = messagesEl.textContent = '…';
+
+  try {
+    const res = await fetch('/api/admin/dashboard-stats');
+    const data = await res.json();
+    if (!data.success) throw new Error('Failed to load stats');
+    usersEl.textContent = data.totalUsers ?? '0';
+    premiumEl.textContent = data.premiumUsers ?? '0';
+    filesEl.textContent = data.totalFiles ?? '0';
+    messagesEl.textContent = data.pendingMessages ?? '0';
+  } catch (e) {
+    usersEl.textContent = premiumEl.textContent = filesEl.textContent = messagesEl.textContent = 'Error';
+  }
+}
+
+function renderUsersList(users) {
+  return users.map(user => `
+    <div class="border rounded p-3 mb-2 bg-white">
+      <div class="flex justify-between">
+        <div>
+          <strong>${user.name || 'User'}</strong><br>
+          <small class="text-gray-600">${user.email || '—'}</small>
+        </div>
+        <div class="text-right text-xs text-gray-500">
+          ${user.createdAt ? formatDateForHumans(user.createdAt) : ''}<br>
+          ${user.isPremium ? '<span class="text-green-600 font-semibold">Premium</span>' : ''}
+        </div>
+      </div>
+      <div class="text-xs text-gray-600 mt-2">Spent: ${user.totalSpent ? '$' + user.totalSpent : '—'}</div>
+    </div>
+  `).join('');
+}
+
+async function loadAllUsers(query = '') {
+  const list = document.getElementById('usersList');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading users...</div>';
+
+  try {
+    const url = query ? `/api/admin/users?query=${encodeURIComponent(query)}` : '/api/admin/users';
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.success || !data.users?.length) {
+      list.innerHTML = '<div class="text-gray-600">No users found.</div>';
+      return;
+    }
+
+    list.innerHTML = renderUsersList(data.users);
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading users.</div>';
+  }
+}
+
+async function searchUsers() {
+  const input = document.getElementById('userSearch');
+  const term = input?.value.trim();
+  if (!term) {
+    loadAllUsers();
+    return;
+  }
+  loadAllUsers(term);
+}
+
+async function loadActiveSessions() {
+  const list = document.getElementById('sessionsList');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading sessions...</div>';
+
+  try {
+    const res = await fetch('/api/admin/sessions');
+    const data = await res.json();
+    if (!data.success || !data.sessions?.length) {
+      list.innerHTML = '<div class="text-gray-600">No active sessions.</div>';
+      return;
+    }
+    list.innerHTML = data.sessions.map(session => `
+      <div class="border rounded p-2 mb-2 text-sm">
+        <div class="flex justify-between">
+          <div>${session.email || '—'}</div>
+          <div class="text-gray-500">${formatDateForHumans(session.lastSeen)}</div>
+        </div>
+        <div class="text-xs text-gray-500">IP: ${session.ip || 'n/a'} • Agent: ${session.agent || 'n/a'}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading sessions.</div>';
+  }
+}
+
+async function uploadFile(event) {
+  event?.preventDefault();
+  const fileInput = document.getElementById('fileInput');
+  const status = document.getElementById('uploadStatus');
+  if (!fileInput || !fileInput.files?.length) {
+    if (status) {
+      status.textContent = 'Choose a file before uploading.';
+      status.className = 'text-sm text-red-600';
+    }
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('title', document.getElementById('fileTitle')?.value || 'Untitled');
+  formData.append('price', document.getElementById('filePrice')?.value || '0');
+  formData.append('description', document.getElementById('fileDescription')?.value || '');
+  formData.append('file', fileInput.files[0]);
+
+  if (status) {
+    status.textContent = 'Uploading…';
+    status.className = 'text-sm text-gray-600';
+  }
+
+  try {
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = '✓ File uploaded successfully';
+        status.className = 'text-sm text-green-600';
+      }
+      document.getElementById('fileTitle').value = '';
+      document.getElementById('filePrice').value = '0';
+      document.getElementById('fileDescription').value = '';
+      fileInput.value = '';
+      loadFiles();
+    } else if (status) {
+      status.textContent = '✗ Upload failed: ' + (data.error || '');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch (e) {
+    if (status) {
+      status.textContent = '✗ Error: ' + e.message;
+      status.className = 'text-sm text-red-600';
+    }
+  }
+}
+
+async function loadFiles() {
+  const list = document.getElementById('filesList');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading files...</div>';
+
+  try {
+    const res = await fetch('/api/admin/files');
+    const data = await res.json();
+    if (!data.success || !data.files?.length) {
+      list.innerHTML = '<div class="text-gray-600">No files uploaded.</div>';
+      return;
+    }
+    list.innerHTML = data.files.map(f => `
+      <div class="border rounded p-2 mb-2">
+        <div class="flex justify-between items-start">
+          <div>
+            <strong>${escapeHtml(f.title || 'Untitled')}</strong><br>
+            <small class="text-gray-600">Price: $${f.price ?? 0}</small><br>
+            <small class="text-xs text-gray-500">${escapeHtml(f.originalName || '')}</small>
+          </div>
+          <div class="space-x-1">
+            <button onclick="togglePublish('${f.id}', ${f.published ? 'true' : 'false'})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">${f.published ? 'Unpublish' : 'Publish'}</button>
+            <button onclick="deleteFile('${f.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading files.</div>';
+  }
+}
+
+async function togglePublish(id, current) {
+  try {
+    const res = await fetch(`/api/admin/files/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: !current })
+    });
+    const data = await res.json();
+    if (data.success) loadFiles();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function deleteFile(id) {
+  if (!confirm('Delete this file?')) return;
+  try {
+    const res = await fetch(`/api/admin/files/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      loadFiles();
+    } else {
+      alert('Error: ' + (data.error || 'Failed'));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function exportFilesList() {
+  alert('Export functionality coming soon.');
+}
+
+async function loadMessages() {
+  const list = document.getElementById('messagesList');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading messages...</div>';
+
+  try {
+    const res = await fetch('/api/admin/messages');
+    const data = await res.json();
+    if (!data.success || !data.messages?.length) {
+      list.innerHTML = '<div class="text-gray-600">No messages.</div>';
+      return;
+    }
+    list.innerHTML = data.messages.map(m => `
+      <div class="border rounded p-3 bg-gray-50 mb-3">
+        <div class="flex justify-between">
+          <div>
+            <strong>${escapeHtml(m.name || 'User')}</strong><br>
+            <small class="text-gray-600">${escapeHtml(m.email || '')}</small>
+          </div>
+          <small class="text-gray-500">${formatDateForHumans(m.createdAt)}</small>
+        </div>
+        <div class="mt-2 text-sm">${escapeHtml(m.message || '')}</div>
+        ${(m.replies || []).map(r => `
+          <div class="mt-2 p-2 bg-white border-l-4 border-blue-600">
+            <strong class="text-blue-600">Admin Reply:</strong><br>
+            <small class="text-gray-500">${formatDateForHumans(r.at)}</small>
+            <div class="text-sm mt-1">${escapeHtml(r.message || '')}</div>
+          </div>
+        `).join('')}
+        <div class="mt-2 flex gap-2">
+          <input id="reply_${m.id}" type="text" placeholder="Your reply..." class="flex-1 border rounded p-2 text-sm">
+          <button onclick="replyMessage('${m.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Reply</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading messages.</div>';
+  }
+}
+
+async function replyMessage(id) {
+  const input = document.getElementById(`reply_${id}`);
+  const text = input?.value.trim();
+  if (!text) return alert('Enter a reply');
+  try {
+    const res = await fetch(`/api/admin/messages/${id}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reply: text })
+    });
+    const data = await res.json();
+    if (data.success) {
+      input.value = '';
+      loadMessages();
+    } else {
+      alert('Error: ' + (data.error || 'Failed'));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function refreshMessages() {
+  loadMessages();
+}
+
+async function loadKCBTransfers() {
+  const list = document.getElementById('kcbTransfersList');
+  if (!list) return;
+  list.innerHTML = '<div class="text-gray-500">Loading transfers...</div>';
+
+  try {
+    const res = await fetch('/api/admin/kcb-transfers');
+    const data = await res.json();
+    if (!data.success || !data.transfers?.length) {
+      list.innerHTML = '<div class="text-gray-600">No transfers found.</div>';
+      return;
+    }
+    list.innerHTML = data.transfers.map(t => `
+      <div class="border rounded p-2 mb-2 text-sm">
+        <div class="flex justify-between">
+          <div>
+            <strong>${escapeHtml(t.name || 'Customer')}</strong> (${escapeHtml(t.email || 'n/a')})<br>
+            <small class="text-gray-600">KES ${t.amount} - Ref: ${escapeHtml(t.reference || 'N/A')}</small>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-${t.status === 'paid' ? 'green' : 'yellow'}-100 px-2 py-1 rounded">${t.status || 'pending'}</span><br>
+            <small class="text-gray-500">${formatDateForHumans(t.timestamp)}</small>
+          </div>
+        </div>
+        ${t.status !== 'paid' ? `<button onclick="markPaid('${t.timestamp}')" class="mt-1 bg-green-600 text-white px-2 py-1 rounded text-xs">Mark Paid</button>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Error loading transfers.</div>';
+  }
+}
+
+async function markPaid(ts) {
+  const note = prompt('Optional note for this transfer:');
+  try {
+    const res = await fetch('/api/admin/kcb/mark-paid', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timestamp: ts, note })
+    });
+    const data = await res.json();
+    if (data.success) {
+      loadKCBTransfers();
+    } else {
+      alert('Error: ' + (data.error || 'Failed'));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function exportKCBCSV() {
+  try {
+    const res = await fetch('/api/admin/kcb-export');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kcb-transfers.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+
+async function reconcileBankEntries() {
+  const textarea = document.getElementById('reconcileData');
+  const result = document.getElementById('reconcileResult');
+  if (!textarea) return;
+  const raw = textarea.value.trim();
+  if (!raw) return alert('Paste JSON array');
+
+  let entries;
+  try {
+    entries = JSON.parse(raw);
+  } catch (e) {
+    alert('Invalid JSON: ' + e.message);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/kcb/reconcile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (result) {
+        result.textContent = `✓ Matched: ${data.summary?.matched ?? 0}, Unmatched: ${data.summary?.unmatched ?? 0}`;
+        result.className = 'text-sm text-green-600 mt-2';
+      }
+      loadKCBTransfers();
+    } else if (result) {
+      result.textContent = '✗ Error: ' + (data.error || 'Failed');
+      result.className = 'text-sm text-red-600 mt-2';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function requestPaymentReview() {
+  const input = document.getElementById('paymentId');
+  const status = document.getElementById('reviewStatus');
+  if (!input) return;
+  const paymentId = input.value.trim();
+  if (!paymentId) return alert('Enter payment ID');
+
+  try {
+    const res = await fetch('/api/admin/payment-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = `✓ Review requested for payment ${paymentId}`;
+        status.className = 'text-sm text-green-600';
+      }
+      input.value = '';
+    } else if (status) {
+      status.textContent = '✗ Error: ' + (data.error || 'Failed');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function sendEmail() {
+  const to = document.getElementById('emailTo')?.value;
+  const subject = document.getElementById('emailSubject')?.value;
+  const body = document.getElementById('emailBody')?.value;
+  const status = document.getElementById('emailStatus');
+  if (!to || !subject || !body) return alert('Fill all fields');
+
+  try {
+    const res = await fetch('/api/admin/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, body })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = '✓ Email sent to ' + to;
+        status.className = 'text-sm text-green-600';
+      }
+      document.getElementById('emailTo').value = '';
+      document.getElementById('emailSubject').value = '';
+      document.getElementById('emailBody').value = '';
+    } else if (status) {
+      status.textContent = '✗ Error: ' + (data.error || 'Failed');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function sendBulkEmail() {
+  const subject = document.getElementById('bulkSubject')?.value;
+  const body = document.getElementById('bulkBody')?.value;
+  const recipients = document.getElementById('bulkRecipients')?.value;
+  const status = document.getElementById('bulkStatus');
+  if (!subject || !body || !recipients) return alert('Fill all fields');
+
+  try {
+    const res = await fetch('/api/admin/send-bulk-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, body, recipients })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (status) {
+        status.textContent = `✓ Email sent to ${data.sentCount ?? 0} recipients`;
+        status.className = 'text-sm text-green-600';
+      }
+      document.getElementById('bulkSubject').value = '';
+      document.getElementById('bulkBody').value = '';
+      document.getElementById('bulkRecipients').value = '';
+    } else if (status) {
+      status.textContent = '✗ Error: ' + (data.error || 'Failed');
+      status.className = 'text-sm text-red-600';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+window.addEventListener('load', () => {
+  hydrateDashboardState();
+  renderUserDashboardStats();
+  renderUserLibrary();
+  renderUserActivity();
+  updateUserBadge();
+  fetchCatalog();
+  initDashboardHub();
+  detectInitialDashboardRole();
+});
