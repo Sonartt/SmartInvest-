@@ -409,20 +409,57 @@
         event.target.reset();
     }
 
-    function demoLogin(event) {
+    async function demoLogin(event) {
         event.preventDefault();
-        const email = document.getElementById('loginEmail')?.value || '';
-        // Call real login endpoint
-        fetch('/api/auth/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value })
-        }).then(r=>r.json()).then(data=>{
-            if (data.success) alert('Sign in successful'); else alert('Sign in failed: ' + (data.error||''));
-            if (data.success) {
-                try { localStorage.setItem('si_user_email', document.getElementById('loginEmail').value.toLowerCase()); } catch (e) {}
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (data.success && data.token) {
+                localStorage.setItem('si_auth_token', data.token);
+                localStorage.setItem('si_user_email', email.toLowerCase());
+                localStorage.setItem('si_is_admin', data.isAdmin ? 'true' : 'false');
+                
+                alert('Sign in successful');
+                event.target.reset();
+                
+                if (data.isAdmin) {
+                    document.getElementById('admin-section').style.display = 'block';
+                }
+            } else {
+                alert('Sign in failed: ' + (data.error || 'Invalid credentials'));
             }
-        }).catch(()=>alert('Network error'));
-        event.target.reset();
+        } catch (e) {
+            alert('Network error');
+        }
+    }
+
+    function authHeaders() {
+        const token = localStorage.getItem('si_auth_token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('si_auth_token');
+        localStorage.removeItem('si_user_email');
+        localStorage.removeItem('si_is_admin');
+        document.getElementById('admin-section').style.display = 'none';
+        alert('Logged out successfully');
+    }
+
+    function checkAdminAccess() {
+        const isAdmin = localStorage.getItem('si_is_admin') === 'true';
+        const token = localStorage.getItem('si_auth_token');
+        if (isAdmin && token) {
+            document.getElementById('admin-section').style.display = 'block';
+        }
     }
 
     async function handleSignup(event) {
@@ -492,7 +529,10 @@
     }
 
     // Load catalog on page ready
-    try { window.addEventListener('load', fetchCatalog); } catch (e) {}
+    try { 
+        window.addEventListener('load', fetchCatalog);
+        window.addEventListener('load', checkAdminAccess);
+    } catch (e) {}
 </script>
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
@@ -533,10 +573,784 @@
         </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
-      Demo only — no real authentication
+      Sign in with your credentials
     </p>
   </div>
 </section>
+
+<!-- Admin Section -->
+<section id="admin-section" aria-label="Admin Dashboard" class="py-20 px-4 bg-gray-100" style="display:none;">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white p-6 rounded shadow mb-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+          <p class="text-gray-600">Manage users, payments, files, messages, and premium access</p>
+        </div>
+        <button onclick="handleLogout()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logout</button>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="flex gap-2 mb-4 flex-wrap bg-white p-2 rounded shadow">
+      <button class="admin-tab-btn active" onclick="switchAdminTab('dashboard')">Dashboard</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('users')">Users & Sessions</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('premium')">Premium Access</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('files')">File Manager</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('messages')">Support Messages</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('payments')">Payments</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('email')">Email Tools</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="admin-dashboard" class="admin-tab-content active bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Dashboard Overview</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <div class="bg-blue-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Total Users</div>
+          <div id="admin-stat-users" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-green-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Premium Users</div>
+          <div id="admin-stat-premium" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-purple-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Files Uploaded</div>
+          <div id="admin-stat-files" class="text-3xl font-bold">-</div>
+        </div>
+        <div class="bg-orange-50 p-4 rounded border">
+          <div class="text-gray-600 text-sm">Pending Messages</div>
+          <div id="admin-stat-messages" class="text-3xl font-bold">-</div>
+        </div>
+      </div>
+      <button onclick="refreshAdminDashboard()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Refresh Stats</button>
+    </div>
+
+    <!-- Users & Sessions Tab -->
+    <div id="admin-users" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Users & Active Sessions</h2>
+      
+      <div class="mb-4">
+        <h3 class="font-semibold mb-2">Registered Users</h3>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="admin-userSearch" placeholder="Search by email or name..." class="flex-1 border rounded p-2">
+          <button onclick="searchAdminUsers()" class="bg-blue-600 text-white px-4 py-2 rounded">Search</button>
+          <button onclick="loadAllAdminUsers()" class="bg-gray-600 text-white px-4 py-2 rounded">Load All</button>
+        </div>
+        <div id="admin-usersList" class="text-sm text-gray-600">Click "Load All" to view users...</div>
+      </div>
+
+      <div class="mb-4 border-t pt-4">
+        <h3 class="font-semibold mb-2">Active Sessions</h3>
+        <div id="admin-sessionsList" class="text-sm text-gray-600">Loading sessions...</div>
+        <button onclick="loadAdminActiveSessions()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">Refresh Sessions</button>
+      </div>
+    </div>
+
+    <!-- Premium Access Tab -->
+    <div id="admin-premium" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Grant Premium Access</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-blue-50">
+        <h3 class="font-semibold mb-2">Grant Premium to User</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="email" id="admin-premiumEmail" placeholder="User email" class="border rounded p-2">
+          <input type="number" id="admin-premiumDays" placeholder="Days of access" class="border rounded p-2" value="30">
+          <input type="text" id="admin-premiumReason" placeholder="Reason (optional)" class="col-span-2 border rounded p-2">
+          <button onclick="grantAdminPremiumAccess()" class="col-span-2 bg-green-600 text-white px-4 py-2 rounded">Grant Premium</button>
+        </div>
+        <div id="admin-premiumStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Revoke Premium Access</h3>
+        <div class="flex gap-2">
+          <input type="email" id="admin-revokeEmail" placeholder="User email" class="flex-1 border rounded p-2">
+          <button onclick="revokeAdminPremiumAccess()" class="bg-red-600 text-white px-4 py-2 rounded">Revoke</button>
+        </div>
+        <div id="admin-revokeStatus" class="text-sm mt-2"></div>
+      </div>
+    </div>
+
+    <!-- File Manager Tab -->
+    <div id="admin-files" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">File Manager</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-gray-50">
+        <h3 class="font-semibold mb-2">Upload File</h3>
+        <form onsubmit="uploadAdminFile(event)" class="space-y-2">
+          <input type="text" id="admin-fileTitle" placeholder="File title" class="w-full border rounded p-2" required>
+          <input type="number" id="admin-filePrice" placeholder="Price (USD)" class="w-full border rounded p-2" step="0.01" value="0">
+          <textarea id="admin-fileDescription" placeholder="Description (optional)" class="w-full border rounded p-2 h-20"></textarea>
+          <input type="file" id="admin-fileInput" class="w-full border rounded p-2" required>
+          <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+        </form>
+        <div id="admin-uploadStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Files Library</h3>
+        <div class="flex gap-2 mb-2">
+          <button onclick="loadAdminFiles()" class="bg-blue-600 text-white px-4 py-2 rounded">Load Files</button>
+          <button onclick="exportAdminFilesList()" class="bg-green-600 text-white px-4 py-2 rounded">Export List</button>
+        </div>
+        <div id="admin-filesList" class="text-sm text-gray-600 max-h-96 overflow-y-auto">Click "Load Files" to view...</div>
+      </div>
+    </div>
+
+    <!-- Support Messages Tab -->
+    <div id="admin-messages" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Support Messages & Chat</h2>
+      
+      <div class="flex gap-2 mb-4">
+        <button onclick="loadAdminMessages()" class="bg-blue-600 text-white px-4 py-2 rounded">Load Messages</button>
+        <button onclick="refreshAdminMessages()" class="bg-gray-600 text-white px-4 py-2 rounded">Refresh</button>
+      </div>
+
+      <div id="admin-messagesList" class="space-y-3 max-h-96 overflow-y-auto">
+        <div class="text-gray-600 text-sm">Click "Load Messages" to view support tickets...</div>
+      </div>
+    </div>
+
+    <!-- Payments Tab -->
+    <div id="admin-payments" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Payment Management</h2>
+      
+      <div class="mb-4">
+        <h3 class="font-semibold mb-2">KCB Manual Transfers</h3>
+        <div id="admin-kcbTransfersList" class="text-sm text-gray-600 max-h-96 overflow-y-auto">Loading transfers...</div>
+        <button onclick="loadAdminKCBTransfers()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">Load Transfers</button>
+        <button onclick="exportAdminKCBCSV()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded">Export CSV</button>
+      </div>
+
+      <div class="border-t pt-4">
+        <h3 class="font-semibold mb-2">Reconcile Bank Entries</h3>
+        <textarea id="admin-reconcileData" placeholder="Paste JSON array of bank entries..." class="w-full border rounded p-2 h-24"></textarea>
+        <div class="flex gap-2 mt-2">
+          <button onclick="reconcileAdminBankEntries()" class="bg-green-600 text-white px-4 py-2 rounded">Reconcile</button>
+          <button onclick="document.getElementById('admin-reconcileData').value=''" class="bg-gray-400 text-white px-4 py-2 rounded">Clear</button>
+        </div>
+        <div id="admin-reconcileResult" class="text-sm mt-2 text-gray-600"></div>
+      </div>
+
+      <div class="border-t pt-4 mt-4">
+        <h3 class="font-semibold mb-2">Request Payment Review</h3>
+        <p class="text-sm text-gray-600 mb-2">For payments where automatic acceptance failed</p>
+        <div class="flex gap-2">
+          <input type="text" id="admin-paymentId" placeholder="Payment ID or Transaction ID" class="flex-1 border rounded p-2">
+          <button onclick="requestAdminPaymentReview()" class="bg-orange-600 text-white px-4 py-2 rounded">Request Review</button>
+        </div>
+        <div id="admin-reviewStatus" class="text-sm mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Email Tools Tab -->
+    <div id="admin-email" class="admin-tab-content bg-white p-6 rounded shadow mb-4">
+      <h2 class="text-2xl font-bold mb-4">Email Tools</h2>
+      
+      <div class="mb-4 border p-4 rounded bg-blue-50">
+        <h3 class="font-semibold mb-2">Send Email to User</h3>
+        <div class="space-y-2">
+          <input type="email" id="admin-emailTo" placeholder="Recipient email" class="w-full border rounded p-2" required>
+          <input type="text" id="admin-emailSubject" placeholder="Subject" class="w-full border rounded p-2" required>
+          <textarea id="admin-emailBody" placeholder="Email body (HTML or plain text)" class="w-full border rounded p-2 h-32" required></textarea>
+          <button onclick="sendAdminEmail()" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Send Email</button>
+        </div>
+        <div id="admin-emailStatus" class="text-sm mt-2"></div>
+      </div>
+
+      <div class="border p-4 rounded">
+        <h3 class="font-semibold mb-2">Send Bulk Email</h3>
+        <div class="space-y-2">
+          <input type="text" id="admin-bulkSubject" placeholder="Subject" class="w-full border rounded p-2" required>
+          <textarea id="admin-bulkBody" placeholder="Email body" class="w-full border rounded p-2 h-24" required></textarea>
+          <select id="admin-bulkRecipients" class="w-full border rounded p-2">
+            <option value="">-- Select Recipients --</option>
+            <option value="all-users">All Users</option>
+            <option value="premium-users">Premium Users Only</option>
+            <option value="free-users">Free Users Only</option>
+            <option value="inactive">Inactive Users (7+ days)</option>
+          </select>
+          <button onclick="sendAdminBulkEmail()" class="w-full bg-green-600 text-white px-4 py-2 rounded">Send Bulk Email</button>
+        </div>
+        <div id="admin-bulkStatus" class="text-sm mt-2"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-slate-900 text-white py-8 px-4">
+    <div class="max-w-7xl mx-auto text-center">
+        <p>&copy; 2024 SmartInvest Africa. All rights reserved.</p>
+    </div>
+</footer>
+
+<style>
+  .admin-tab-content { display: none; }
+  .admin-tab-content.active { display: block; }
+  .admin-tab-btn { padding: 0.5rem 1rem; border: none; background: #e5e7eb; cursor: pointer; border-radius: 0.25rem; }
+  .admin-tab-btn.active { background: #2563eb; color: white; }
+</style>
+
+<script>
+  function switchAdminTab(tabName) {
+    document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('admin-' + tabName).classList.add('active');
+    
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    if (tabName === 'dashboard') refreshAdminDashboard();
+    if (tabName === 'users') loadAllAdminUsers();
+    if (tabName === 'messages') loadAdminMessages();
+    if (tabName === 'payments') loadAdminKCBTransfers();
+  }
+
+  async function refreshAdminDashboard() {
+    try {
+      const res = await fetch('/api/admin/dashboard-stats', { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('admin-stat-users').textContent = data.totalUsers || '0';
+        document.getElementById('admin-stat-premium').textContent = data.premiumUsers || '0';
+        document.getElementById('admin-stat-files').textContent = data.filesCount || '0';
+        document.getElementById('admin-stat-messages').textContent = data.pendingMessages || '0';
+      }
+    } catch (e) {
+      console.error('Dashboard error:', e);
+    }
+  }
+
+  async function loadAllAdminUsers() {
+    try {
+      const res = await fetch('/api/admin/users', { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-usersList');
+      
+      if (!data.success || !data.users.length) {
+        list.innerHTML = '<div class="text-gray-600">No users found.</div>';
+        return;
+      }
+
+      const rows = data.users.map(u => `
+        <div class="border rounded p-2 mb-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <strong>${u.name || 'N/A'}</strong><br>
+              <small class="text-gray-600">${u.email}</small><br>
+              <small class="text-xs text-gray-500">Registered: ${u.createdAt || 'N/A'}</small>
+            </div>
+            <div class="text-right">
+              <span class="text-xs bg-${u.isPremium ? 'green' : 'gray'}-100 px-2 py-1 rounded">${u.isPremium ? 'Premium' : 'Free'}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      document.getElementById('admin-usersList').innerHTML = '<div class="text-red-600">Error loading users</div>';
+    }
+  }
+
+  async function searchAdminUsers() {
+    const email = document.getElementById('admin-userSearch').value;
+    if (!email) return alert('Enter email to search');
+    
+    try {
+      const res = await fetch(`/api/admin/users?search=${encodeURIComponent(email)}`, { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-usersList');
+      
+      if (!data.users.length) {
+        list.innerHTML = '<div class="text-gray-600">No users found.</div>';
+        return;
+      }
+
+      const rows = data.users.map(u => `
+        <div class="border rounded p-2 mb-2">
+          <strong>${u.name || 'N/A'}</strong> - ${u.email}
+          <div class="text-xs text-gray-600 mt-1">Status: ${u.isPremium ? 'Premium' : 'Free'}</div>
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      alert('Search error: ' + e.message);
+    }
+  }
+
+  async function loadAdminActiveSessions() {
+    try {
+      const res = await fetch('/api/admin/sessions', { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-sessionsList');
+      
+      if (!data.success || !data.sessions.length) {
+        list.innerHTML = '<div class="text-gray-600">No active sessions.</div>';
+        return;
+      }
+
+      const rows = data.sessions.map(s => `
+        <div class="border rounded p-2 mb-2 text-sm">
+          <strong>${s.userEmail}</strong><br>
+          <small class="text-gray-600">IP: ${s.ip || 'N/A'} | Last: ${s.lastActivity || 'N/A'}</small>
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      document.getElementById('admin-sessionsList').innerHTML = '<div class="text-red-600">Error loading sessions</div>';
+    }
+  }
+
+  async function grantAdminPremiumAccess() {
+    const email = document.getElementById('admin-premiumEmail').value;
+    const days = parseInt(document.getElementById('admin-premiumDays').value) || 30;
+    const reason = document.getElementById('admin-premiumReason').value;
+
+    if (!email) return alert('Enter email');
+
+    try {
+      const res = await fetch('/api/admin/grant-premium', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, days, reason })
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-premiumStatus');
+
+      if (data.success) {
+        status.textContent = `✓ Premium granted to ${email} for ${days} days`;
+        status.className = 'text-sm text-green-600 mt-2';
+        document.getElementById('admin-premiumEmail').value = '';
+        document.getElementById('admin-premiumDays').value = '30';
+        document.getElementById('admin-premiumReason').value = '';
+      } else {
+        status.textContent = '✗ Error: ' + (data.error || 'Failed');
+        status.className = 'text-sm text-red-600 mt-2';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function revokeAdminPremiumAccess() {
+    const email = document.getElementById('admin-revokeEmail').value;
+    if (!email) return alert('Enter email');
+
+    if (!confirm('Revoke premium for ' + email + '?')) return;
+
+    try {
+      const res = await fetch('/api/admin/revoke-premium', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-revokeStatus');
+
+      if (data.success) {
+        status.textContent = `✓ Premium revoked for ${email}`;
+        status.className = 'text-sm text-green-600 mt-2';
+        document.getElementById('admin-revokeEmail').value = '';
+      } else {
+        status.textContent = '✗ Error: ' + (data.error || 'Failed');
+        status.className = 'text-sm text-red-600 mt-2';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function uploadAdminFile(e) {
+    e.preventDefault();
+
+    const title = document.getElementById('admin-fileTitle').value;
+    const price = document.getElementById('admin-filePrice').value;
+    const description = document.getElementById('admin-fileDescription').value;
+    const fileInput = document.getElementById('admin-fileInput');
+
+    if (!fileInput.files.length) return alert('Select a file');
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('title', title);
+    fd.append('price', price);
+    fd.append('description', description);
+
+    try {
+      const res = await fetch('/api/admin/files/upload', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: fd
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-uploadStatus');
+
+      if (data.success) {
+        status.textContent = '✓ File uploaded successfully';
+        status.className = 'text-sm text-green-600';
+        document.getElementById('admin-fileTitle').value = '';
+        document.getElementById('admin-filePrice').value = '0';
+        document.getElementById('admin-fileDescription').value = '';
+        fileInput.value = '';
+        setTimeout(loadAdminFiles, 1000);
+      } else {
+        status.textContent = '✗ Upload failed: ' + (data.error || '');
+        status.className = 'text-sm text-red-600';
+      }
+    } catch (e) {
+      document.getElementById('admin-uploadStatus').textContent = '✗ Error: ' + e.message;
+      document.getElementById('admin-uploadStatus').className = 'text-sm text-red-600';
+    }
+  }
+
+  async function loadAdminFiles() {
+    try {
+      const res = await fetch('/api/admin/files', { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-filesList');
+
+      if (!data.success || !data.files.length) {
+        list.innerHTML = '<div class="text-gray-600">No files uploaded.</div>';
+        return;
+      }
+
+      const rows = data.files.map(f => `
+        <div class="border rounded p-2 mb-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <strong>${f.title}</strong><br>
+              <small class="text-gray-600">Price: $${f.price}</small><br>
+              <small class="text-xs text-gray-500">${f.originalName}</small>
+            </div>
+            <div class="space-x-1">
+              <button onclick="toggleAdminPublish('${f.id}',${f.published})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">${f.published ? 'Unpublish' : 'Publish'}</button>
+              <button onclick="deleteAdminFile('${f.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      document.getElementById('admin-filesList').innerHTML = '<div class="text-red-600">Error loading files</div>';
+    }
+  }
+
+  async function toggleAdminPublish(id, current) {
+    try {
+      const res = await fetch(`/api/admin/files/${id}`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: !current })
+      });
+
+      const data = await res.json();
+      if (data.success) loadAdminFiles();
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function deleteAdminFile(id) {
+    if (!confirm('Delete this file?')) return;
+
+    try {
+      const res = await fetch(`/api/admin/files/${id}`, { 
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert('File deleted');
+        loadAdminFiles();
+      } else {
+        alert('Error: ' + (data.error || 'Failed'));
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  function exportAdminFilesList() {
+    alert('Export functionality to be implemented');
+  }
+
+  async function loadAdminMessages() {
+    try {
+      const res = await fetch('/api/admin/messages', { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-messagesList');
+
+      if (!data.success || !data.messages.length) {
+        list.innerHTML = '<div class="text-gray-600">No messages.</div>';
+        return;
+      }
+
+      const rows = data.messages.map(m => `
+        <div class="border rounded p-3 bg-gray-50">
+          <div class="flex justify-between">
+            <div>
+              <strong>${m.name}</strong><br>
+              <small class="text-gray-600">${m.email}</small>
+            </div>
+            <small class="text-gray-500">${m.createdAt}</small>
+          </div>
+          <div class="mt-2 text-sm">${m.message}</div>
+          ${(m.replies || []).map(r => `
+            <div class="mt-2 p-2 bg-white border-l-4 border-blue-600">
+              <strong class="text-blue-600">Admin Reply:</strong><br>
+              <small class="text-gray-500">${r.at}</small>
+              <div class="text-sm mt-1">${r.message}</div>
+            </div>
+          `).join('')}
+          <div class="mt-2 flex gap-2">
+            <input id="admin-reply_${m.id}" type="text" placeholder="Your reply..." class="flex-1 border rounded p-2 text-sm">
+            <button onclick="replyAdminMessage('${m.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Reply</button>
+          </div>
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      document.getElementById('admin-messagesList').innerHTML = '<div class="text-red-600">Error loading messages</div>';
+    }
+  }
+
+  async function replyAdminMessage(id) {
+    const input = document.getElementById(`admin-reply_${id}`);
+    const text = input.value.trim();
+
+    if (!text) return alert('Enter a reply');
+
+    try {
+      const res = await fetch(`/api/admin/messages/${id}/reply`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reply: text })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        input.value = '';
+        loadAdminMessages();
+      } else {
+        alert('Error: ' + (data.error || 'Failed'));
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  function refreshAdminMessages() {
+    loadAdminMessages();
+  }
+
+  async function loadAdminKCBTransfers() {
+    try {
+      const res = await fetch('/api/admin/kcb-transfers', { headers: authHeaders() });
+      const data = await res.json();
+      const list = document.getElementById('admin-kcbTransfersList');
+
+      if (!data.success || !data.transfers.length) {
+        list.innerHTML = '<div class="text-gray-600">No transfers found.</div>';
+        return;
+      }
+
+      const rows = data.transfers.map(t => `
+        <div class="border rounded p-2 mb-2 text-sm">
+          <div class="flex justify-between">
+            <div>
+              <strong>${t.name}</strong> (${t.email})<br>
+              <small class="text-gray-600">KES ${t.amount} - Ref: ${t.reference || 'N/A'}</small>
+            </div>
+            <div class="text-right">
+              <span class="text-xs bg-${t.status === 'paid' ? 'green' : 'yellow'}-100 px-2 py-1 rounded">${t.status}</span><br>
+              <small class="text-gray-500">${t.timestamp}</small>
+            </div>
+          </div>
+          ${t.status !== 'paid' ? `<button onclick="markAdminPaid('${t.timestamp}')" class="mt-1 bg-green-600 text-white px-2 py-1 rounded text-xs">Mark Paid</button>` : ''}
+        </div>
+      `).join('');
+
+      list.innerHTML = rows;
+    } catch (e) {
+      document.getElementById('admin-kcbTransfersList').innerHTML = '<div class="text-red-600">Error loading transfers</div>';
+    }
+  }
+
+  async function markAdminPaid(ts) {
+    const note = prompt('Optional note for this transfer:');
+    
+    try {
+      const res = await fetch('/api/admin/kcb/mark-paid', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: ts, note })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert('Transfer marked as paid');
+        loadAdminKCBTransfers();
+      } else {
+        alert('Error: ' + (data.error || 'Failed'));
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function exportAdminKCBCSV() {
+    try {
+      const res = await fetch('/api/admin/kcb-export', { headers: authHeaders() });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kcb-transfers.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Export failed: ' + e.message);
+    }
+  }
+
+  async function reconcileAdminBankEntries() {
+    const txt = document.getElementById('admin-reconcileData').value.trim();
+    if (!txt) return alert('Paste JSON array');
+
+    let arr;
+    try {
+      arr = JSON.parse(txt);
+    } catch (e) {
+      return alert('Invalid JSON: ' + e.message);
+    }
+
+    try {
+      const res = await fetch('/api/admin/kcb/reconcile', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries: arr })
+      });
+
+      const data = await res.json();
+      const result = document.getElementById('admin-reconcileResult');
+
+      if (data.success) {
+        result.textContent = `✓ Matched: ${data.summary.matched}, Unmatched: ${data.summary.unmatched}`;
+        result.className = 'text-sm text-green-600 mt-2';
+        loadAdminKCBTransfers();
+      } else {
+        result.textContent = '✗ Error: ' + (data.error || '');
+        result.className = 'text-sm text-red-600 mt-2';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function requestAdminPaymentReview() {
+    const paymentId = document.getElementById('admin-paymentId').value.trim();
+    if (!paymentId) return alert('Enter payment ID');
+
+    try {
+      const res = await fetch('/api/admin/payment-review', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-reviewStatus');
+
+      if (data.success) {
+        status.textContent = `✓ Review requested for payment ${paymentId}`;
+        status.className = 'text-sm text-green-600';
+        document.getElementById('admin-paymentId').value = '';
+      } else {
+        status.textContent = '✗ Error: ' + (data.error || 'Failed');
+        status.className = 'text-sm text-red-600';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function sendAdminEmail() {
+    const to = document.getElementById('admin-emailTo').value;
+    const subject = document.getElementById('admin-emailSubject').value;
+    const body = document.getElementById('admin-emailBody').value;
+
+    if (!to || !subject || !body) return alert('Fill all fields');
+
+    try {
+      const res = await fetch('/api/admin/send-email', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body })
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-emailStatus');
+
+      if (data.success) {
+        status.textContent = '✓ Email sent to ' + to;
+        status.className = 'text-sm text-green-600';
+        document.getElementById('admin-emailTo').value = '';
+        document.getElementById('admin-emailSubject').value = '';
+        document.getElementById('admin-emailBody').value = '';
+      } else {
+        status.textContent = '✗ Error: ' + (data.error || 'Failed');
+        status.className = 'text-sm text-red-600';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function sendAdminBulkEmail() {
+    const subject = document.getElementById('admin-bulkSubject').value;
+    const body = document.getElementById('admin-bulkBody').value;
+    const recipients = document.getElementById('admin-bulkRecipients').value;
+
+    if (!subject || !body || !recipients) return alert('Fill all fields');
+
+    try {
+      const res = await fetch('/api/admin/send-bulk-email', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body, recipients })
+      });
+
+      const data = await res.json();
+      const status = document.getElementById('admin-bulkStatus');
+
+      if (data.success) {
+        status.textContent = `✓ Email sent to ${data.sentCount} recipients`;
+        status.className = 'text-sm text-green-600';
+        document.getElementById('admin-bulkSubject').value = '';
+        document.getElementById('admin-bulkBody').value = '';
+        document.getElementById('admin-bulkRecipients').value = '';
+      } else {
+        status.textContent = '✗ Error: ' + (data.error || 'Failed');
+        status.className = 'text-sm text-red-600';
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+</script>
 
 </body>
 </html>
