@@ -1654,4 +1654,120 @@ app.get('/api/auth/me', (req, res) => {
   return res.json({ success: true, email: payload.email, admin: !!payload.admin });
 });
 
+// Contact form endpoint
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Save to messages file
+    const messagesFile = path.join(__dirname, 'data', 'contact-messages.json');
+    let messages = [];
+    try {
+      if (fs.existsSync(messagesFile)) {
+        messages = JSON.parse(fs.readFileSync(messagesFile, 'utf8'));
+      }
+    } catch (e) {
+      messages = [];
+    }
+    
+    const newMessage = {
+      id: uuidv4(),
+      name,
+      email,
+      message,
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      status: 'new'
+    };
+    
+    messages.push(newMessage);
+    fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
+    
+    // Send notification to admin
+    const adminEmail = process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL;
+    if (adminEmail) {
+      sendNotificationMail({
+        to: adminEmail,
+        subject: `New Contact Message from ${name}`,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>Message:</strong></p>
+          <p>${message.replace(/\n/g, '<br>')}</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        `
+      });
+    }
+    
+    // Send confirmation to user
+    sendNotificationMail({
+      to: email,
+      subject: 'We received your message - SmartInvest Africa',
+      html: `
+        <h2>Thank you for contacting us!</h2>
+        <p>Hi ${name},</p>
+        <p>We've received your message and will get back to you as soon as possible.</p>
+        <p><strong>Your message:</strong></p>
+        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p>Best regards,<br>SmartInvest Africa Team</p>
+      `
+    });
+    
+    return res.json({ success: true, message: 'Message sent successfully' });
+  } catch (err) {
+    console.error('Contact form error:', err.message);
+    return res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Feedback widget endpoint
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { feedback, timestamp } = req.body;
+    if (!feedback) {
+      return res.status(400).json({ error: 'Feedback is required' });
+    }
+    
+    // Get user email if authenticated
+    const payload = verifyTokenFromReq(req);
+    const userEmail = payload ? payload.email : 'anonymous';
+    
+    // Save to feedback file
+    const feedbackFile = path.join(__dirname, 'data', 'feedback.json');
+    let feedbackList = [];
+    try {
+      if (fs.existsSync(feedbackFile)) {
+        feedbackList = JSON.parse(fs.readFileSync(feedbackFile, 'utf8'));
+      }
+    } catch (e) {
+      feedbackList = [];
+    }
+    
+    const newFeedback = {
+      id: uuidv4(),
+      feedback,
+      userEmail,
+      timestamp: timestamp || new Date().toISOString(),
+      ip: req.ip
+    };
+    
+    feedbackList.push(newFeedback);
+    fs.writeFileSync(feedbackFile, JSON.stringify(feedbackList, null, 2));
+    
+    return res.json({ success: true, message: 'Feedback received' });
+  } catch (err) {
+    console.error('Feedback error:', err.message);
+    return res.status(500).json({ error: 'Failed to save feedback' });
+  }
+});
+
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));

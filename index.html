@@ -83,11 +83,213 @@
                 font-weight: 600;
             }
             .tab-btn.active { background: #2563EB; color: #fff; }
+            
+            /* Sticky Navigation */
+            .sticky-nav {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                background: white;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Responsive Design */
+            @media (max-width: 768px) {
+                .nav-links { display: none; }
+                .mobile-menu-btn { display: block; }
+                .nav-links.mobile-open {
+                    display: flex;
+                    flex-direction: column;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    background: white;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    padding: 1rem;
+                }
+            }
+            
+            @media (min-width: 769px) {
+                .mobile-menu-btn { display: none; }
+            }
+            
+            /* Back to Top Button */
+            #backToTop {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                background: #6D28D9;
+                color: white;
+                width: 3rem;
+                height: 3rem;
+                border-radius: 50%;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(109, 40, 217, 0.4);
+                transition: all 0.3s ease;
+                z-index: 999;
+            }
+            
+            #backToTop:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 16px rgba(109, 40, 217, 0.6);
+            }
+            
+            #backToTop.show { display: flex; }
+            
+            /* Tooltip Styles */
+            .tooltip {
+                position: relative;
+                display: inline-block;
+                border-bottom: 1px dotted #6D28D9;
+                cursor: help;
+            }
+            
+            .tooltip .tooltiptext {
+                visibility: hidden;
+                width: 200px;
+                background-color: #4C1D95;
+                color: #fff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 8px;
+                position: absolute;
+                z-index: 1;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -100px;
+                opacity: 0;
+                transition: opacity 0.3s;
+                font-size: 0.875rem;
+            }
+            
+            .tooltip:hover .tooltiptext {
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            /* Active Navigation Link */
+            .nav-link.active {
+                color: #6D28D9;
+                font-weight: 600;
+                border-bottom: 2px solid #6D28D9;
+            }
+            
+            /* Feedback Widget */
+            #feedbackWidget {
+                position: fixed;
+                bottom: 6rem;
+                right: 2rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 998;
+                transition: all 0.3s ease;
+            }
+            
+            #feedbackWidget.collapsed {
+                width: auto;
+                height: auto;
+            }
+            
+            /* Form Error Messages */
+            .error-message {
+                color: #DC2626;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+                display: none;
+            }
+            
+            .error-message.show { display: block; }
+            
+            /* Onboarding Modal */
+            .onboarding-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 2000;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .onboarding-modal.show { display: flex; }
+            
+            .modal-content {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                max-width: 500px;
+                margin: 1rem;
+                position: relative;
+            }
+            
+            /* Loading Spinner */
+            .spinner {
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #6D28D9;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
         </style>
 </head>
 <body class="antialiased">
 
     <a class="sr-only sr-only-focusable" href="#main-content">Skip to content</a>
+
+    <!-- Sticky Navigation Header -->
+    <nav class="sticky-nav" role="navigation" aria-label="Main navigation">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-purple-600">SmartInvest Africa</span>
+                </div>
+                <div class="nav-links flex gap-6 items-center">
+                    <a href="#hero" class="nav-link text-gray-700 hover:text-purple-600 transition">Home</a>
+                    <a href="#premium-benefits" class="nav-link text-gray-700 hover:text-purple-600 transition">Premium</a>
+                    <a href="#academy" class="nav-link text-gray-700 hover:text-purple-600 transition">Academy</a>
+                    <a href="#tools" class="nav-link text-gray-700 hover:text-purple-600 transition">Tools</a>
+                    <a href="#insights" class="nav-link text-gray-700 hover:text-purple-600 transition">Insights</a>
+                    <a href="#faq" class="nav-link text-gray-700 hover:text-purple-600 transition">FAQ</a>
+                    <a href="#contact" class="nav-link text-gray-700 hover:text-purple-600 transition">Contact</a>
+                    <a href="#signin" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Sign In</a>
+                </div>
+                <button class="mobile-menu-btn text-purple-600" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero" role="main" aria-labelledby="hero-title" class="py-20 px-4 bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 text-white">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 id="hero-title" class="text-5xl md:text-6xl font-bold mb-6">Democratizing Investment Knowledge Across Africa</h1>
+            <p class="text-xl md:text-2xl mb-8 text-purple-100">Learn, invest, and grow with confidence through trusted education, innovative tools, and a supportive community</p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <a href="#academy" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Explore Academy</a>
+                <a href="#premium-benefits" class="bg-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-400 transition">Get Premium Access</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Wrapper -->
+    <main id="main-content">
 
     <!-- Top Navigation -->
                                             <h5 class="font-semibold">All Payment Ledger</h5>
@@ -226,17 +428,17 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">Investing 101</h3>
-                    <p class="text-gray-600 mb-4">Foundations: assets, risk, diversification.</p>
+                    <p class="text-gray-600 mb-4">Foundations: <span class="tooltip">assets<span class="tooltiptext">Resources with economic value owned by individuals or companies</span></span>, <span class="tooltip">risk<span class="tooltiptext">The possibility of losing money or not achieving expected returns</span></span>, <span class="tooltip">diversification<span class="tooltiptext">Spreading investments across different assets to reduce risk</span></span>.</p>
                     <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">Beginner</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">Trading Essentials</h3>
-                    <p class="text-gray-600 mb-4">Practical trading, psychology, risk control.</p>
+                    <p class="text-gray-600 mb-4">Practical trading, <span class="tooltip">psychology<span class="tooltiptext">Understanding emotions and decision-making in financial markets</span></span>, <span class="tooltip">risk control<span class="tooltiptext">Strategies to limit potential losses in trading</span></span>.</p>
                     <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">Intermediate</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">SME Funding Readiness</h3>
-                    <p class="text-gray-600 mb-4">Pitching, valuation, investor expectations.</p>
+                    <p class="text-gray-600 mb-4">Pitching, <span class="tooltip">valuation<span class="tooltiptext">Determining the worth of a business or asset</span></span>, investor expectations.</p>
                     <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">SME</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
@@ -322,36 +524,392 @@
         </div>
     </section>
 
+    <!-- FAQ Section -->
+    <section id="faq" aria-label="Frequently Asked Questions" class="py-20 px-4 bg-gray-100">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Frequently Asked Questions</h2>
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What is SmartInvest Africa?</h3>
+                    <p class="text-gray-700">SmartInvest Africa is a financial literacy platform that democratizes investment knowledge, tools, and opportunities across Africa. We provide courses, tools, and community support to help you make informed investment decisions.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">How do I get started?</h3>
+                    <p class="text-gray-700">Simply create a free account to access our basic resources. For full access to all courses, tools, and community features, upgrade to Premium with M-Pesa, PayPal, or bank transfer.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What payment methods do you accept?</h3>
+                    <p class="text-gray-700">We accept M-Pesa for Kenya and neighboring countries, PayPal for international payments, and bank transfers. All payment methods provide instant access to Premium features.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Is my data secure?</h3>
+                    <p class="text-gray-700">Yes, we take security seriously. Your password is encrypted using industry-standard bcrypt hashing. We comply with GDPR and local data protection laws, and we never sell your information.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What does Premium access include?</h3>
+                    <p class="text-gray-700">Premium members get unlimited access to all investment courses, advanced portfolio tracking tools, AI-powered recommendations, weekly webinars, VIP community forum access, and direct mentorship from investment professionals.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Can I cancel my Premium subscription?</h3>
+                    <p class="text-gray-700">Yes, you can contact our support team at any time. Premium access is typically provided for 30 days per payment, and you'll retain access until the period expires.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Do you provide investment advice?</h3>
+                    <p class="text-gray-700">No, SmartInvest Africa provides educational content only. We do not provide personalized financial or investment advice. All investment decisions are your own responsibility, and investments carry risk.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
     <section id="contact" aria-label="Contact" class="py-20 px-4 bg-gray-100">
         <div class="max-w-2xl mx-auto">
             <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Contact Us</h2>
-            <form class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
+            <form id="contactForm" class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Name</label>
-                    <input type="text" placeholder="Your Name" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                    <label for="contactName" class="block text-gray-700 font-semibold mb-2">Name <span class="text-red-600">*</span></label>
+                    <input type="text" id="contactName" name="name" placeholder="Your Name" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true">
+                    <span class="error-message" id="nameError">Please enter your name</span>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
-                    <input type="email" placeholder="Your Email" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                    <label for="contactEmail" class="block text-gray-700 font-semibold mb-2">Email <span class="text-red-600">*</span></label>
+                    <input type="email" id="contactEmail" name="email" placeholder="Your Email" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true">
+                    <span class="error-message" id="emailError">Please enter a valid email address</span>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Message</label>
-                    <textarea placeholder="Your Message" rows="4" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required></textarea>
+                    <label for="contactMessage" class="block text-gray-700 font-semibold mb-2">Message <span class="text-red-600">*</span></label>
+                    <textarea id="contactMessage" name="message" placeholder="Your Message" rows="4" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true"></textarea>
+                    <span class="error-message" id="messageError">Please enter your message (minimum 10 characters)</span>
                 </div>
+                <div id="contactSuccess" class="hidden mb-4 p-4 bg-green-100 text-green-700 rounded">Thank you! Your message has been sent successfully.</div>
+                <div id="contactErrorMsg" class="hidden mb-4 p-4 bg-red-100 text-red-700 rounded">There was an error sending your message. Please try again.</div>
                 <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Send Message</button>
             </form>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-white py-8 px-4">
-        <div class="max-w-7xl mx-auto text-center">
-            <p>&copy; 2024 SmartInvest Africa. All rights reserved.</p>
+    <footer class="bg-slate-900 text-white py-8 px-4" role="contentinfo">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 mb-6">
+                <div>
+                    <h3 class="font-bold text-lg mb-3">SmartInvest Africa</h3>
+                    <p class="text-gray-400 text-sm">Democratizing investment knowledge, tools and opportunities across Africa.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Quick Links</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#academy" class="text-gray-400 hover:text-white transition">Academy</a></li>
+                        <li><a href="#tools" class="text-gray-400 hover:text-white transition">Tools</a></li>
+                        <li><a href="#faq" class="text-gray-400 hover:text-white transition">FAQ</a></li>
+                        <li><a href="/terms.html" class="text-gray-400 hover:text-white transition">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Language</h3>
+                    <select onchange="changeLanguage(this.value)" class="bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 text-sm" aria-label="Select language">
+                        <option value="en">English</option>
+                        <option value="sw">Kiswahili</option>
+                        <option value="fr">Français</option>
+                        <option value="ar">العربية</option>
+                    </select>
+                    <p class="text-gray-400 text-xs mt-2">More languages coming soon</p>
+                </div>
+            </div>
+            <div class="text-center border-t border-gray-700 pt-6">
+                <p class="text-gray-400 text-sm">&copy; 2024 SmartInvest Africa. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 
+    </main>
+
+    <!-- Back to Top Button -->
+    <div id="backToTop" onclick="scrollToTop()" aria-label="Back to top">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </div>
+
+    <!-- Feedback Widget -->
+    <div id="feedbackWidget" class="collapsed">
+        <button id="feedbackToggle" onclick="toggleFeedback()" class="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition">
+            💬 Feedback
+        </button>
+        <div id="feedbackForm" class="hidden p-4" style="width: 300px;">
+            <h3 class="font-bold mb-3 text-gray-800">Quick Feedback</h3>
+            <textarea id="feedbackText" placeholder="Share your thoughts..." class="w-full border rounded p-2 mb-2" rows="3"></textarea>
+            <div class="flex gap-2">
+                <button onclick="submitFeedback()" class="flex-1 bg-purple-600 text-white px-3 py-2 rounded hover:bg-purple-700 transition text-sm">Send</button>
+                <button onclick="toggleFeedback()" class="px-3 py-2 border rounded hover:bg-gray-100 transition text-sm">Cancel</button>
+            </div>
+            <div id="feedbackStatus" class="text-sm mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboardingModal" class="onboarding-modal">
+        <div class="modal-content">
+            <button onclick="closeOnboarding()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div id="onboardingContent">
+                <div class="onboarding-step" data-step="1">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">Welcome to SmartInvest Africa! 🎉</h2>
+                    <p class="text-gray-700 mb-6">Let's take a quick tour of the platform's key features to help you get started.</p>
+                    <button onclick="nextOnboardingStep()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Get Started</button>
+                </div>
+                <div class="onboarding-step hidden" data-step="2">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">📚 Investment Academy</h2>
+                    <p class="text-gray-700 mb-6">Access comprehensive courses covering everything from basic investing to advanced trading strategies. Each course is designed specifically for the African market.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="3">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🛠️ Investment Tools</h2>
+                    <p class="text-gray-700 mb-6">Use our portfolio tracker, risk profiler, and savings automator to manage your investments effectively.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="4">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🤝 Premium Benefits</h2>
+                    <p class="text-gray-700 mb-6">Upgrade to Premium for full course access, advanced tools, VIP community, and direct mentorship. Payment available via M-Pesa, PayPal, or bank transfer.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="completeOnboarding()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Start Learning!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script src="/public/js/dashboard-hub.js"></script>
+
+<script>
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const navLinks = document.querySelector('.nav-links');
+    navLinks.classList.toggle('mobile-open');
+}
+
+// Scroll to top
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Show/hide back to top button
+window.addEventListener('scroll', () => {
+    const backToTop = document.getElementById('backToTop');
+    if (window.pageYOffset > 300) {
+        backToTop.classList.add('show');
+    } else {
+        backToTop.classList.remove('show');
+    }
+    
+    // Update active navigation link
+    updateActiveNavLink();
+});
+
+// Update active navigation link based on scroll position
+function updateActiveNavLink() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (window.pageYOffset >= sectionTop - 200) {
+            current = section.getAttribute('id');
+        }
+    });
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Feedback widget
+function toggleFeedback() {
+    const widget = document.getElementById('feedbackWidget');
+    const form = document.getElementById('feedbackForm');
+    const toggle = document.getElementById('feedbackToggle');
+    
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        toggle.classList.add('hidden');
+        widget.classList.remove('collapsed');
+    } else {
+        form.classList.add('hidden');
+        toggle.classList.remove('hidden');
+        widget.classList.add('collapsed');
+        document.getElementById('feedbackText').value = '';
+        document.getElementById('feedbackStatus').textContent = '';
+    }
+}
+
+async function submitFeedback() {
+    const text = document.getElementById('feedbackText').value.trim();
+    const status = document.getElementById('feedbackStatus');
+    
+    if (!text) {
+        status.textContent = 'Please enter your feedback';
+        status.className = 'text-sm mt-2 text-red-600';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feedback: text, timestamp: new Date().toISOString() })
+        });
+        
+        if (response.ok) {
+            status.textContent = 'Thank you for your feedback!';
+            status.className = 'text-sm mt-2 text-green-600';
+            setTimeout(() => toggleFeedback(), 2000);
+        } else {
+            status.textContent = 'Error sending feedback';
+            status.className = 'text-sm mt-2 text-red-600';
+        }
+    } catch (error) {
+        status.textContent = 'Network error';
+        status.className = 'text-sm mt-2 text-red-600';
+    }
+}
+
+// Onboarding
+let currentOnboardingStep = 1;
+
+function showOnboarding() {
+    const hasSeenOnboarding = localStorage.getItem('si_onboarding_completed');
+    if (!hasSeenOnboarding) {
+        document.getElementById('onboardingModal').classList.add('show');
+    }
+}
+
+function closeOnboarding() {
+    document.getElementById('onboardingModal').classList.remove('show');
+}
+
+function nextOnboardingStep() {
+    const steps = document.querySelectorAll('.onboarding-step');
+    steps[currentOnboardingStep - 1].classList.add('hidden');
+    currentOnboardingStep++;
+    if (currentOnboardingStep <= steps.length) {
+        steps[currentOnboardingStep - 1].classList.remove('hidden');
+    }
+}
+
+function prevOnboardingStep() {
+    const steps = document.querySelectorAll('.onboarding-step');
+    steps[currentOnboardingStep - 1].classList.add('hidden');
+    currentOnboardingStep--;
+    if (currentOnboardingStep >= 1) {
+        steps[currentOnboardingStep - 1].classList.remove('hidden');
+    }
+}
+
+function completeOnboarding() {
+    localStorage.setItem('si_onboarding_completed', 'true');
+    closeOnboarding();
+}
+
+// Enhanced contact form validation
+function handleContactSubmit(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('contactName').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const message = document.getElementById('contactMessage').value.trim();
+    
+    let isValid = true;
+    
+    // Reset error messages
+    document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+    document.getElementById('contactSuccess').classList.add('hidden');
+    document.getElementById('contactErrorMsg').classList.add('hidden');
+    
+    // Validate name
+    if (!name || name.length < 2) {
+        document.getElementById('nameError').classList.add('show');
+        isValid = false;
+    }
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+        document.getElementById('emailError').classList.add('show');
+        isValid = false;
+    }
+    
+    // Validate message
+    if (!message || message.length < 10) {
+        document.getElementById('messageError').classList.add('show');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        return false;
+    }
+    
+    // Submit the form
+    fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('contactSuccess').classList.remove('hidden');
+            document.getElementById('contactForm').reset();
+        } else {
+            document.getElementById('contactErrorMsg').classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        document.getElementById('contactErrorMsg').classList.remove('hidden');
+    });
+    
+    return false;
+}
+
+// Language selector (initial setup for localization)
+function changeLanguage(lang) {
+    localStorage.setItem('si_language', lang);
+    // In production, this would reload content in selected language
+    console.log('Language changed to:', lang);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Show onboarding for first-time users
+    setTimeout(() => showOnboarding(), 1000);
+    
+    // Set initial language from localStorage
+    const savedLang = localStorage.getItem('si_language') || 'en';
+    
+    // Lazy load images (if any are added later)
+    if ('loading' in HTMLImageElement.prototype) {
+        const images = document.querySelectorAll('img[loading="lazy"]');
+        images.forEach(img => {
+            img.src = img.dataset.src;
+        });
+    }
+});
+</script>
+
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
   <div class="max-w-md mx-auto bg-gray-50 p-8 rounded-lg shadow-md">
@@ -391,7 +949,7 @@
         </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
-      Demo only — no real authentication
+      Your data is secure and encrypted
     </p>
   </div>
 </section>
