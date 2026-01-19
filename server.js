@@ -8,6 +8,10 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+
+// Trust proxy for proper IP detection behind load balancers
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -15,7 +19,7 @@ app.use(bodyParser.json());
 const rateLimitMap = new Map();
 function simpleRateLimit(maxRequests = 30, windowMs = 60000) {
   return (req, res, next) => {
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const requests = rateLimitMap.get(ip) || [];
     const recentRequests = requests.filter(time => now - time < windowMs);
