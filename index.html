@@ -265,6 +265,7 @@
                     <a href="#insights" class="nav-link text-gray-700 hover:text-purple-600 transition">Insights</a>
                     <a href="#faq" class="nav-link text-gray-700 hover:text-purple-600 transition">FAQ</a>
                     <a href="#contact" class="nav-link text-gray-700 hover:text-purple-600 transition">Contact</a>
+                    <button onclick="openAdminPortal()" class="text-gray-700 hover:text-purple-600 transition">Admin Portal</button>
                     <a href="#signin" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Sign In</a>
                 </div>
                 <button class="mobile-menu-btn text-purple-600" onclick="toggleMobileMenu()" aria-label="Toggle menu">
@@ -637,7 +638,127 @@
                     <p class="text-gray-700 mb-6">Upgrade to Premium for full course access, advanced tools, VIP community, and direct mentorship. Payment available via M-Pesa, PayPal, or bank transfer.</p>
                     <div class="flex gap-2">
                         <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="5">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">💳 Payments & Live Transactions</h2>
+                    <p class="text-gray-700 mb-4">View real-time payment processing and transaction status for all payment methods.</p>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 max-h-64 overflow-y-auto">
+                        <h3 class="font-semibold text-sm mb-2 text-gray-800">Recent Transactions</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">M-Pesa Payment</span>
+                                    <p class="text-xs text-gray-500">Premium Access - 30 days</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">KES 1,000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">PayPal Payment</span>
+                                    <p class="text-xs text-gray-500">Course Bundle</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">$15.00</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">Bank Transfer</span>
+                                    <p class="text-xs text-gray-500">Premium Access - 90 days</p>
+                                </div>
+                                <span class="text-blue-600 font-semibold">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3 mb-4">
+                        <p class="text-sm text-purple-800"><strong>💡 Tip:</strong> All transactions are encrypted and secure. You'll receive instant confirmation for M-Pesa and PayPal payments.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
                         <button onclick="completeOnboarding()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Start Learning!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Portal Modal -->
+    <div id="adminPortalModal" class="onboarding-modal" style="display: none;">
+        <div class="modal-content">
+            <button onclick="closeAdminPortal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div id="adminPortalContent">
+                <div id="adminLoginForm">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🔐 Admin Portal</h2>
+                    <p class="text-gray-700 mb-6">Sign in to access the admin dashboard and manage the platform.</p>
+                    <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                        <div>
+                            <label for="adminEmail" class="block text-gray-700 font-semibold mb-2">Admin Email</label>
+                            <input type="email" id="adminEmail" placeholder="admin@smartinvest.africa" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                        </div>
+                        <div>
+                            <label for="adminPassword" class="block text-gray-700 font-semibold mb-2">Password</label>
+                            <input type="password" id="adminPassword" placeholder="Enter admin password" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                        </div>
+                        <div id="adminLoginError" class="text-red-600 text-sm hidden"></div>
+                        <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In to Dashboard</button>
+                    </form>
+                </div>
+                
+                <div id="adminDashboard" class="hidden">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">📊 Admin Dashboard</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h3 class="text-sm font-semibold text-blue-800 mb-1">Total Users</h3>
+                            <p class="text-2xl font-bold text-blue-600">1,247</p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h3 class="text-sm font-semibold text-green-800 mb-1">Premium Users</h3>
+                            <p class="text-2xl font-bold text-green-600">342</p>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h3 class="text-sm font-semibold text-purple-800 mb-1">Total Revenue</h3>
+                            <p class="text-2xl font-bold text-purple-600">KES 1.2M</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                            <h3 class="text-sm font-semibold text-amber-800 mb-1">Active Courses</h3>
+                            <p class="text-2xl font-bold text-amber-600">24</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="font-semibold mb-3 text-gray-800">Recent Transactions</h3>
+                        <div class="space-y-2 text-sm max-h-48 overflow-y-auto">
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">user@example.com</span>
+                                    <p class="text-xs text-gray-500">M-Pesa - Premium 30 days</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">KES 1,000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">investor@mail.com</span>
+                                    <p class="text-xs text-gray-500">PayPal - Course Bundle</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">$15.00</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">trader@example.co.ke</span>
+                                    <p class="text-xs text-gray-500">Bank Transfer - Premium 90 days</p>
+                                </div>
+                                <span class="text-blue-600 font-semibold">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <a href="/admin.html" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition text-center">Go to Full Dashboard</a>
+                        <button onclick="logoutAdmin()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Logout</button>
                     </div>
                 </div>
             </div>
@@ -778,6 +899,55 @@ function prevOnboardingStep() {
 function completeOnboarding() {
     localStorage.setItem('si_onboarding_completed', 'true');
     closeOnboarding();
+}
+
+// Admin Portal functions
+function openAdminPortal() {
+    document.getElementById('adminPortalModal').style.display = 'flex';
+}
+
+function closeAdminPortal() {
+    document.getElementById('adminPortalModal').style.display = 'none';
+    document.getElementById('adminLoginForm').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+}
+
+function handleAdminLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const errorDiv = document.getElementById('adminLoginError');
+    
+    // Simple demo authentication - in production this would call the backend
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && data.admin) {
+            // Show admin dashboard
+            document.getElementById('adminLoginForm').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+        } else {
+            errorDiv.textContent = 'Invalid admin credentials. Please try again.';
+            errorDiv.classList.remove('hidden');
+        }
+    })
+    .catch(err => {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+    });
+}
+
+function logoutAdmin() {
+    document.getElementById('adminLoginForm').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('adminEmail').value = '';
+    document.getElementById('adminPassword').value = '';
 }
 
 // Enhanced contact form validation
