@@ -9,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Serve static files
+app.use(express.static(__dirname));
+
 // Basic auth for admin routes if ADMIN_USER is set
 function adminAuth(req, res, next) {
   const adminUser = process.env.ADMIN_USER;
