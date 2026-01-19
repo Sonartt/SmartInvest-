@@ -30,45 +30,95 @@
         }
         </script>
         <style>
-            /* Classic & Futuristic Design System */
+            /* Corporate Professional Design System */
             :root {
-                --classic-serif: 'Georgia', 'Times New Roman', serif;
-                --futuristic-sans: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                --glass-bg: rgba(255, 255, 255, 0.95);
-                --glass-border: rgba(255, 255, 255, 0.18);
+                --corporate-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+                --corporate-blue: #003366;
+                --corporate-navy: #001f3f;
+                --corporate-gold: #c9a961;
+                --corporate-gray: #4a5568;
+                --corporate-light-gray: #f8f9fa;
+                --corporate-border: #e2e8f0;
+                --professional-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             }
             
             body {
-                font-family: var(--futuristic-sans);
-                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                background-attachment: fixed;
+                font-family: var(--corporate-font);
+                background: #ffffff;
+                color: #2d3748;
+                line-height: 1.6;
             }
             
             h1, h2, h3 {
-                font-family: var(--classic-serif);
-                letter-spacing: -0.02em;
+                font-family: var(--corporate-font);
+                font-weight: 700;
+                color: var(--corporate-navy);
+                letter-spacing: -0.01em;
             }
             
-            /* Glassmorphism Cards */
-            .glass-card {
-                background: var(--glass-bg);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 1px solid var(--glass-border);
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 2rem; }
+            h3 { font-size: 1.5rem; }
+            
+            /* Corporate Cards */
+            .corporate-card {
+                background: white;
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
+                box-shadow: var(--professional-shadow);
+                transition: all 0.3s ease;
             }
             
-            .glass-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.25);
+            .corporate-card:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                transform: translateY(-2px);
+            }
+            
+            /* Professional Buttons */
+            .btn-corporate-primary {
+                background: var(--corporate-blue);
+                color: white;
+                padding: 0.75rem 1.5rem;
+                border-radius: 4px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                border: none;
+            }
+            
+            .btn-corporate-primary:hover {
+                background: var(--corporate-navy);
+                box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+            }
+            
+            .btn-corporate-secondary {
+                background: white;
+                color: var(--corporate-blue);
+                padding: 0.75rem 1.5rem;
+                border: 2px solid var(--corporate-blue);
+                border-radius: 4px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            }
+            
+            .btn-corporate-secondary:hover {
+                background: var(--corporate-blue);
+                color: white;
+            }
+            
+            /* Corporate Accent */
+            .corporate-accent {
+                color: var(--corporate-gold);
+            }
+            
+            .corporate-divider {
+                border-top: 2px solid var(--corporate-gold);
+                width: 60px;
+                margin: 1rem 0;
             }
             
             /* Visible focus styles for keyboard users */
             :focus {
-                outline: 3px solid #C4B5FD;
+                outline: 3px solid var(--corporate-blue);
                 outline-offset: 2px;
             }
             
@@ -79,40 +129,38 @@
                 height: auto;
                 margin: 0.5rem;
                 padding: 0.5rem 1rem;
-                background: white;
-                color: #4C1D95;
-                border-radius: 0.25rem;
+                background: var(--corporate-blue);
+                color: white;
+                border-radius: 4px;
             }
             
             .dashboard-panel { display: none; }
             .dashboard-panel.active { display: block; }
             
             .dashboard-toggle {
-                border: 1px solid #C4B5FD;
-                border-radius: 9999px;
+                border: 2px solid var(--corporate-blue);
+                border-radius: 4px;
                 padding: 0.5rem 1.5rem;
                 font-weight: 600;
                 font-size: 0.9rem;
-                color: #6D28D9;
-                background: #fff;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 2px 8px rgba(109, 40, 217, 0.1);
+                color: var(--corporate-blue);
+                background: white;
+                transition: all 0.3s ease;
+                box-shadow: var(--professional-shadow);
             }
             
             .dashboard-toggle.active {
-                background: linear-gradient(130deg, #6D28D9, #9333EA);
-                color: #fff;
-                box-shadow: 0 8px 24px rgba(109, 40, 217, 0.3);
-                transform: scale(1.02);
+                background: var(--corporate-blue);
+                color: white;
+                box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
             }
             
             .dashboard-shell {
-                background: var(--glass-bg);
-                backdrop-filter: blur(10px);
-                border: 1px solid var(--glass-border);
-                border-radius: 1.25rem;
+                background: var(--corporate-light-gray);
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
                 padding: 2rem;
-                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+                box-shadow: var(--professional-shadow);
             }
             
             .tab-content { display: none; }
@@ -121,60 +169,50 @@
             .tab-btn {
                 padding: 0.5rem 1rem;
                 border: none;
-                border-radius: 9999px;
-                background: rgba(229, 231, 235, 0.8);
+                border-radius: 4px;
+                background: var(--corporate-light-gray);
                 cursor: pointer;
                 font-size: 0.9rem;
                 font-weight: 600;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: all 0.3s ease;
+                color: var(--corporate-gray);
             }
             
             .tab-btn:hover {
-                background: rgba(229, 231, 235, 1);
-                transform: translateY(-1px);
+                background: #e2e8f0;
             }
             
             .tab-btn.active {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #fff;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                background: var(--corporate-blue);
+                color: white;
+                box-shadow: var(--professional-shadow);
             }
             
-            /* Sticky Navigation with Glassmorphism */
+            /* Corporate Navigation */
             .sticky-nav {
                 position: sticky;
                 top: 0;
                 z-index: 1000;
-                background: var(--glass-bg);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border-bottom: 1px solid var(--glass-border);
-                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+                background: white;
+                border-bottom: 1px solid var(--corporate-border);
+                box-shadow: var(--professional-shadow);
             }
             
-            /* Futuristic Buttons */
+            /* Corporate Hero */
+            .corporate-hero {
+                background: linear-gradient(135deg, var(--corporate-navy) 0%, var(--corporate-blue) 100%);
+                color: white;
+            }
+            
+            .corporate-hero h1 {
+                color: white;
+            }
+            
+            /* Professional Buttons */
             button, .btn {
                 position: relative;
-                overflow: hidden;
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            
-            button::before, .btn::before {
-                content: '';
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 0;
-                height: 0;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.3);
-                transform: translate(-50%, -50%);
-                transition: width 0.6s, height 0.6s;
-            }
-            
-            button:hover::before, .btn:hover::before {
-                width: 300px;
-                height: 300px;
+                transition: all 0.3s ease;
+                font-weight: 600;
             }
             
             /* Responsive Design */
@@ -188,11 +226,10 @@
                     top: 100%;
                     left: 0;
                     right: 0;
-                    background: var(--glass-bg);
-                    backdrop-filter: blur(20px);
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                    background: white;
+                    border-top: 1px solid var(--corporate-border);
+                    box-shadow: var(--professional-shadow);
                     padding: 1rem;
-                    border-radius: 0 0 1rem 1rem;
                 }
             }
             
@@ -200,59 +237,59 @@
                 .mobile-menu-btn { display: none; }
             }
             
-            /* Futuristic Back to Top Button */
+            /* Professional Back to Top Button */
             #backToTop {
                 position: fixed;
                 bottom: 2rem;
                 right: 2rem;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: var(--corporate-blue);
                 color: white;
                 width: 3.5rem;
                 height: 3.5rem;
-                border-radius: 50%;
+                border-radius: 4px;
                 display: none;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: var(--professional-shadow);
+                transition: all 0.3s ease;
                 z-index: 999;
-                border: 2px solid rgba(255, 255, 255, 0.3);
+                border: none;
             }
             
             #backToTop:hover {
-                transform: translateY(-5px) scale(1.05);
-                box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+                background: var(--corporate-navy);
+                box-shadow: 0 6px 16px rgba(0, 51, 102, 0.3);
+                transform: translateY(-2px);
             }
             
             #backToTop.show { display: flex; }
             
-            /* Modern Tooltip Styles */
+            /* Professional Tooltip Styles */
             .tooltip {
                 position: relative;
                 display: inline-block;
-                border-bottom: 2px dotted #667eea;
+                border-bottom: 1px dotted var(--corporate-blue);
                 cursor: help;
             }
             
             .tooltip .tooltiptext {
                 visibility: hidden;
                 width: 220px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: var(--corporate-navy);
                 color: #fff;
                 text-align: center;
-                border-radius: 12px;
-                padding: 12px;
+                border-radius: 4px;
+                padding: 10px;
                 position: absolute;
                 z-index: 1;
-                bottom: 135%;
+                bottom: 125%;
                 left: 50%;
                 margin-left: -110px;
                 opacity: 0;
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: all 0.3s ease;
                 font-size: 0.875rem;
-                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: var(--professional-shadow);
             }
             
             .tooltip .tooltiptext::after {
@@ -263,19 +300,19 @@
                 margin-left: -5px;
                 border-width: 5px;
                 border-style: solid;
-                border-color: #667eea transparent transparent transparent;
+                border-color: var(--corporate-navy) transparent transparent transparent;
             }
             
             .tooltip:hover .tooltiptext {
                 visibility: visible;
                 opacity: 1;
-                transform: translateY(-3px);
             }
             
-            /* Active Navigation Link */
+            /* Professional Navigation Link */
             .nav-link {
                 position: relative;
                 transition: all 0.3s ease;
+                color: var(--corporate-gray);
             }
             
             .nav-link::after {
@@ -284,9 +321,9 @@
                 bottom: -4px;
                 left: 0;
                 width: 0;
-                height: 2px;
-                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-                transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                height: 3px;
+                background: var(--corporate-gold);
+                transition: width 0.3s ease;
             }
             
             .nav-link:hover::after, .nav-link.active::after {
@@ -294,26 +331,29 @@
             }
             
             .nav-link.active {
-                color: #667eea;
+                color: var(--corporate-blue);
                 font-weight: 600;
             }
             
-            /* Futuristic Feedback Widget */
+            .nav-link:hover {
+                color: var(--corporate-blue);
+            }
+            
+            /* Professional Feedback Widget */
             #feedbackWidget {
                 position: fixed;
                 bottom: 7rem;
                 right: 2rem;
-                background: var(--glass-bg);
-                backdrop-filter: blur(20px);
-                border-radius: 16px;
-                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
-                border: 1px solid var(--glass-border);
+                background: white;
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
+                box-shadow: var(--professional-shadow);
                 z-index: 998;
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: all 0.3s ease;
             }
             
             #feedbackWidget:hover {
-                box-shadow: 0 12px 48px rgba(31, 38, 135, 0.3);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
             }
             
             #feedbackWidget.collapsed {
@@ -338,7 +378,7 @@
             
             .error-message.show { display: block; }
             
-            /* Modern Onboarding Modal */
+            /* Professional Modal */
             .onboarding-modal {
                 display: none;
                 position: fixed;
@@ -346,8 +386,7 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0, 0, 0, 0.75);
-                backdrop-filter: blur(5px);
+                background: rgba(0, 0, 0, 0.6);
                 z-index: 2000;
                 align-items: center;
                 justify-content: center;
@@ -362,16 +401,15 @@
             .onboarding-modal.show { display: flex; }
             
             .modal-content {
-                background: var(--glass-bg);
-                backdrop-filter: blur(20px);
+                background: white;
                 padding: 2.5rem;
-                border-radius: 20px;
+                border-radius: 4px;
                 max-width: 550px;
                 margin: 1rem;
                 position: relative;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                border: 1px solid var(--glass-border);
-                animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                border: 1px solid var(--corporate-border);
+                animation: slideUp 0.4s ease;
             }
             
             @keyframes slideUp {
@@ -387,8 +425,8 @@
             
             /* Loading Spinner */
             .spinner {
-                border: 3px solid rgba(102, 126, 234, 0.2);
-                border-top: 3px solid #667eea;
+                border: 3px solid var(--corporate-light-gray);
+                border-top: 3px solid var(--corporate-blue);
                 border-radius: 50%;
                 width: 40px;
                 height: 40px;
@@ -400,16 +438,34 @@
                 100% { transform: rotate(360deg); }
             }
             
-            /* Smooth Transitions */
+            /* Corporate Statistics/Metrics */
+            .corporate-stat {
+                text-align: center;
+                padding: 1.5rem;
+                background: var(--corporate-light-gray);
+                border-left: 4px solid var(--corporate-gold);
+                border-radius: 4px;
+            }
+            
+            .corporate-stat-value {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--corporate-navy);
+                margin-bottom: 0.5rem;
+            }
+            
+            .corporate-stat-label {
+                font-size: 0.875rem;
+                color: var(--corporate-gray);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            /* Professional Transitions */
             * {
                 transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
                 transition-duration: 0.3s;
-                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            
-            /* Accent Glow Effect */
-            .glow {
-                box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+                transition-timing-function: ease;
             }
         </style>
 </head>
