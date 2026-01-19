@@ -4,13 +4,40 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve static files
-app.use(express.static(__dirname));
+// Simple rate limiting middleware
+const rateLimitMap = new Map();
+function simpleRateLimit(maxRequests = 30, windowMs = 60000) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const requests = rateLimitMap.get(ip) || [];
+    const recentRequests = requests.filter(time => now - time < windowMs);
+    
+    if (recentRequests.length >= maxRequests) {
+      return res.status(429).json({ error: 'Too many requests, please try again later' });
+    }
+    
+    recentRequests.push(now);
+    rateLimitMap.set(ip, recentRequests);
+    next();
+  };
+}
+
+// Serve static files (excluding sensitive directories)
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/tools', express.static(path.join(__dirname, 'tools')));
+
+// Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Basic auth for admin routes if ADMIN_USER is set
 function adminAuth(req, res, next) {
@@ -162,8 +189,6 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
-const fs = require('fs');
-const path = require('path');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
@@ -1658,7 +1683,7 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 // Contact form endpoint
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', simpleRateLimit(10, 60000), async (req, res) => {
   try {
     const { name, email, message } = req.body;
     if (!name || !email || !message) {
@@ -1671,8 +1696,27 @@ app.post('/api/contact', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
     // Save to messages file
     const messagesFile = path.join(__dirname, 'data', 'contact-messages.json');
+    
+    // Ensure data directory exists
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
     let messages = [];
     try {
       if (fs.existsSync(messagesFile)) {
@@ -1700,12 +1744,12 @@ app.post('/api/contact', async (req, res) => {
     if (adminEmail) {
       sendNotificationMail({
         to: adminEmail,
-        subject: `New Contact Message from ${name}`,
+        subject: `New Contact Message from ${escapeHtml(name)}`,
         html: `
           <h2>New Contact Form Submission</h2>
-          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
           <p><strong>Message:</strong></p>
-          <p>${message.replace(/\n/g, '<br>')}</p>
+          <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
           <p><strong>Time:</strong> ${new Date().toISOString()}</p>
         `
       });
@@ -1717,10 +1761,10 @@ app.post('/api/contact', async (req, res) => {
       subject: 'We received your message - SmartInvest Africa',
       html: `
         <h2>Thank you for contacting us!</h2>
-        <p>Hi ${name},</p>
+        <p>Hi ${escapeHtml(name)},</p>
         <p>We've received your message and will get back to you as soon as possible.</p>
         <p><strong>Your message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
         <p>Best regards,<br>SmartInvest Africa Team</p>
       `
     });
@@ -1733,7 +1777,7 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Feedback widget endpoint
-app.post('/api/feedback', async (req, res) => {
+app.post('/api/feedback', simpleRateLimit(20, 60000), async (req, res) => {
   try {
     const { feedback, timestamp } = req.body;
     if (!feedback) {
@@ -1746,6 +1790,13 @@ app.post('/api/feedback', async (req, res) => {
     
     // Save to feedback file
     const feedbackFile = path.join(__dirname, 'data', 'feedback.json');
+    
+    // Ensure data directory exists
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
     let feedbackList = [];
     try {
       if (fs.existsSync(feedbackFile)) {
