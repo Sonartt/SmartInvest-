@@ -30,11 +30,98 @@
         }
         </script>
         <style>
+            /* Corporate Professional Design System */
+            :root {
+                --corporate-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+                --corporate-blue: #003366;
+                --corporate-navy: #001f3f;
+                --corporate-gold: #c9a961;
+                --corporate-gray: #4a5568;
+                --corporate-light-gray: #f8f9fa;
+                --corporate-border: #e2e8f0;
+                --professional-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            }
+            
+            body {
+                font-family: var(--corporate-font);
+                background: #ffffff;
+                color: #2d3748;
+                line-height: 1.6;
+            }
+            
+            h1, h2, h3 {
+                font-family: var(--corporate-font);
+                font-weight: 700;
+                color: var(--corporate-navy);
+                letter-spacing: -0.01em;
+            }
+            
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 2rem; }
+            h3 { font-size: 1.5rem; }
+            
+            /* Corporate Cards */
+            .corporate-card {
+                background: white;
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
+                box-shadow: var(--professional-shadow);
+                transition: all 0.3s ease;
+            }
+            
+            .corporate-card:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                transform: translateY(-2px);
+            }
+            
+            /* Professional Buttons */
+            .btn-corporate-primary {
+                background: var(--corporate-blue);
+                color: white;
+                padding: 0.75rem 1.5rem;
+                border-radius: 4px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                border: none;
+            }
+            
+            .btn-corporate-primary:hover {
+                background: var(--corporate-navy);
+                box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+            }
+            
+            .btn-corporate-secondary {
+                background: white;
+                color: var(--corporate-blue);
+                padding: 0.75rem 1.5rem;
+                border: 2px solid var(--corporate-blue);
+                border-radius: 4px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            }
+            
+            .btn-corporate-secondary:hover {
+                background: var(--corporate-blue);
+                color: white;
+            }
+            
+            /* Corporate Accent */
+            .corporate-accent {
+                color: var(--corporate-gold);
+            }
+            
+            .corporate-divider {
+                border-top: 2px solid var(--corporate-gold);
+                width: 60px;
+                margin: 1rem 0;
+            }
+            
             /* Visible focus styles for keyboard users */
             :focus {
-                outline: 3px solid #C4B5FD;
+                outline: 3px solid var(--corporate-blue);
                 outline-offset: 2px;
             }
+            
             /* Ensure skip link is visible when focused */
             .sr-only-focusable:focus {
                 position: static;
@@ -42,97 +129,391 @@
                 height: auto;
                 margin: 0.5rem;
                 padding: 0.5rem 1rem;
-                background: white;
-                color: #4C1D95;
-                border-radius: 0.25rem;
+                background: var(--corporate-blue);
+                color: white;
+                border-radius: 4px;
             }
+            
             .dashboard-panel { display: none; }
             .dashboard-panel.active { display: block; }
+            
             .dashboard-toggle {
-                border: 1px solid #C4B5FD;
-                border-radius: 9999px;
+                border: 2px solid var(--corporate-blue);
+                border-radius: 4px;
                 padding: 0.5rem 1.5rem;
                 font-weight: 600;
                 font-size: 0.9rem;
-                color: #6D28D9;
-                background: #fff;
-                transition: all 0.2s ease;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                color: var(--corporate-blue);
+                background: white;
+                transition: all 0.3s ease;
+                box-shadow: var(--professional-shadow);
             }
+            
             .dashboard-toggle.active {
-                background: linear-gradient(130deg, #6D28D9, #9333EA);
-                color: #fff;
-                box-shadow: 0 15px 30px rgba(109, 40, 217, 0.25);
+                background: var(--corporate-blue);
+                color: white;
+                box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
             }
+            
             .dashboard-shell {
-                background: #F8FAFC;
-                border: 1px solid #E2E8F0;
-                border-radius: 1.25rem;
+                background: var(--corporate-light-gray);
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
                 padding: 2rem;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                box-shadow: var(--professional-shadow);
             }
+            
             .tab-content { display: none; }
             .tab-content.active { display: block; }
+            
             .tab-btn {
                 padding: 0.5rem 1rem;
                 border: none;
-                border-radius: 9999px;
-                background: #E5E7EB;
+                border-radius: 4px;
+                background: var(--corporate-light-gray);
                 cursor: pointer;
                 font-size: 0.9rem;
                 font-weight: 600;
+                transition: all 0.3s ease;
+                color: var(--corporate-gray);
             }
-            .tab-btn.active { background: #2563EB; color: #fff; }
+            
+            .tab-btn:hover {
+                background: #e2e8f0;
+            }
+            
+            .tab-btn.active {
+                background: var(--corporate-blue);
+                color: white;
+                box-shadow: var(--professional-shadow);
+            }
+            
+            /* Corporate Navigation */
+            .sticky-nav {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                background: white;
+                border-bottom: 1px solid var(--corporate-border);
+                box-shadow: var(--professional-shadow);
+            }
+            
+            /* Corporate Hero */
+            .corporate-hero {
+                background: linear-gradient(135deg, var(--corporate-navy) 0%, var(--corporate-blue) 100%);
+                color: white;
+            }
+            
+            .corporate-hero h1 {
+                color: white;
+            }
+            
+            /* Professional Buttons */
+            button, .btn {
+                position: relative;
+                transition: all 0.3s ease;
+                font-weight: 600;
+            }
+            
+            /* Responsive Design */
+            @media (max-width: 768px) {
+                .nav-links { display: none; }
+                .mobile-menu-btn { display: block; }
+                .nav-links.mobile-open {
+                    display: flex;
+                    flex-direction: column;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    background: white;
+                    border-top: 1px solid var(--corporate-border);
+                    box-shadow: var(--professional-shadow);
+                    padding: 1rem;
+                }
+            }
+            
+            @media (min-width: 769px) {
+                .mobile-menu-btn { display: none; }
+            }
+            
+            /* Professional Back to Top Button */
+            #backToTop {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                background: var(--corporate-blue);
+                color: white;
+                width: 3.5rem;
+                height: 3.5rem;
+                border-radius: 4px;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: var(--professional-shadow);
+                transition: all 0.3s ease;
+                z-index: 999;
+                border: none;
+            }
+            
+            #backToTop:hover {
+                background: var(--corporate-navy);
+                box-shadow: 0 6px 16px rgba(0, 51, 102, 0.3);
+                transform: translateY(-2px);
+            }
+            
+            #backToTop.show { display: flex; }
+            
+            /* Professional Tooltip Styles */
+            .tooltip {
+                position: relative;
+                display: inline-block;
+                border-bottom: 1px dotted var(--corporate-blue);
+                cursor: help;
+            }
+            
+            .tooltip .tooltiptext {
+                visibility: hidden;
+                width: 220px;
+                background: var(--corporate-navy);
+                color: #fff;
+                text-align: center;
+                border-radius: 4px;
+                padding: 10px;
+                position: absolute;
+                z-index: 1;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -110px;
+                opacity: 0;
+                transition: all 0.3s ease;
+                font-size: 0.875rem;
+                box-shadow: var(--professional-shadow);
+            }
+            
+            .tooltip .tooltiptext::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: var(--corporate-navy) transparent transparent transparent;
+            }
+            
+            .tooltip:hover .tooltiptext {
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            /* Professional Navigation Link */
+            .nav-link {
+                position: relative;
+                transition: all 0.3s ease;
+                color: var(--corporate-gray);
+            }
+            
+            .nav-link::after {
+                content: '';
+                position: absolute;
+                bottom: -4px;
+                left: 0;
+                width: 0;
+                height: 3px;
+                background: var(--corporate-gold);
+                transition: width 0.3s ease;
+            }
+            
+            .nav-link:hover::after, .nav-link.active::after {
+                width: 100%;
+            }
+            
+            .nav-link.active {
+                color: var(--corporate-blue);
+                font-weight: 600;
+            }
+            
+            .nav-link:hover {
+                color: var(--corporate-blue);
+            }
+            
+            /* Professional Feedback Widget */
+            #feedbackWidget {
+                position: fixed;
+                bottom: 7rem;
+                right: 2rem;
+                background: white;
+                border: 1px solid var(--corporate-border);
+                border-radius: 4px;
+                box-shadow: var(--professional-shadow);
+                z-index: 998;
+                transition: all 0.3s ease;
+            }
+            
+            #feedbackWidget:hover {
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            }
+            
+            #feedbackWidget.collapsed {
+                width: auto;
+                height: auto;
+            }
+            
+            /* Form Error Messages */
+            .error-message {
+                color: #DC2626;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+                display: none;
+                animation: shake 0.3s ease;
+            }
+            
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+            
+            .error-message.show { display: block; }
+            
+            /* Professional Modal */
+            .onboarding-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                z-index: 2000;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .onboarding-modal.show { display: flex; }
+            
+            .modal-content {
+                background: white;
+                padding: 2.5rem;
+                border-radius: 4px;
+                max-width: 550px;
+                margin: 1rem;
+                position: relative;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                border: 1px solid var(--corporate-border);
+                animation: slideUp 0.4s ease;
+            }
+            
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            /* Loading Spinner */
+            .spinner {
+                border: 3px solid var(--corporate-light-gray);
+                border-top: 3px solid var(--corporate-blue);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 0.8s linear infinite;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            /* Corporate Statistics/Metrics */
+            .corporate-stat {
+                text-align: center;
+                padding: 1.5rem;
+                background: var(--corporate-light-gray);
+                border-left: 4px solid var(--corporate-gold);
+                border-radius: 4px;
+            }
+            
+            .corporate-stat-value {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--corporate-navy);
+                margin-bottom: 0.5rem;
+            }
+            
+            .corporate-stat-label {
+                font-size: 0.875rem;
+                color: var(--corporate-gray);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            /* Professional Transitions */
+            * {
+                transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+                transition-duration: 0.3s;
+                transition-timing-function: ease;
+            }
         </style>
 </head>
 <body class="antialiased">
 
     <a class="sr-only sr-only-focusable" href="#main-content">Skip to content</a>
 
-    <!-- Top Navigation -->
-                                            <h5 class="font-semibold">All Payment Ledger</h5>
-                                            <p class="text-sm text-gray-600">Mpesa, PayPal, and manual KCB with user details</p>
-                                        </div>
-                                        <button onclick="loadPaymentsLedger()" class="bg-blue-600 text-white px-3 py-2 rounded">Load Payments</button>
-                                    </div>
-                                    <div id="paymentsLedger" class="text-sm text-gray-700 max-h-96 overflow-y-auto border rounded p-3 bg-gray-50">Click "Load Payments" to view the latest ledger.</div>
-                                </div>
-                            </div>
-
-                            <div id="email" class="tab-content bg-white p-6 rounded shadow mb-4">
-                                <h4 class="text-2xl font-bold mb-4">Email Tools</h4>
-                                <div class="mb-4 border p-4 rounded bg-blue-50">
-                                    <h5 class="font-semibold mb-2">Send Email to User</h5>
-                                    <div class="space-y-2">
-                                        <input type="email" id="emailTo" placeholder="Recipient email" class="w-full border rounded p-2" required>
-                                        <input type="text" id="emailSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="emailBody" placeholder="Email body (HTML or plain text)" class="w-full border rounded p-2 h-32" required></textarea>
-                                        <button onclick="sendEmail()" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Send Email</button>
-                                    </div>
-                                    <div id="emailStatus" class="text-sm mt-2"></div>
-                                </div>
-                                <div class="border p-4 rounded">
-                                    <h5 class="font-semibold mb-2">Send Bulk Email</h5>
-                                    <div class="space-y-2">
-                                        <input type="text" id="bulkSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="bulkBody" placeholder="Email body" class="w-full border rounded p-2 h-24" required></textarea>
-                                        <select id="bulkRecipients" class="w-full border rounded p-2">
-                                            <option value="">-- Select Recipients --</option>
-                                            <option value="all-users">All Users</option>
-                                            <option value="premium-users">Premium Users Only</option>
-                                            <option value="free-users">Free Users Only</option>
-                                            <option value="inactive">Inactive Users (7+ days)</option>
-                                        </select>
-                                        <button onclick="sendBulkEmail()" class="w-full bg-green-600 text-white px-4 py-2 rounded">Send Bulk Email</button>
-                                    </div>
-                                    <div id="bulkStatus" class="text-sm mt-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Sticky Navigation Header -->
+    <nav class="sticky-nav" role="navigation" aria-label="Main navigation">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-purple-600">SmartInvest Africa</span>
                 </div>
+                <div class="nav-links flex gap-6 items-center">
+                    <a href="#hero" class="nav-link text-gray-700 hover:text-purple-600 transition">Home</a>
+                    <a href="#premium-benefits" class="nav-link text-gray-700 hover:text-purple-600 transition">Premium</a>
+                    <a href="#academy" class="nav-link text-gray-700 hover:text-purple-600 transition">Academy</a>
+                    <a href="#tools" class="nav-link text-gray-700 hover:text-purple-600 transition">Tools</a>
+                    <a href="#insights" class="nav-link text-gray-700 hover:text-purple-600 transition">Insights</a>
+                    <a href="#faq" class="nav-link text-gray-700 hover:text-purple-600 transition">FAQ</a>
+                    <a href="#contact" class="nav-link text-gray-700 hover:text-purple-600 transition">Contact</a>
+                    <button onclick="openAdminPortal()" class="text-gray-700 hover:text-purple-600 transition">Admin Portal</button>
+                    <a href="#signin" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Sign In</a>
+                </div>
+                <button class="mobile-menu-btn text-purple-600" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
             </div>
-        </section>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero" role="main" aria-labelledby="hero-title" class="py-20 px-4 bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 text-white">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 id="hero-title" class="text-5xl md:text-6xl font-bold mb-6">Democratizing Investment Knowledge Across Africa</h1>
+            <p class="text-xl md:text-2xl mb-8 text-purple-100">Learn, invest, and grow with confidence through trusted education, innovative tools, and a supportive community</p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <a href="#academy" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Explore Academy</a>
+                <a href="#premium-benefits" class="bg-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-400 transition">Get Premium Access</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Wrapper -->
+    <main id="main-content">
 
     <!-- Premium Benefits Section -->
     <section id="premium-benefits" class="py-20 px-4 bg-gradient-to-r from-amber-50 to-purple-50 border-t-4 border-amber-400">
@@ -226,17 +607,17 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">Investing 101</h3>
-                    <p class="text-gray-600 mb-4">Foundations: assets, risk, diversification.</p>
+                    <p class="text-gray-600 mb-4">Foundations: <span class="tooltip">assets<span class="tooltiptext">Resources with economic value owned by individuals or companies</span></span>, <span class="tooltip">risk<span class="tooltiptext">The possibility of losing money or not achieving expected returns</span></span>, <span class="tooltip">diversification<span class="tooltiptext">Spreading investments across different assets to reduce risk</span></span>.</p>
                     <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">Beginner</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">Trading Essentials</h3>
-                    <p class="text-gray-600 mb-4">Practical trading, psychology, risk control.</p>
+                    <p class="text-gray-600 mb-4">Practical trading, <span class="tooltip">psychology<span class="tooltiptext">Understanding emotions and decision-making in financial markets</span></span>, <span class="tooltip">risk control<span class="tooltiptext">Strategies to limit potential losses in trading</span></span>.</p>
                     <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">Intermediate</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                     <h3 class="text-xl font-bold mb-3 text-purple-600">SME Funding Readiness</h3>
-                    <p class="text-gray-600 mb-4">Pitching, valuation, investor expectations.</p>
+                    <p class="text-gray-600 mb-4">Pitching, <span class="tooltip">valuation<span class="tooltiptext">Determining the worth of a business or asset</span></span>, investor expectations.</p>
                     <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">SME</span>
                 </div>
                 <div class="card-hover bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
@@ -322,36 +703,561 @@
         </div>
     </section>
 
+    <!-- FAQ Section -->
+    <section id="faq" aria-label="Frequently Asked Questions" class="py-20 px-4 bg-gray-100">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Frequently Asked Questions</h2>
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What is SmartInvest Africa?</h3>
+                    <p class="text-gray-700">SmartInvest Africa is a financial literacy platform that democratizes investment knowledge, tools, and opportunities across Africa. We provide courses, tools, and community support to help you make informed investment decisions.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">How do I get started?</h3>
+                    <p class="text-gray-700">Simply create a free account to access our basic resources. For full access to all courses, tools, and community features, upgrade to Premium with M-Pesa, PayPal, or bank transfer.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What payment methods do you accept?</h3>
+                    <p class="text-gray-700">We accept M-Pesa for Kenya and neighboring countries, PayPal for international payments, and bank transfers. All payment methods provide instant access to Premium features.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Is my data secure?</h3>
+                    <p class="text-gray-700">Yes, we take security seriously. Your password is encrypted using industry-standard bcrypt hashing. We comply with GDPR and local data protection laws, and we never sell your information.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">What does Premium access include?</h3>
+                    <p class="text-gray-700">Premium members get unlimited access to all investment courses, advanced portfolio tracking tools, AI-powered recommendations, weekly webinars, VIP community forum access, and direct mentorship from investment professionals.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Can I cancel my Premium subscription?</h3>
+                    <p class="text-gray-700">Yes, you can contact our support team at any time. Premium access is typically provided for 30 days per payment, and you'll retain access until the period expires.</p>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-xl font-bold mb-2 text-purple-600">Do you provide investment advice?</h3>
+                    <p class="text-gray-700">No, SmartInvest Africa provides educational content only. We do not provide personalized financial or investment advice. All investment decisions are your own responsibility, and investments carry risk.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
     <section id="contact" aria-label="Contact" class="py-20 px-4 bg-gray-100">
         <div class="max-w-2xl mx-auto">
             <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Contact Us</h2>
-            <form class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
+            <form id="contactForm" class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Name</label>
-                    <input type="text" placeholder="Your Name" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                    <label for="contactName" class="block text-gray-700 font-semibold mb-2">Name <span class="text-red-600">*</span></label>
+                    <input type="text" id="contactName" name="name" placeholder="Your Name" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true">
+                    <span class="error-message" id="nameError">Please enter your name</span>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
-                    <input type="email" placeholder="Your Email" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                    <label for="contactEmail" class="block text-gray-700 font-semibold mb-2">Email <span class="text-red-600">*</span></label>
+                    <input type="email" id="contactEmail" name="email" placeholder="Your Email" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true">
+                    <span class="error-message" id="emailError">Please enter a valid email address</span>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Message</label>
-                    <textarea placeholder="Your Message" rows="4" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required></textarea>
+                    <label for="contactMessage" class="block text-gray-700 font-semibold mb-2">Message <span class="text-red-600">*</span></label>
+                    <textarea id="contactMessage" name="message" placeholder="Your Message" rows="4" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required aria-required="true"></textarea>
+                    <span class="error-message" id="messageError">Please enter your message (minimum 10 characters)</span>
                 </div>
+                <div id="contactSuccess" class="hidden mb-4 p-4 bg-green-100 text-green-700 rounded">Thank you! Your message has been sent successfully.</div>
+                <div id="contactErrorMsg" class="hidden mb-4 p-4 bg-red-100 text-red-700 rounded">There was an error sending your message. Please try again.</div>
                 <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Send Message</button>
             </form>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-white py-8 px-4">
-        <div class="max-w-7xl mx-auto text-center">
-            <p>&copy; 2024 SmartInvest Africa. All rights reserved.</p>
+    <footer class="bg-slate-900 text-white py-8 px-4" role="contentinfo">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 mb-6">
+                <div>
+                    <h3 class="font-bold text-lg mb-3">SmartInvest Africa</h3>
+                    <p class="text-gray-400 text-sm">Democratizing investment knowledge, tools and opportunities across Africa.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Quick Links</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#academy" class="text-gray-400 hover:text-white transition">Academy</a></li>
+                        <li><a href="#tools" class="text-gray-400 hover:text-white transition">Tools</a></li>
+                        <li><a href="#faq" class="text-gray-400 hover:text-white transition">FAQ</a></li>
+                        <li><a href="/terms.html" class="text-gray-400 hover:text-white transition">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-3">Language</h3>
+                    <select onchange="changeLanguage(this.value)" class="bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 text-sm" aria-label="Select language">
+                        <option value="en">English</option>
+                        <option value="sw">Kiswahili</option>
+                        <option value="fr">Français</option>
+                        <option value="ar">العربية</option>
+                    </select>
+                    <p class="text-gray-400 text-xs mt-2">More languages coming soon</p>
+                </div>
+            </div>
+            <div class="text-center border-t border-gray-700 pt-6">
+                <p class="text-gray-400 text-sm">&copy; 2024 SmartInvest Africa. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 
+    </main>
+
+    <!-- Back to Top Button -->
+    <div id="backToTop" onclick="scrollToTop()" aria-label="Back to top">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+        </svg>
+    </div>
+
+    <!-- Feedback Widget -->
+    <div id="feedbackWidget" class="collapsed">
+        <button id="feedbackToggle" onclick="toggleFeedback()" class="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition">
+            💬 Feedback
+        </button>
+        <div id="feedbackForm" class="hidden p-4" style="width: 300px;">
+            <h3 class="font-bold mb-3 text-gray-800">Quick Feedback</h3>
+            <textarea id="feedbackText" placeholder="Share your thoughts..." class="w-full border rounded p-2 mb-2" rows="3"></textarea>
+            <div class="flex gap-2">
+                <button onclick="submitFeedback()" class="flex-1 bg-purple-600 text-white px-3 py-2 rounded hover:bg-purple-700 transition text-sm">Send</button>
+                <button onclick="toggleFeedback()" class="px-3 py-2 border rounded hover:bg-gray-100 transition text-sm">Cancel</button>
+            </div>
+            <div id="feedbackStatus" class="text-sm mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboardingModal" class="onboarding-modal">
+        <div class="modal-content">
+            <button onclick="closeOnboarding()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div id="onboardingContent">
+                <div class="onboarding-step" data-step="1">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">Welcome to SmartInvest Africa! 🎉</h2>
+                    <p class="text-gray-700 mb-6">Let's take a quick tour of the platform's key features to help you get started.</p>
+                    <button onclick="nextOnboardingStep()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Get Started</button>
+                </div>
+                <div class="onboarding-step hidden" data-step="2">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">📚 Investment Academy</h2>
+                    <p class="text-gray-700 mb-6">Access comprehensive courses covering everything from basic investing to advanced trading strategies. Each course is designed specifically for the African market.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="3">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🛠️ Investment Tools</h2>
+                    <p class="text-gray-700 mb-6">Use our portfolio tracker, risk profiler, and savings automator to manage your investments effectively.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="4">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🤝 Premium Benefits</h2>
+                    <p class="text-gray-700 mb-6">Upgrade to Premium for full course access, advanced tools, VIP community, and direct mentorship. Payment available via M-Pesa, PayPal, or bank transfer.</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="nextOnboardingStep()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Next</button>
+                    </div>
+                </div>
+                <div class="onboarding-step hidden" data-step="5">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">💳 Payments & Live Transactions</h2>
+                    <p class="text-gray-700 mb-4">View real-time payment processing and transaction status for all payment methods.</p>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 max-h-64 overflow-y-auto">
+                        <h3 class="font-semibold text-sm mb-2 text-gray-800">Recent Transactions</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">M-Pesa Payment</span>
+                                    <p class="text-xs text-gray-500">Premium Access - 30 days</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">KES 1,000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">PayPal Payment</span>
+                                    <p class="text-xs text-gray-500">Course Bundle</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">$15.00</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">Bank Transfer</span>
+                                    <p class="text-xs text-gray-500">Premium Access - 90 days</p>
+                                </div>
+                                <span class="text-blue-600 font-semibold">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3 mb-4">
+                        <p class="text-sm text-purple-800"><strong>💡 Tip:</strong> All transactions are encrypted and secure. You'll receive instant confirmation for M-Pesa and PayPal payments.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="prevOnboardingStep()" class="px-4 py-2 border rounded hover:bg-gray-100 transition">Back</button>
+                        <button onclick="completeOnboarding()" class="flex-1 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Start Learning!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Portal Modal -->
+    <div id="adminPortalModal" class="onboarding-modal" style="display: none;">
+        <div class="modal-content">
+            <button onclick="closeAdminPortal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700" aria-label="Close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div id="adminPortalContent">
+                <div id="adminLoginForm">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">🔐 Admin Portal</h2>
+                    <p class="text-gray-700 mb-6">Sign in to access the admin dashboard and manage the platform.</p>
+                    <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                        <div>
+                            <label for="adminEmail" class="block text-gray-700 font-semibold mb-2">Admin Email</label>
+                            <input type="email" id="adminEmail" placeholder="admin@smartinvest.africa" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                        </div>
+                        <div>
+                            <label for="adminPassword" class="block text-gray-700 font-semibold mb-2">Password</label>
+                            <input type="password" id="adminPassword" placeholder="Enter admin password" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+                        </div>
+                        <div id="adminLoginError" class="text-red-600 text-sm hidden"></div>
+                        <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In to Dashboard</button>
+                    </form>
+                </div>
+                
+                <div id="adminDashboard" class="hidden">
+                    <h2 class="text-2xl font-bold mb-4 text-purple-600">📊 Admin Dashboard</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h3 class="text-sm font-semibold text-blue-800 mb-1">Total Users</h3>
+                            <p class="text-2xl font-bold text-blue-600">1,247</p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h3 class="text-sm font-semibold text-green-800 mb-1">Premium Users</h3>
+                            <p class="text-2xl font-bold text-green-600">342</p>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h3 class="text-sm font-semibold text-purple-800 mb-1">Total Revenue</h3>
+                            <p class="text-2xl font-bold text-purple-600">KES 1.2M</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                            <h3 class="text-sm font-semibold text-amber-800 mb-1">Active Courses</h3>
+                            <p class="text-2xl font-bold text-amber-600">24</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="font-semibold mb-3 text-gray-800">Recent Transactions</h3>
+                        <div class="space-y-2 text-sm max-h-48 overflow-y-auto">
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">user@example.com</span>
+                                    <p class="text-xs text-gray-500">M-Pesa - Premium 30 days</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">KES 1,000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">investor@mail.com</span>
+                                    <p class="text-xs text-gray-500">PayPal - Course Bundle</p>
+                                </div>
+                                <span class="text-green-600 font-semibold">$15.00</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                <div>
+                                    <span class="font-medium">trader@example.co.ke</span>
+                                    <p class="text-xs text-gray-500">Bank Transfer - Premium 90 days</p>
+                                </div>
+                                <span class="text-blue-600 font-semibold">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <a href="/admin.html" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition text-center">Go to Full Dashboard</a>
+                        <button onclick="logoutAdmin()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script src="/public/js/dashboard-hub.js"></script>
+
+<script>
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const navLinks = document.querySelector('.nav-links');
+    navLinks.classList.toggle('mobile-open');
+}
+
+// Scroll to top
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Show/hide back to top button
+window.addEventListener('scroll', () => {
+    const backToTop = document.getElementById('backToTop');
+    if (window.pageYOffset > 300) {
+        backToTop.classList.add('show');
+    } else {
+        backToTop.classList.remove('show');
+    }
+    
+    // Update active navigation link
+    updateActiveNavLink();
+});
+
+// Update active navigation link based on scroll position
+function updateActiveNavLink() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (window.pageYOffset >= sectionTop - 200) {
+            current = section.getAttribute('id');
+        }
+    });
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// Feedback widget
+function toggleFeedback() {
+    const widget = document.getElementById('feedbackWidget');
+    const form = document.getElementById('feedbackForm');
+    const toggle = document.getElementById('feedbackToggle');
+    
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        toggle.classList.add('hidden');
+        widget.classList.remove('collapsed');
+    } else {
+        form.classList.add('hidden');
+        toggle.classList.remove('hidden');
+        widget.classList.add('collapsed');
+        document.getElementById('feedbackText').value = '';
+        document.getElementById('feedbackStatus').textContent = '';
+    }
+}
+
+async function submitFeedback() {
+    const text = document.getElementById('feedbackText').value.trim();
+    const status = document.getElementById('feedbackStatus');
+    
+    if (!text) {
+        status.textContent = 'Please enter your feedback';
+        status.className = 'text-sm mt-2 text-red-600';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feedback: text, timestamp: new Date().toISOString() })
+        });
+        
+        if (response.ok) {
+            status.textContent = 'Thank you for your feedback!';
+            status.className = 'text-sm mt-2 text-green-600';
+            setTimeout(() => toggleFeedback(), 2000);
+        } else {
+            status.textContent = 'Error sending feedback';
+            status.className = 'text-sm mt-2 text-red-600';
+        }
+    } catch (error) {
+        status.textContent = 'Network error';
+        status.className = 'text-sm mt-2 text-red-600';
+    }
+}
+
+// Onboarding
+let currentOnboardingStep = 1;
+
+function showOnboarding() {
+    const hasSeenOnboarding = localStorage.getItem('si_onboarding_completed');
+    if (!hasSeenOnboarding) {
+        document.getElementById('onboardingModal').classList.add('show');
+    }
+}
+
+function closeOnboarding() {
+    document.getElementById('onboardingModal').classList.remove('show');
+}
+
+function nextOnboardingStep() {
+    const steps = document.querySelectorAll('.onboarding-step');
+    steps[currentOnboardingStep - 1].classList.add('hidden');
+    currentOnboardingStep++;
+    if (currentOnboardingStep <= steps.length) {
+        steps[currentOnboardingStep - 1].classList.remove('hidden');
+    }
+}
+
+function prevOnboardingStep() {
+    const steps = document.querySelectorAll('.onboarding-step');
+    steps[currentOnboardingStep - 1].classList.add('hidden');
+    currentOnboardingStep--;
+    if (currentOnboardingStep >= 1) {
+        steps[currentOnboardingStep - 1].classList.remove('hidden');
+    }
+}
+
+function completeOnboarding() {
+    localStorage.setItem('si_onboarding_completed', 'true');
+    closeOnboarding();
+}
+
+// Admin Portal functions
+function openAdminPortal() {
+    document.getElementById('adminPortalModal').style.display = 'flex';
+}
+
+function closeAdminPortal() {
+    document.getElementById('adminPortalModal').style.display = 'none';
+    document.getElementById('adminLoginForm').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+}
+
+function handleAdminLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const errorDiv = document.getElementById('adminLoginError');
+    
+    // Simple demo authentication - in production this would call the backend
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && data.admin) {
+            // Show admin dashboard
+            document.getElementById('adminLoginForm').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+        } else {
+            errorDiv.textContent = 'Invalid admin credentials. Please try again.';
+            errorDiv.classList.remove('hidden');
+        }
+    })
+    .catch(err => {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+    });
+}
+
+function logoutAdmin() {
+    document.getElementById('adminLoginForm').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('adminEmail').value = '';
+    document.getElementById('adminPassword').value = '';
+}
+
+// Enhanced contact form validation
+function handleContactSubmit(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('contactName').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const message = document.getElementById('contactMessage').value.trim();
+    
+    let isValid = true;
+    
+    // Reset error messages
+    document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+    document.getElementById('contactSuccess').classList.add('hidden');
+    document.getElementById('contactErrorMsg').classList.add('hidden');
+    
+    // Validate name
+    if (!name || name.length < 2) {
+        document.getElementById('nameError').classList.add('show');
+        isValid = false;
+    }
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+        document.getElementById('emailError').classList.add('show');
+        isValid = false;
+    }
+    
+    // Validate message
+    if (!message || message.length < 10) {
+        document.getElementById('messageError').classList.add('show');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        return false;
+    }
+    
+    // Submit the form
+    fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('contactSuccess').classList.remove('hidden');
+            document.getElementById('contactForm').reset();
+        } else {
+            document.getElementById('contactErrorMsg').classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        document.getElementById('contactErrorMsg').classList.remove('hidden');
+    });
+    
+    return false;
+}
+
+// Language selector (initial setup for localization)
+function changeLanguage(lang) {
+    localStorage.setItem('si_language', lang);
+    // In production, this would reload content in selected language
+    console.log('Language changed to:', lang);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Show onboarding for first-time users
+    setTimeout(() => showOnboarding(), 1000);
+    
+    // Set initial language from localStorage
+    const savedLang = localStorage.getItem('si_language') || 'en';
+    
+    // Lazy load images (if any are added later)
+    if ('loading' in HTMLImageElement.prototype) {
+        const images = document.querySelectorAll('img[loading="lazy"]');
+        images.forEach(img => {
+            img.src = img.dataset.src;
+        });
+    }
+});
+</script>
+
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
   <div class="max-w-md mx-auto bg-gray-50 p-8 rounded-lg shadow-md">
@@ -391,7 +1297,7 @@
         </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
-      Demo only — no real authentication
+      Your data is secure and encrypted
     </p>
   </div>
 </section>

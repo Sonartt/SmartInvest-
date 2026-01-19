@@ -4,10 +4,44 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
+
+// Trust proxy for proper IP detection behind load balancers
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(bodyParser.json());
+
+// Simple rate limiting middleware
+const rateLimitMap = new Map();
+function simpleRateLimit(maxRequests = 30, windowMs = 60000) {
+  return (req, res, next) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const requests = rateLimitMap.get(ip) || [];
+    const recentRequests = requests.filter(time => now - time < windowMs);
+    
+    if (recentRequests.length >= maxRequests) {
+      return res.status(429).json({ error: 'Too many requests, please try again later' });
+    }
+    
+    recentRequests.push(now);
+    rateLimitMap.set(ip, recentRequests);
+    next();
+  };
+}
+
+// Serve static files (excluding sensitive directories)
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/tools', express.static(path.join(__dirname, 'tools')));
+
+// Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Basic auth for admin routes if ADMIN_USER is set
 function adminAuth(req, res, next) {
@@ -159,8 +193,6 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
-const fs = require('fs');
-const path = require('path');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
@@ -1652,6 +1684,148 @@ app.get('/api/auth/me', (req, res) => {
   const payload = verifyTokenFromReq(req);
   if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
   return res.json({ success: true, email: payload.email, admin: !!payload.admin });
+});
+
+// Contact form endpoint
+app.post('/api/contact', simpleRateLimit(10, 60000), async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Name, email, and message are required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    // Save to messages file
+    const messagesFile = path.join(__dirname, 'data', 'contact-messages.json');
+    
+    // Ensure data directory exists
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    let messages = [];
+    try {
+      if (fs.existsSync(messagesFile)) {
+        messages = JSON.parse(fs.readFileSync(messagesFile, 'utf8'));
+      }
+    } catch (e) {
+      messages = [];
+    }
+    
+    const newMessage = {
+      id: uuidv4(),
+      name,
+      email,
+      message,
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      status: 'new'
+    };
+    
+    messages.push(newMessage);
+    fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
+    
+    // Send notification to admin
+    const adminEmail = process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL;
+    if (adminEmail) {
+      sendNotificationMail({
+        to: adminEmail,
+        subject: `New Contact Message from ${escapeHtml(name)}`,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
+          <p><strong>Message:</strong></p>
+          <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        `
+      });
+    }
+    
+    // Send confirmation to user
+    sendNotificationMail({
+      to: email,
+      subject: 'We received your message - SmartInvest Africa',
+      html: `
+        <h2>Thank you for contacting us!</h2>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>We've received your message and will get back to you as soon as possible.</p>
+        <p><strong>Your message:</strong></p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+        <p>Best regards,<br>SmartInvest Africa Team</p>
+      `
+    });
+    
+    return res.json({ success: true, message: 'Message sent successfully' });
+  } catch (err) {
+    console.error('Contact form error:', err.message);
+    return res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Feedback widget endpoint
+app.post('/api/feedback', simpleRateLimit(20, 60000), async (req, res) => {
+  try {
+    const { feedback, timestamp } = req.body;
+    if (!feedback) {
+      return res.status(400).json({ error: 'Feedback is required' });
+    }
+    
+    // Get user email if authenticated
+    const payload = verifyTokenFromReq(req);
+    const userEmail = payload ? payload.email : 'anonymous';
+    
+    // Save to feedback file
+    const feedbackFile = path.join(__dirname, 'data', 'feedback.json');
+    
+    // Ensure data directory exists
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    let feedbackList = [];
+    try {
+      if (fs.existsSync(feedbackFile)) {
+        feedbackList = JSON.parse(fs.readFileSync(feedbackFile, 'utf8'));
+      }
+    } catch (e) {
+      feedbackList = [];
+    }
+    
+    const newFeedback = {
+      id: uuidv4(),
+      feedback,
+      userEmail,
+      timestamp: timestamp || new Date().toISOString(),
+      ip: req.ip
+    };
+    
+    feedbackList.push(newFeedback);
+    fs.writeFileSync(feedbackFile, JSON.stringify(feedbackList, null, 2));
+    
+    return res.json({ success: true, message: 'Feedback received' });
+  } catch (err) {
+    console.error('Feedback error:', err.message);
+    return res.status(500).json({ error: 'Failed to save feedback' });
+  }
 });
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
