@@ -291,51 +291,6 @@
     <!-- Main Content Wrapper -->
     <main id="main-content">
 
-    <!-- Top Navigation -->
-                                            <h5 class="font-semibold">All Payment Ledger</h5>
-                                            <p class="text-sm text-gray-600">Mpesa, PayPal, and manual KCB with user details</p>
-                                        </div>
-                                        <button onclick="loadPaymentsLedger()" class="bg-blue-600 text-white px-3 py-2 rounded">Load Payments</button>
-                                    </div>
-                                    <div id="paymentsLedger" class="text-sm text-gray-700 max-h-96 overflow-y-auto border rounded p-3 bg-gray-50">Click "Load Payments" to view the latest ledger.</div>
-                                </div>
-                            </div>
-
-                            <div id="email" class="tab-content bg-white p-6 rounded shadow mb-4">
-                                <h4 class="text-2xl font-bold mb-4">Email Tools</h4>
-                                <div class="mb-4 border p-4 rounded bg-blue-50">
-                                    <h5 class="font-semibold mb-2">Send Email to User</h5>
-                                    <div class="space-y-2">
-                                        <input type="email" id="emailTo" placeholder="Recipient email" class="w-full border rounded p-2" required>
-                                        <input type="text" id="emailSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="emailBody" placeholder="Email body (HTML or plain text)" class="w-full border rounded p-2 h-32" required></textarea>
-                                        <button onclick="sendEmail()" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Send Email</button>
-                                    </div>
-                                    <div id="emailStatus" class="text-sm mt-2"></div>
-                                </div>
-                                <div class="border p-4 rounded">
-                                    <h5 class="font-semibold mb-2">Send Bulk Email</h5>
-                                    <div class="space-y-2">
-                                        <input type="text" id="bulkSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="bulkBody" placeholder="Email body" class="w-full border rounded p-2 h-24" required></textarea>
-                                        <select id="bulkRecipients" class="w-full border rounded p-2">
-                                            <option value="">-- Select Recipients --</option>
-                                            <option value="all-users">All Users</option>
-                                            <option value="premium-users">Premium Users Only</option>
-                                            <option value="free-users">Free Users Only</option>
-                                            <option value="inactive">Inactive Users (7+ days)</option>
-                                        </select>
-                                        <button onclick="sendBulkEmail()" class="w-full bg-green-600 text-white px-4 py-2 rounded">Send Bulk Email</button>
-                                    </div>
-                                    <div id="bulkStatus" class="text-sm mt-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
     <!-- Premium Benefits Section -->
     <section id="premium-benefits" class="py-20 px-4 bg-gradient-to-r from-amber-50 to-purple-50 border-t-4 border-amber-400">
         <div class="max-w-6xl mx-auto">
