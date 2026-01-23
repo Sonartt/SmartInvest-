@@ -600,21 +600,56 @@ app.post('/api/pay/kcb/manual', (req, res) => {
 app.get('/api/admin/kcb-transfers', adminAuth, (req, res) => {
   try {
     const file = './transactions.json';
-
-// Consolidated payments ledger for admins
-app.get('/api/admin/payments', adminAuth, (req, res) => {
-  const files = readFilesMeta();
-  const payments = readTransactions().map(tx => summarizeTransaction(tx, files));
-  const purchases = readPurchases();
-  return res.json({ success: true, payments, purchases });
-});
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const only = arr.filter(t => t.provider === 'kcb_manual');
-    return res.json({ success: true, transfers: only });
+    
+    // Add pagination
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginated = only.slice(start, end);
+    
+    return res.json({ 
+      success: true, 
+      transfers: paginated,
+      pagination: {
+        page,
+        limit,
+        total: only.length,
+        hasMore: end < only.length
+      }
+    });
   } catch (e) {
     console.error('admin list error', e.message);
     return res.status(500).json({ error: e.message });
   }
+});
+
+// Consolidated payments ledger for admins
+app.get('/api/admin/payments', adminAuth, (req, res) => {
+  const files = readFilesMeta();
+  const allPayments = readTransactions().map(tx => summarizeTransaction(tx, files));
+  const purchases = readPurchases();
+  
+  // Add pagination
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  const payments = allPayments.slice(start, end);
+  
+  return res.json({ 
+    success: true, 
+    payments,
+    purchases,
+    pagination: {
+      page,
+      limit,
+      total: allPayments.length,
+      hasMore: end < allPayments.length
+    }
+  });
 });
 
 app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
@@ -1149,8 +1184,10 @@ function logUserActivity(email, action, ip = null) {
     if (!user) return;
     user.activityLogs = user.activityLogs || [];
     user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
-    // Keep only last 100 logs
-    if (user.activityLogs.length > 100) user.activityLogs = user.activityLogs.slice(-100);
+    // Keep only last 100 logs - optimized to avoid array copy
+    if (user.activityLogs.length > 100) {
+      user.activityLogs.shift(); // Remove oldest, more efficient than slice
+    }
     writeUsers(users);
   } catch (e) {
     console.error('logUserActivity error', e.message);
