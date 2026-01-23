@@ -256,19 +256,29 @@ function readUsers() {
   
   try {
     const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    userCache = JSON.parse(raw || '[]');
+    const users = JSON.parse(raw || '[]');
+    // Update cache only after successful read
+    userCache = users;
     userCacheTime = now;
-    return userCache;
+    return users;
   } catch (e) {
+    // Return empty array but don't update cache on error
     return [];
   }
 }
 
 function writeUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-  // Invalidate cache on write
-  userCache = users;
-  userCacheTime = Date.now();
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    // Update cache only after successful write
+    userCache = users;
+    userCacheTime = Date.now();
+  } catch (e) {
+    // Invalidate cache on write failure to force fresh read
+    userCache = null;
+    userCacheTime = 0;
+    throw e;
+  }
 }
 
 // Helper: find user by email efficiently
@@ -1184,9 +1194,9 @@ function logUserActivity(email, action, ip = null) {
     if (!user) return;
     user.activityLogs = user.activityLogs || [];
     user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
-    // Keep only last 100 logs - remove excess efficiently
-    while (user.activityLogs.length > 100) {
-      user.activityLogs.shift(); // Remove oldest entries
+    // Keep only last 100 logs - use splice for efficiency when removing multiple items
+    if (user.activityLogs.length > 100) {
+      user.activityLogs.splice(0, user.activityLogs.length - 100);
     }
     writeUsers(users);
   } catch (e) {
@@ -1526,7 +1536,7 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         // Mark as matched to prevent double-matching
         found._matched = true;
         if (ref) pendingByRefAmount.delete(`${ref}:${amt}`);
-        pendingByAmount.delete(amt);
+        // Don't delete the entire amount mapping - just mark this candidate as matched
       } else {
         results.unmatched.push(entry);
       }
