@@ -4,12 +4,15 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const storageComplex = require('./storage-complex');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Basic auth for admin routes if ADMIN_USER is set
+// Admin authentication - restricted to specific admin email
+const ADMIN_EMAIL = 'delijah5415@gmail.com';
+
 function adminAuth(req, res, next) {
   const adminUser = process.env.ADMIN_USER;
   if (!adminUser) return next(); // no auth configured
@@ -20,7 +23,18 @@ function adminAuth(req, res, next) {
   }
   const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
   const [user, pass] = creds.split(':');
-  if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) return next();
+  
+  // Enforce admin email restriction
+  if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS && user === ADMIN_EMAIL) {
+    // Log admin access
+    storageComplex.addAdminEntry(user, 'admin_access', { 
+      path: req.path, 
+      method: req.method,
+      ip: req.ip 
+    });
+    return next();
+  }
+  
   res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
   return res.status(401).end('Unauthorized');
 }
@@ -251,6 +265,8 @@ function readUsers() {
   // Use cache if fresh (within TTL)
   const now = Date.now();
   if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
+    // Log cache hit to storage complex
+    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
     return userCache;
   }
   
@@ -260,9 +276,12 @@ function readUsers() {
     // Update cache only after successful read
     userCache = users;
     userCacheTime = now;
+    // Log cache miss to storage complex
+    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
     return users;
   } catch (e) {
     // Return empty array but don't update cache on error
+    storageComplex.addCrashEntry(e, { function: 'readUsers' });
     return [];
   }
 }
@@ -344,9 +363,14 @@ app.post('/api/auth/signup', async (req, res) => {
     `;
     sendNotificationMail({ to: email, subject, html });
     
+    // Log user signup to storage complex
+    storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
+    storageComplex.addLogEntry('info', 'New user signup', { email });
+    
     return res.json({ success: true, message: 'signup successful' });
   } catch (err) {
     console.error('signup error', err.message);
+    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/signup' });
     return res.status(500).json({ error: err.message });
   }
 });
@@ -364,6 +388,10 @@ app.post('/api/auth/login', async (req, res) => {
     // Log activity
     logUserActivity(email, 'login', req.ip);
     
+    // Log to storage complex
+    storageComplex.addUserEntry(email, 'login', { ip: req.ip });
+    storageComplex.addLogEntry('info', 'User login', { email });
+    
     // Return user status including premium
     return res.json({ 
       success: true, 
@@ -373,6 +401,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (err) {
     console.error('login error', err.message);
+    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/login' });
     return res.status(500).json({ error: err.message });
   }
 });
@@ -1402,6 +1431,70 @@ app.post('/api/admin/messages/:id/reply', adminAuth, express.json(), (req, res) 
     }
     return res.json({ success: true, reply: r });
   } catch (e) { console.error('reply message error', e.message); return res.status(500).json({ error: e.message }); }
+});
+
+// Storage Complex Endpoints - Admin Only
+// Get all storage complex data
+app.get('/api/admin/storage-complex', adminAuth, (req, res) => {
+  try {
+    const data = storageComplex.getAllStorageData();
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'view_storage_complex', { ip: req.ip });
+    return res.json({ success: true, data });
+  } catch (e) { 
+    console.error('storage complex error', e.message); 
+    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex' });
+    return res.status(500).json({ error: e.message }); 
+  }
+});
+
+// Get storage complex by type
+app.get('/api/admin/storage-complex/:type', adminAuth, (req, res) => {
+  try {
+    const type = req.params.type;
+    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
+    }
+    const data = storageComplex.getStorageByType(type);
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'view_storage_type', { type, ip: req.ip });
+    return res.json({ success: true, type, data });
+  } catch (e) { 
+    console.error('storage complex type error', e.message); 
+    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type' });
+    return res.status(500).json({ error: e.message }); 
+  }
+});
+
+// Get storage complex statistics
+app.get('/api/admin/storage-stats', adminAuth, (req, res) => {
+  try {
+    const stats = storageComplex.getStorageStats();
+    return res.json({ success: true, stats });
+  } catch (e) { 
+    console.error('storage stats error', e.message); 
+    return res.status(500).json({ error: e.message }); 
+  }
+});
+
+// Clear storage by type (admin only)
+app.post('/api/admin/storage-complex/:type/clear', adminAuth, (req, res) => {
+  try {
+    const type = req.params.type;
+    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
+    }
+    const success = storageComplex.clearStorageByType(type);
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'clear_storage_type', { type, ip: req.ip });
+    return res.json({ success, message: `${type} storage cleared` });
+  } catch (e) { 
+    console.error('clear storage error', e.message); 
+    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type/clear' });
+    return res.status(500).json({ error: e.message }); 
+  }
 });
 
 // Admin: grant purchase to an email for a file (manual grant)
