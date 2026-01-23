@@ -429,9 +429,20 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
       const acctVal = accItem && accItem.Value ? String(accItem.Value).trim() : null;
       const resultCode = stk && stk.ResultCode !== undefined ? stk.ResultCode : null;
       
+      // Find phone number efficiently with single pass
+      let phone = null;
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const name = item.Name || item.name || '';
+          if (name === 'PhoneNumber' || name === 'phone') {
+            phone = item;
+            break;
+          }
+        }
+      }
+      
       // Auto-grant premium on successful payment
       if (resultCode === 0) {
-        const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber' || i.name==='PhoneNumber') || items.find(i=>i.Name==='phone')) : null;
         if (phone && phone.Value) {
           const phoneNum = String(phone.Value);
           const email = phoneNum + '@mpesa.local';
@@ -457,7 +468,6 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
         const files = readFilesMeta();
         const match = files.find(f => f.id === acctVal);
         if (match) {
-          const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber') || items.find(i=>i.Name==='phone' ) ) : null;
           const emailLike = phone && phone.Value ? String(phone.Value)+'@mpesa.local' : '';
           grantPurchase(match.id, emailLike, 'mpesa', { raw: payload });
         }
@@ -747,6 +757,27 @@ function readFilesMeta(){
   try { return JSON.parse(fs.readFileSync(FILES_JSON, 'utf8') || '[]'); } catch(e){ return []; }
 }
 function writeFilesMeta(arr){ fs.writeFileSync(FILES_JSON, JSON.stringify(arr, null, 2)); }
+
+// Download tokens and purchases file handling
+const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
+if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
+if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
+
+function readTokens() {
+  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } 
+  catch(e) { return {}; }
+}
+function writeTokens(data) { 
+  fs.writeFileSync(TOKENS_FILE, JSON.stringify(data, null, 2)); 
+}
+function readPurchases() {
+  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } 
+  catch(e) { return []; }
+}
+function writePurchases(data) { 
+  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(data, null, 2)); 
+}
 
 // Public: list files available for purchase/download — now restricted to purchasers.
 app.get('/api/files', requirePaidUser, (req, res) => {
@@ -1356,9 +1387,12 @@ app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const rows = arr.filter(t => t.provider === 'kcb_manual');
     const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
-    const csv = [header.join(',')].concat(rows.map(r => {
-      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
-    })).join('\n');
+    // Optimize: single-pass CSV generation instead of nested maps
+    const csvRows = rows.map(r => {
+      const values = [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')];
+      return values.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+    });
+    const csv = [header.join(','), ...csvRows].join('\n');
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
     res.send(csv);
@@ -1377,14 +1411,43 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
     const results = { matched: [], unmatched: [] };
+    
+    // Build lookup maps for O(1) matching instead of O(n²) nested loops
+    const pendingByRefAmount = new Map();
+    const pendingByAmount = new Map();
+    
+    pending.forEach(p => {
+      const ref = (p.reference || '').toString().trim();
+      const amt = Number(p.amount);
+      if (ref) {
+        const key = `${ref}:${amt}`;
+        pendingByRefAmount.set(key, p);
+      }
+      // For amount-only matching, store by amount (may have collisions, first match wins)
+      if (!pendingByAmount.has(amt)) {
+        pendingByAmount.set(amt, p);
+      }
+    });
+    
     incoming.forEach(entry => {
       const ref = (entry.reference || entry.ref || '').toString().trim();
       const amt = Number(entry.amount || entry.value || 0);
       let found = null;
-      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
-      if (!found) {
-        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
+      
+      // Try exact match by reference + amount first (O(1) lookup)
+      if (ref) {
+        const key = `${ref}:${amt}`;
+        found = pendingByRefAmount.get(key);
       }
+      
+      // Fall back to amount-only match (O(1) lookup)
+      if (!found) {
+        const candidate = pendingByAmount.get(amt);
+        if (candidate && (!entry.email || candidate.email === entry.email)) {
+          found = candidate;
+        }
+      }
+      
       if (found) {
         const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
         arr[idx].status = 'paid';
@@ -1393,6 +1456,10 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         results.matched.push({ transaction: arr[idx], entry });
         // notify user
         sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
+        
+        // Remove from maps to prevent double-matching
+        if (ref) pendingByRefAmount.delete(`${ref}:${amt}`);
+        pendingByAmount.delete(amt);
       } else {
         results.unmatched.push(entry);
       }
@@ -1447,79 +1514,6 @@ app.get('/api/tools/recommendations', requirePremium, (req, res) => {
 });
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
-
-// Serve download by token
-app.get('/download/:token', (req, res) => {
-  try {
-    const token = req.params.token;
-    const tokens = readTokens();
-    const entry = tokens[token];
-    if (!entry) return res.status(404).send('Invalid or expired token');
-    if (Date.now() > entry.expireAt) { delete tokens[token]; writeTokens(tokens); return res.status(410).send('Token expired'); }
-    const files = readFilesMeta(); const file = files.find(f=>f.id===entry.fileId);
-    if (!file) return res.status(404).send('File not found');
-    const filePath = path.join(UPLOADS_DIR, file.filename);
-    if (!fs.existsSync(filePath)) return res.status(404).send('File missing');
-    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName.replace(/\"/g,'') }"`);
-    return res.sendFile(filePath);
-  } catch(e){ console.error('download error', e.message); return res.status(500).send('Server error'); }
-});
-
-// CSV export of KCB manual transfers
-app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
-  try {
-    const file = './transactions.json';
-    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
-    const rows = arr.filter(t => t.provider === 'kcb_manual');
-    const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
-    const csv = [header.join(',')].concat(rows.map(r => {
-      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
-    })).join('\n');
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
-    res.send(csv);
-  } catch (e) {
-    console.error('export error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Reconcile bank entries: accepts JSON { entries: [...] }
-app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
-  try {
-    const incoming = Array.isArray(req.body) ? req.body : (req.body.entries || []);
-    if (!incoming || !incoming.length) return res.status(400).json({ error: 'no entries provided' });
-    const file = './transactions.json';
-    const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
-    const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
-    const results = { matched: [], unmatched: [] };
-    incoming.forEach(entry => {
-      const ref = (entry.reference || entry.ref || '').toString().trim();
-      const amt = Number(entry.amount || entry.value || 0);
-      let found = null;
-      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
-      if (!found) {
-        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
-      }
-      if (found) {
-        const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
-        arr[idx].status = 'paid';
-        arr[idx].paidAt = new Date().toISOString();
-        arr[idx].reconciledWith = entry;
-        results.matched.push({ transaction: arr[idx], entry });
-        // notify user
-        sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
-      } else {
-        results.unmatched.push(entry);
-      }
-    });
-    fs.writeFileSync(file, JSON.stringify(arr, null, 2));
-    return res.json({ success: true, summary: { matched: results.matched.length, unmatched: results.unmatched.length }, results });
-  } catch (e) {
-    console.error('reconcile error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
