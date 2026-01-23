@@ -242,10 +242,23 @@ async function sendNotificationMail(opts={}){
   }
 })();
 
+// User cache for improved performance
+let userCache = null;
+let userCacheTime = 0;
+const USER_CACHE_TTL = 5000; // 5 seconds cache
+
 function readUsers() {
+  // Use cache if fresh (within TTL)
+  const now = Date.now();
+  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
+    return userCache;
+  }
+  
   try {
     const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    return JSON.parse(raw || '[]');
+    userCache = JSON.parse(raw || '[]');
+    userCacheTime = now;
+    return userCache;
   } catch (e) {
     return [];
   }
@@ -253,6 +266,15 @@ function readUsers() {
 
 function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  // Invalidate cache on write
+  userCache = users;
+  userCacheTime = Date.now();
+}
+
+// Helper: find user by email efficiently
+function findUserByEmail(users, email) {
+  const emailLower = email.toLowerCase();
+  return users.find(u => u.email.toLowerCase() === emailLower);
 }
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -262,7 +284,7 @@ app.post('/api/auth/signup', async (req, res) => {
     if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
 
     const users = readUsers();
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    if (findUserByEmail(users, email)) {
       return res.status(409).json({ error: 'email already registered' });
     }
 
@@ -324,7 +346,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = findUserByEmail(users, email);
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
@@ -1601,7 +1623,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
     const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    const user = findUserByEmail(users, email);
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
 
     const ok = bcrypt.compareSync(password, user.passwordHash);
