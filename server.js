@@ -1184,9 +1184,9 @@ function logUserActivity(email, action, ip = null) {
     if (!user) return;
     user.activityLogs = user.activityLogs || [];
     user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
-    // Keep only last 100 logs - optimized to avoid array copy
-    if (user.activityLogs.length > 100) {
-      user.activityLogs.shift(); // Remove oldest, more efficient than slice
+    // Keep only last 100 logs - remove excess efficiently
+    while (user.activityLogs.length > 100) {
+      user.activityLogs.shift(); // Remove oldest entries
     }
     writeUsers(users);
   } catch (e) {
@@ -1201,7 +1201,12 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
     const files = readFilesMeta(); if (!files.find(f=>f.id===fileId)) return null;
     if (!email) email = (meta.email || '').toLowerCase();
     const purchases = readPurchases();
-    const exists = purchases.find(p => p.fileId === fileId && p.email && email && p.email.toLowerCase() === email.toLowerCase());
+    const exists = purchases.find(p => 
+      p.fileId === fileId && 
+      email && 
+      p.email && 
+      p.email.toLowerCase() === email.toLowerCase()
+    );
     if (exists) return exists;
     const entry = { id: uuidv4(), fileId, email: email? email.toLowerCase() : '', provider, at: new Date().toISOString(), meta };
     purchases.push(entry);
@@ -1482,10 +1487,11 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         const key = `${ref}:${amt}`;
         pendingByRefAmount.set(key, p);
       }
-      // For amount-only matching, store by amount (may have collisions, first match wins)
+      // For amount-only matching, store array of candidates with same amount
       if (!pendingByAmount.has(amt)) {
-        pendingByAmount.set(amt, p);
+        pendingByAmount.set(amt, []);
       }
+      pendingByAmount.get(amt).push(p);
     });
     
     incoming.forEach(entry => {
@@ -1499,12 +1505,13 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         found = pendingByRefAmount.get(key);
       }
       
-      // Fall back to amount-only match (O(1) lookup)
+      // Fall back to amount-only match - find first unmatched candidate
       if (!found) {
-        const candidate = pendingByAmount.get(amt);
-        if (candidate && (!entry.email || candidate.email === entry.email)) {
-          found = candidate;
-        }
+        const candidates = pendingByAmount.get(amt) || [];
+        found = candidates.find(c => 
+          !c._matched && 
+          (!entry.email || c.email === entry.email)
+        );
       }
       
       if (found) {
@@ -1516,7 +1523,8 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         // notify user
         sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
         
-        // Remove from maps to prevent double-matching
+        // Mark as matched to prevent double-matching
+        found._matched = true;
         if (ref) pendingByRefAmount.delete(`${ref}:${amt}`);
         pendingByAmount.delete(amt);
       } else {
