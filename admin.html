@@ -39,6 +39,7 @@
       <button class="tab-btn" onclick="switchTab('messages')">Support Messages</button>
       <button class="tab-btn" onclick="switchTab('payments')">Payments</button>
       <button class="tab-btn" onclick="switchTab('email')">Email Tools</button>
+      <button class="tab-btn" onclick="switchTab('storage')">Storage Complex</button>
     </div>
 
     <!-- Dashboard Tab -->
@@ -183,6 +184,83 @@
           <button onclick="sendBulkEmail()" class="classic-btn w-full">Send Bulk Email</button>
         </div>
         <div id="bulkStatus" class="text-sm mt-2"></div>
+      </div>
+    </section>
+
+    <!-- Storage Complex Tab -->
+    <section id="storage" class="tab-content bg-white p-6 rounded shadow classic-card mb-4">
+      <h2 class="text-2xl font-bold mb-4 gradient-text">Storage Complex</h2>
+      <p class="text-sm text-gray-600 mb-4">Centralized storage for all data: cache, crashes, users, admin actions, and logs. All entries include timestamps.</p>
+      
+      <div class="mb-4 flex gap-2 items-center">
+        <button onclick="loadStorageStats()" class="classic-btn">Refresh Stats</button>
+        <button onclick="loadAllStorageData()" class="classic-btn">Load All Data</button>
+      </div>
+
+      <!-- Storage Statistics -->
+      <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Storage Statistics</h3>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Cache</div>
+            <div id="stat-cache" class="text-2xl font-bold">-</div>
+          </div>
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Crashes</div>
+            <div id="stat-crashes" class="text-2xl font-bold">-</div>
+          </div>
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Users</div>
+            <div id="stat-storage-users" class="text-2xl font-bold">-</div>
+          </div>
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Admin</div>
+            <div id="stat-admin" class="text-2xl font-bold">-</div>
+          </div>
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Logs</div>
+            <div id="stat-logs" class="text-2xl font-bold">-</div>
+          </div>
+          <div class="p-3 rounded border classic-card text-center">
+            <div class="text-xs text-gray-600">Total</div>
+            <div id="stat-total" class="text-2xl font-bold text-blue-600">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage Type Selector -->
+      <div class="mb-4">
+        <h3 class="text-xl font-semibold mb-2">View by Type</h3>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="loadStorageByType('cache')" class="classic-btn">Cache</button>
+          <button onclick="loadStorageByType('crashes')" class="classic-btn">Crashes</button>
+          <button onclick="loadStorageByType('users')" class="classic-btn">Users</button>
+          <button onclick="loadStorageByType('admin')" class="classic-btn">Admin</button>
+          <button onclick="loadStorageByType('logs')" class="classic-btn">Logs</button>
+        </div>
+      </div>
+
+      <!-- Storage Data Display -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xl font-semibold">Storage Data</h3>
+          <button onclick="exportStorageData()" class="text-sm classic-btn">Export JSON</button>
+        </div>
+        <div id="storageData" class="text-sm text-gray-700 max-h-96 overflow-y-auto border rounded p-3 bg-gray-50">
+          Click "Load All Data" or select a type to view storage data.
+        </div>
+      </div>
+
+      <!-- Clear Storage Options -->
+      <div class="mt-6 border-t pt-4">
+        <h3 class="text-xl font-semibold mb-2 text-red-600">Clear Storage (Dangerous)</h3>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="clearStorageType('cache')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Clear Cache</button>
+          <button onclick="clearStorageType('crashes')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Clear Crashes</button>
+          <button onclick="clearStorageType('users')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Clear Users</button>
+          <button onclick="clearStorageType('logs')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Clear Logs</button>
+        </div>
+        <div id="clearStatus" class="text-sm mt-2"></div>
       </div>
     </section>
   </main>
@@ -502,11 +580,130 @@
       } catch (e) { alert('Error: ' + e.message); }
     }
 
+    // Storage Complex Functions
+    async function loadStorageStats() {
+      try {
+        const res = await fetch('/api/admin/storage-stats', { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load stats');
+        const data = await res.json();
+        if (data.success && data.stats) {
+          document.getElementById('stat-cache').textContent = data.stats.cache || '0';
+          document.getElementById('stat-crashes').textContent = data.stats.crashes || '0';
+          document.getElementById('stat-storage-users').textContent = data.stats.users || '0';
+          document.getElementById('stat-admin').textContent = data.stats.admin || '0';
+          document.getElementById('stat-logs').textContent = data.stats.logs || '0';
+          document.getElementById('stat-total').textContent = data.stats.total || '0';
+        }
+      } catch (e) {
+        console.error('Error loading storage stats:', e);
+      }
+    }
+
+    async function loadAllStorageData() {
+      try {
+        const res = await fetch('/api/admin/storage-complex', { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load storage data');
+        const result = await res.json();
+        if (result.success && result.data) {
+          displayStorageData(result.data, 'All Storage Data');
+          loadStorageStats();
+        }
+      } catch (e) {
+        document.getElementById('storageData').innerHTML = '<div class="text-red-600">Error loading storage data: ' + e.message + '</div>';
+      }
+    }
+
+    async function loadStorageByType(type) {
+      try {
+        const res = await fetch(`/api/admin/storage-complex/${type}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load data');
+        const result = await res.json();
+        if (result.success) {
+          displayStorageData({ [type]: result.data }, `${type.charAt(0).toUpperCase() + type.slice(1)} Data`);
+          loadStorageStats();
+        }
+      } catch (e) {
+        document.getElementById('storageData').innerHTML = '<div class="text-red-600">Error loading ' + type + ' data: ' + e.message + '</div>';
+      }
+    }
+
+    function displayStorageData(data, title) {
+      const container = document.getElementById('storageData');
+      let html = `<div class="mb-2 font-bold text-lg">${title}</div>`;
+      
+      for (const [type, entries] of Object.entries(data)) {
+        html += `<div class="mb-4">`;
+        html += `<div class="font-semibold text-md mb-2 capitalize">${type} (${entries.length} entries)</div>`;
+        
+        if (entries.length === 0) {
+          html += `<div class="text-gray-500 text-sm ml-2">No entries</div>`;
+        } else {
+          // Show most recent 50 entries
+          const recentEntries = entries.slice(-50).reverse();
+          html += `<div class="space-y-1">`;
+          for (const entry of recentEntries) {
+            html += `<div class="border-l-2 border-blue-400 pl-2 py-1 text-xs bg-white">`;
+            html += `<div class="text-gray-500">${entry.date} ${entry.time}</div>`;
+            html += `<div class="font-mono">${JSON.stringify(entry, null, 2).substring(0, 200)}${JSON.stringify(entry).length > 200 ? '...' : ''}</div>`;
+            html += `</div>`;
+          }
+          html += `</div>`;
+          if (entries.length > 50) {
+            html += `<div class="text-sm text-gray-600 mt-2">Showing most recent 50 of ${entries.length} entries</div>`;
+          }
+        }
+        html += `</div>`;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    async function clearStorageType(type) {
+      if (!confirm(`Are you sure you want to clear all ${type} data? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/admin/storage-complex/${type}/clear`, { 
+          method: 'POST', 
+          credentials: 'include' 
+        });
+        const data = await res.json();
+        const status = document.getElementById('clearStatus');
+        if (data.success) {
+          status.textContent = `✓ ${type} storage cleared successfully`;
+          status.className = 'text-sm text-green-600';
+          loadStorageStats();
+          loadStorageByType(type);
+        } else {
+          status.textContent = `✗ Error: ${data.error || 'Failed'}`;
+          status.className = 'text-sm text-red-600';
+        }
+      } catch (e) {
+        document.getElementById('clearStatus').innerHTML = '<div class="text-red-600">Error: ' + e.message + '</div>';
+      }
+    }
+
+    function exportStorageData() {
+      fetch('/api/admin/storage-complex', { credentials: 'include' })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success && result.data) {
+            const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `storage-complex-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        })
+        .catch(e => alert('Export failed: ' + e.message));
+    }
+
     window.addEventListener('load', () => {
       refreshDashboard();
       loadFiles();
       loadMessages();
       loadKCBTransfers();
+      loadStorageStats();
     });
   </script>
 
