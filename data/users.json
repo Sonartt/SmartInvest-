@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "email": "test@example.com",
+    "passwordHash": "$2a$10$W9AVUgOn5iPuuMtw0vPZC.nc76ao4hLIeDxP3yVD9oa.lKQJatoBi",
+    "createdAt": "2026-01-23T06:40:32.044Z",
+    "isPremium": false,
+    "activityLogs": [
+      {
+        "timestamp": "2026-01-23T06:40:32.044Z",
+        "action": "account_created",
+        "ip": "::1"
+      }
+    ]
+  }
+]
