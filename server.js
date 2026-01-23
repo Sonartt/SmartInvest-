@@ -1438,7 +1438,8 @@ app.post('/api/admin/messages/:id/reply', adminAuth, express.json(), (req, res) 
 app.get('/api/admin/storage-complex', adminAuth, (req, res) => {
   try {
     const data = storageComplex.getAllStorageData();
-    storageComplex.addAdminEntry(ADMIN_EMAIL, 'view_storage_complex', { ip: req.ip });
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'view_storage_complex', { ip: req.ip });
     return res.json({ success: true, data });
   } catch (e) { 
     console.error('storage complex error', e.message); 
@@ -1456,7 +1457,8 @@ app.get('/api/admin/storage-complex/:type', adminAuth, (req, res) => {
       return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
     }
     const data = storageComplex.getStorageByType(type);
-    storageComplex.addAdminEntry(ADMIN_EMAIL, 'view_storage_type', { type, ip: req.ip });
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'view_storage_type', { type, ip: req.ip });
     return res.json({ success: true, type, data });
   } catch (e) { 
     console.error('storage complex type error', e.message); 
@@ -1485,7 +1487,8 @@ app.post('/api/admin/storage-complex/:type/clear', adminAuth, (req, res) => {
       return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
     }
     const success = storageComplex.clearStorageByType(type);
-    storageComplex.addAdminEntry(ADMIN_EMAIL, 'clear_storage_type', { type, ip: req.ip });
+    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
+    storageComplex.addAdminEntry(adminEmail, 'clear_storage_type', { type, ip: req.ip });
     return res.json({ success, message: `${type} storage cleared` });
   } catch (e) { 
     console.error('clear storage error', e.message); 
