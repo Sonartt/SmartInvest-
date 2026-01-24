@@ -24,8 +24,5 @@
 		}
 	},
 	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && npm install",
-	"remoteUser": "node",
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
-	]
+	"remoteUser": "node"
 }
