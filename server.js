@@ -9,34 +9,33 @@ const storageComplex = require('./storage-complex');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Admin authentication - restricted to specific admin email
 const ADMIN_EMAIL = 'delijah5415@gmail.com';
 
 function adminAuth(req, res, next) {
-  const adminUser = process.env.ADMIN_USER;
-  if (!adminUser) return next(); // no auth configured
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Basic ')) {
+  const adminUserEnv = process.env.ADMIN_USER;
+  const payload = verifyTokenFromReq(req);
+  if (payload && payload.admin) {
+    req.user = { email: payload.email, admin: true };
+    return next();
+  }
+
+  // Fallback: Basic auth if ADMIN_USER configured
+  const auth = (req.headers.authorization || '').toString();
+  if (adminUserEnv && auth && auth.startsWith('Basic ')) {
+    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+    const [user, pass] = creds.split(':');
+    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
+      req.user = { email: user, admin: true };
+      return next();
+    }
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
     return res.status(401).end('Unauthorized');
   }
-  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-  const [user, pass] = creds.split(':');
-  
-  // Enforce admin email restriction
-  if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS && user === ADMIN_EMAIL) {
-    // Log admin access
-    storageComplex.addAdminEntry(user, 'admin_access', { 
-      path: req.path, 
-      method: req.method,
-      ip: req.ip 
-    });
-    return next();
-  }
-  
-  res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
-  return res.status(401).end('Unauthorized');
+
+  return res.status(401).json({ error: 'Unauthorized' });
 }
 
 const PORT = process.env.PORT || 3000;
@@ -57,6 +56,257 @@ async function getMpesaAuth() {
 }
 
 // MPESA STK Push (simplified for Daraja sandbox)
+app.post('/api/pay/mpesa', async (req, res) => {
+  try {
+    // Default to 1000 KES if amount not provided
+    const { phone, accountReference } = req.body || {};
+    const amount = Number(req.body && req.body.amount) || 1000;
+    if (!phone) return res.status(400).json({ error: 'phone required' });
+    const token = await getMpesaAuth();
+    // Prefer explicit MPESA_NUMBER; fall back to older env keys where present
+    // Use explicit MPESA_NUMBER if provided; otherwise use the provided gateway number 0114383762 as fallback
+    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '0114383762';
+    const passkey = process.env.MPESA_PASSKEY || '';
+
+    const endpoint = process.env.MPESA_ENV === 'production'
+      ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+      : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+
+    // Build body: if passkey is configured include Timestamp and Password, otherwise omit them
+    const body = {
+      BusinessShortCode: shortcode,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: amount,
+      PartyA: phone,
+      PartyB: shortcode,
+      PhoneNumber: phone,
+      CallBackURL: process.env.MPESA_CALLBACK_URL || 'https://example.com/mpesa/callback',
+      AccountReference: accountReference || process.env.MPESA_ACCOUNT_REF || 'SmartInvest',
+      TransactionDesc: 'Payment'
+    };
+    if (passkey) {
+      const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+      const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+      body.Password = password;
+      body.Timestamp = timestamp;
+    } else {
+      console.warn('MPESA_PASSKEY not configured — sending STK request without Password/Timestamp (may be rejected by provider)');
+    }
+
+    // Log outgoing request (mask sensitive fields)
+    logMpesa({ stage: 'request', endpoint, body: maskMpesaBody(body) });
+
+    const mpRes = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    // Read raw response for logging and parsing
+    const raw = await mpRes.text();
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { /* not JSON */ }
+    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : raw, parsed: parsed || undefined });
+
+    return res.json({ success: true, data: parsed || raw });
+  } catch (err) {
+    console.error('mpesa error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PayPal create order (sandbox by default)
+async function getPaypalToken() {
+  const id = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!id || !secret) throw new Error('PayPal credentials not set');
+  const basic = Buffer.from(`${id}:${secret}`).toString('base64');
+  const url = process.env.PAYPAL_ENV === 'production'
+    ? 'https://api-m.paypal.com/v1/oauth2/token'
+    : 'https://api-m.sandbox.paypal.com/v1/oauth2/token';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials'
+  });
+  if (!res.ok) throw new Error('Failed to get PayPal token');
+  const d = await res.json();
+  return d.access_token;
+}
+
+app.post('/api/pay/paypal/create-order', async (req, res) => {
+  try {
+    const token = await getPaypalToken();
+    const url = process.env.PAYPAL_ENV === 'production'
+      ? 'https://api-m.paypal.com/v2/checkout/orders'
+      : 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
+    // Convert 1000 KES to USD (use env EXCHANGE_RATE_KES_USD if provided)
+    const rate = Number(process.env.EXCHANGE_RATE_KES_USD) || 0.0065;
+    const kesAmount = 1000; // fixed as requested
+    const usdAmount = Number((kesAmount * rate).toFixed(2));
+    const purchase = {
+      intent: 'CAPTURE',
+      purchase_units: [ {
+        amount: { currency_code: 'USD', value: String(usdAmount) },
+        custom_id: req.body.fileId || undefined,
+        reference_id: req.body.fileId || undefined
+      } ],
+      application_context: {
+        return_url: process.env.PAYPAL_RETURN_URL || 'https://example.com/paypal/return',
+        cancel_url: process.env.PAYPAL_CANCEL_URL || 'https://example.com/paypal/cancel'
+      }
+    };
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(purchase)
+    });
+    const data = await r.json();
+    const approve = (data.links||[]).find(l=>l.rel==='approve')?.href;
+    return res.json({ success: true, data, approveUrl: approve });
+  } catch (err) {
+    console.error('paypal error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Simple JSON file user store (demo). In production use a real DB.
+/* Duplicate USERS_FILE and related requires removed to fix redeclaration error */
+
+
+// (mailer setup and sendNotificationMail are defined later in the file)
+
+// User cache for improved performance
+let userCache = null;
+let userCacheTime = 0;
+
+function readUsers() {
+  // Use cache if fresh (within TTL)
+  const now = Date.now();
+  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
+    // Log cache hit to storage complex
+    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
+    return userCache;
+  }
+  
+  try {
+    const raw = fs.readFileSync(USERS_FILE, 'utf8');
+    const users = JSON.parse(raw || '[]');
+    // Update cache only after successful read
+    userCache = users;
+    userCacheTime = now;
+    // Log cache miss to storage complex
+    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
+    return users;
+  } catch (e) {
+    // Return empty array but don't update cache on error
+    storageComplex.addCrashEntry(e, { function: 'readUsers' });
+    return [];
+  }
+}
+
+function writeUsers(users) {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    // Update cache only after successful write
+    userCache = users;
+    userCacheTime = Date.now();
+  } catch (e) {
+    // Invalidate cache on write failure to force fresh read
+    userCache = null;
+    userCacheTime = 0;
+    throw e;
+  }
+}
+
+// Helper: find user by email efficiently
+function findUserByEmail(users, email) {
+  const emailLower = email.toLowerCase();
+  return users.find(u => u.email.toLowerCase() === emailLower);
+}
+
+app.post('/api/auth/signup', bodyParser.json(), (req, res) => {
+  const { email, password, idNumber, driverLicense, taxNumber } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+
+  // prevent duplicate
+  const users = readUsers();
+  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    return res.status(409).json({ error: 'Email already registered. Please login.' });
+  }
+
+  const user = {
+    email: email.toLowerCase(),
+    passwordHash: bcrypt.hashSync(password, 10),
+    createdAt: new Date().toISOString(),
+    createdVia: 'signup',
+    // registration IDs
+    idNumber: idNumber || null,
+    driverLicense: driverLicense || null,
+    taxNumber: taxNumber || null
+  };
+  users.push(user);
+  writeUsers(users);
+
+  logUserActivity(email, 'signup', req.ip);
+  storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
+
+  return res.json({ success: true, message: 'signup successful' });
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+
+    const users = readUsers();
+    const user = findUserByEmail(users, email);
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+
+    // Determine admin flag: explicit user.admin OR ADMIN_USER env match
+    const isAdmin = !!((process.env.ADMIN_USER && String(email).toLowerCase() === String(process.env.ADMIN_USER).toLowerCase()) || user.admin);
+
+    const token = jwt.sign({ email: user.email, admin: !!isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+
+    // Cookie options
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: (function() {
+        const m = String(JWT_EXPIRES || '12h');
+        if (/^\d+$/.test(m)) return Number(m) * 1000;
+        const match = m.match(/^(\d+)h$/);
+        if (match) return Number(match[1]) * 60 * 60 * 1000;
+        return 1000 * 60 * 60 * 12;
+      })()
+    };
+    res.cookie('si_token', token, cookieOptions);
+
+    return res.json({ success: true, email: user.email, admin: !!isAdmin });
+  } catch (err) {
+    console.error('login error', err && err.message);
+    return res.status(500).json({ error: err && err.message });
+  }
+});
+
+// 8) Add logout endpoint to clear cookie
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('si_token', { path: '/' });
+  return res.json({ success: true });
+});
+
+// 9) Add /api/auth/me to introspect token (header or cookie)
+app.get('/api/auth/me', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
+  return res.json({ success: true, email: payload.email, admin: !!payload.admin });
+});
+
 app.post('/api/pay/mpesa', async (req, res) => {
   try {
     // Default to 1000 KES if amount not provided
@@ -257,8 +507,8 @@ async function sendNotificationMail(opts={}){
 })();
 
 // User cache for improved performance
-let userCache = null;
-let userCacheTime = 0;
+// let userCache = null;
+// let userCacheTime = 0;
 const USER_CACHE_TTL = 5000; // 5 seconds cache
 
 function readUsers() {
@@ -306,82 +556,44 @@ function findUserByEmail(users, email) {
   return users.find(u => u.email.toLowerCase() === emailLower);
 }
 
-app.post('/api/auth/signup', async (req, res) => {
-  try {
-    const { email, password, acceptTerms } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-    if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
+app.post('/api/auth/signup', bodyParser.json(), (req, res) => {
+  const { email, password, idNumber, driverLicense, taxNumber } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-    const users = readUsers();
-    if (findUserByEmail(users, email)) {
-      return res.status(409).json({ error: 'email already registered' });
-    }
-
-    const hash = bcrypt.hashSync(password, 10);
-    const user = { 
-      email: email.toLowerCase(), 
-      passwordHash: hash, 
-      createdAt: new Date().toISOString(),
-      isPremium: false,
-      activityLogs: [{ timestamp: new Date().toISOString(), action: 'account_created', ip: req.ip }]
-    };
-    users.push(user);
-    writeUsers(users);
-    
-    // Send welcome email with terms and conditions
-    const subject = 'Welcome to SmartInvest Africa — Terms & Conditions';
-    const html = `
-      <h2>Welcome to SmartInvest Africa!</h2>
-      <p>Thank you for creating an account. We're excited to help you on your investment journey.</p>
-      
-      <h3>Getting Started:</h3>
-      <ol>
-        <li>Explore our free resources and tools</li>
-        <li>Upgrade to Premium for full access to courses and advanced features</li>
-        <li>Join our community and connect with fellow investors</li>
-      </ol>
-
-      <h3>Terms & Conditions:</h3>
-      <p>By using SmartInvest Africa, you agree to:</p>
-      <ul>
-        <li>Provide accurate and truthful information</li>
-        <li>Use our services in compliance with all applicable laws</li>
-        <li>Respect intellectual property rights</li>
-        <li>Not engage in fraudulent or harmful activities</li>
-      </ul>
-
-      <h3>Privacy & Data Protection:</h3>
-      <p>Your data is protected under GDPR and local data protection laws. We never sell your information.</p>
-
-      <h3>Legal Disclaimer:</h3>
-      <p>SmartInvest Africa provides educational content only. We do not provide financial advice. 
-      All investment decisions are your own responsibility. Investments carry risk.</p>
-
-      <p>Full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Complete Terms</a></p>
-      
-      <p>Questions? Contact: ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
-    `;
-    sendNotificationMail({ to: email, subject, html });
-    
-    // Log user signup to storage complex
-    storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
-    storageComplex.addLogEntry('info', 'New user signup', { email });
-    
-    return res.json({ success: true, message: 'signup successful' });
-  } catch (err) {
-    console.error('signup error', err.message);
-    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/signup' });
-    return res.status(500).json({ error: err.message });
+  // prevent duplicate
+  const users = readUsers();
+  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    return res.status(409).json({ error: 'Email already registered. Please login.' });
   }
+
+  const user = {
+    email: email.toLowerCase(),
+    passwordHash: bcrypt.hashSync(password, 10),
+    createdAt: new Date().toISOString(),
+    createdVia: 'signup',
+    // registration IDs
+    idNumber: idNumber || null,
+    driverLicense: driverLicense || null,
+    taxNumber: taxNumber || null
+  };
+  users.push(user);
+  writeUsers(users);
+
+  logUserActivity(email, 'signup', req.ip);
+  storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
+
+  return res.json({ success: true, message: 'signup successful' });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+
     const users = readUsers();
     const user = findUserByEmail(users, email);
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
+
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     
@@ -875,7 +1087,7 @@ function writePurchases(data) {
   fs.writeFileSync(PURCHASES_FILE, JSON.stringify(data, null, 2)); 
 }
 
-// Public: list files available for purchase/download — now restricted to purchasers.
+// Public: list files available for purchasers (legacy behavior)
 app.get('/api/files', requirePaidUser, (req, res) => {
   try {
     const files = readFilesMeta();
@@ -883,6 +1095,16 @@ app.get('/api/files', requirePaidUser, (req, res) => {
     const ownedIds = purchases.map(p => p.fileId);
     const owned = files.filter(f => ownedIds.includes(f.id));
     return res.json({ success: true, files: owned });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Premium: list all published files (no per-file purchase required)
+app.get('/api/premium/files', requirePremium, (req, res) => {
+  try {
+    const files = readFilesMeta().filter(f => f.published);
+    return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
@@ -1047,8 +1269,12 @@ function summarizeTransaction(tx, files = []) {
 // accessible only to paying users.
 function requirePaidUser(req, res, next) {
   try {
-    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
+    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    if (!email) {
+      const payload = verifyTokenFromReq(req);
+      if (payload && payload.email) email = payload.email;
+    }
+    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email= or sign in' });
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
     const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
@@ -1335,28 +1561,38 @@ app.get('/api/admin/files', adminAuth, (req, res) => {
   try { const files = readFilesMeta(); return res.json({ success: true, files }); } catch(e){ return res.status(500).json({ error: e.message }); }
 });
 
-// Public: list published files — restricted to purchasers. Returns published files
-// that the purchaser has access to.
-app.get('/api/files', requirePaidUser, (req, res) => {
+// Route '/api/files' is defined earlier for legacy purchaser listing.
+// Prefer '/api/premium/files' for premium-wide listing.
+
+// Public catalog: list published files (title, price, id) for browsing before purchase
+app.get('/api/catalog', (req, res) => {
   try {
-    const files = readFilesMeta().filter(f => f.published);
-    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
-    const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
+    const files = readFilesMeta()
+      .filter(f => f.published)
+      .map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+    return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 });
 
-// Public catalog: list published files (title, price, id) for browsing before purchase
-app.get('/api/catalog', (req, res) => {
+// Public catalog: single item details by id (published only)
+app.get('/api/catalog/:id', (req, res) => {
   try {
-    const files = readFilesMeta().filter(f => f.published).map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
-    return res.json({ success: true, files });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
+    const { id } = req.params;
+    const file = readFilesMeta().find(f => f.id === id && f.published);
+    if (!file) return res.status(404).json({ error: 'not found' });
+    const out = {
+      id: file.id,
+      title: file.title,
+      description: file.description,
+      price: file.price,
+      createdAt: file.createdAt || file.uploadedAt,
+      size: file.size,
+      mime: file.mime || null
+    };
+    return res.json({ success: true, file: out });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // Admin: update file metadata
@@ -1512,22 +1748,35 @@ app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
 });
 
-// Public: request download token (email must match a purchase)
+// Public: request download token
+// - Allows if the email owns a purchase for the file, OR the email has active premium
 app.post('/api/download/request', express.json(), (req, res) => {
   try {
     const { fileId, email } = req.body;
     if (!fileId || !email) return res.status(400).json({ error: 'fileId and email required' });
+    const e = email.toLowerCase();
     const purchases = readPurchases();
-    const ok = purchases.find(p => p.fileId === fileId && p.email === email.toLowerCase());
-    if (!ok) return res.status(402).json({ error: 'purchase not found' });
+    const owns = purchases.find(p => p.fileId === fileId && p.email === e);
+    const premiumOk = hasPremium(e);
+    if (!owns && !premiumOk) return res.status(402).json({ error: 'Access denied: premium or purchase required' });
     const tokens = readTokens();
     const token = uuidv4();
     const expireAt = Date.now() + (60*60*1000); // 1 hour
-    tokens[token] = { fileId, email: email.toLowerCase(), expireAt };
+    tokens[token] = { fileId, email: e, expireAt };
     writeTokens(tokens);
     const url = `${req.protocol}://${req.get('host')}/download/${token}`;
     return res.json({ success: true, url, expiresAt: new Date(expireAt).toISOString() });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
+});
+
+// Premium: get full metadata for a file by id (for premium users)
+app.get('/api/files/:id', requirePremium, (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = readFilesMeta().find(f => f.id === id && f.published);
+    if (!file) return res.status(404).json({ error: 'not found' });
+    return res.json({ success: true, file });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // Serve download by token
@@ -1681,141 +1930,6 @@ app.get('/api/tools/risk-profiler', requirePremium, (req, res) => {
 
 app.get('/api/tools/recommendations', requirePremium, (req, res) => {
   return res.json({ success: true, message: 'AI recommendations', isPremium: true });
-});
-
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
-
-// Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
-
-// Serve tools folder (static files like the investment calculator)
-app.use('/tools', express.static(path.join(__dirname, 'tools')));
-
-// Add / replace snippets in server.js as instructed below
-
-// 1) Near top of server.js (with the other requires) add:
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-// (Ensure bcrypt, fs, uuidv4 etc. remain where they are)
-
-// 2) After you initialize Express / after app.use(bodyParser.json()); add:
-app.use(cookieParser());
-
-// 3) Add config constants (near other config/env usage)
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
-
-// 4) Add the helper verifyTokenFromReq (place near other helpers)
-function verifyTokenFromReq(req) {
-  const auth = (req.headers.authorization || '').toString();
-  let token = null;
-  if (auth && auth.startsWith('Bearer ')) token = auth.split(' ')[1];
-  if (!token && req.cookies && req.cookies.si_token) token = req.cookies.si_token;
-  if (!token) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (e) {
-    return null;
-  }
-}
-
-// 5) Replace the existing adminAuth implementation with this one
-function adminAuth(req, res, next) {
-  const adminUserEnv = process.env.ADMIN_USER;
-  const payload = verifyTokenFromReq(req);
-  if (payload && payload.admin) {
-    req.user = { email: payload.email, admin: true };
-    return next();
-  }
-
-  // Fallback: Basic auth if ADMIN_USER configured
-  const auth = (req.headers.authorization || '').toString();
-  if (adminUserEnv && auth && auth.startsWith('Basic ')) {
-    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-    const [user, pass] = creds.split(':');
-    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
-      req.user = { email: user, admin: true };
-      return next();
-    }
-    res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
-    return res.status(401).end('Unauthorized');
-  }
-
-  return res.status(401).json({ error: 'Unauthorized' });
-}
-
-// 6) Replace/augment requirePaidUser to accept session cookie email
-function requirePaidUser(req, res, next) {
-  try {
-    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) {
-      const payload = verifyTokenFromReq(req);
-      if (payload && payload.email) email = payload.email;
-    }
-    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email= or sign in' });
-    const e = String(email).toLowerCase();
-    const purchases = readPurchases();
-    const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
-    if (!ok) return res.status(402).json({ error: 'No purchases found for this email' });
-    req.purchaserEmail = e;
-    return next();
-  } catch (e) {
-    console.error('requirePaidUser error', e && e.message);
-    return res.status(500).json({ error: 'server error' });
-  }
-}
-
-// 7) Update /api/auth/login to set HttpOnly cookie (replace existing handler)
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-    const users = readUsers();
-    const user = findUserByEmail(users, email);
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-
-    const ok = bcrypt.compareSync(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-
-    // Determine admin flag: explicit user.admin OR ADMIN_USER env match
-    const isAdmin = !!((process.env.ADMIN_USER && String(email).toLowerCase() === String(process.env.ADMIN_USER).toLowerCase()) || user.admin);
-
-    const token = jwt.sign({ email: user.email, admin: !!isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-
-    // Cookie options
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: (function() {
-        const m = String(JWT_EXPIRES || '12h');
-        if (/^\d+$/.test(m)) return Number(m) * 1000;
-        const match = m.match(/^(\d+)h$/);
-        if (match) return Number(match[1]) * 60 * 60 * 1000;
-        return 1000 * 60 * 60 * 12;
-      })()
-    };
-    res.cookie('si_token', token, cookieOptions);
-
-    return res.json({ success: true, email: user.email, admin: !!isAdmin });
-  } catch (err) {
-    console.error('login error', err && err.message);
-    return res.status(500).json({ error: err && err.message });
-  }
-});
-
-// 8) Add logout endpoint to clear cookie
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('si_token', { path: '/' });
-  return res.json({ success: true });
-});
-
-// 9) Add /api/auth/me to introspect token (header or cookie)
-app.get('/api/auth/me', (req, res) => {
-  const payload = verifyTokenFromReq(req);
-  if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
-  return res.json({ success: true, email: payload.email, admin: !!payload.admin });
 });
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
