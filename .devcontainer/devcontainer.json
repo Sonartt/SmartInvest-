@@ -1,36 +1,31 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
 {
-	"name": "Alpine",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:alpine-3.20",
+	"name": "SmartInvest Node.js Development",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
 	"features": {
-		"ghcr.io/flexwie/devcontainer-features/op:1": {},
-		"ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {},
-		"ghcr.io/wxw-matt/devcontainer-features/script_runner:0": {},
-		"ghcr.io/nikiforovall/devcontainer-features/dotnet-csharpier:1": {},
-		"ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {}
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "latest"
+		}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"GitHub.copilot"
-			]
+				"GitHub.copilot",
+				"GitHub.vscode-pull-request-github",
+				"eamodio.gitlens"
+			],
+			"settings": {
+				"git.enabled": true,
+				"git.autofetch": true,
+				"git.enableSmartCommit": true,
+				"git.confirmSync": false,
+				"git.openRepositoryInParentFolders": "always",
+				"scm.defaultViewMode": "tree"
+			}
 		}
-	}
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	},
+	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && npm install",
+	"remoteUser": "node",
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+	]
 }
