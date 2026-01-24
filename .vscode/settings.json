@@ -9,5 +9,23 @@
         "*test.py"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "git.enabled": true,
+    "git.autofetch": true,
+    "git.openRepositoryInParentFolders": "always",
+    "git.scanRepositories": [
+        "."
+    ],
+    "git.detectSubmodules": true,
+    "git.alwaysShowStagedChangesResourceGroup": true,
+    "scm.repositories.visible": 10,
+    "scm.defaultViewMode": "tree",
+    "scm.alwaysShowRepositories": true,
+    "scm.autoReveal": true,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/data/**": true
+    }
 }
