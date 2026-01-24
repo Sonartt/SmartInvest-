@@ -193,14 +193,14 @@ class PochiPaymentHandler {
     const div = document.createElement('div');
     div.style.cssText = `
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      inset-block-end: 20px;
+      inset-inline-end: 20px;
       padding: 16px 20px;
       background: ${bgColors[type]};
       color: ${colors[type]};
       border: 2px solid ${colors[type]};
       border-radius: 8px;
-      max-width: 400px;
+      max-inline-size: 400px;
       font-weight: 500;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 9999;

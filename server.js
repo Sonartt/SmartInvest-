@@ -5,11 +5,13 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
 const storageComplex = require('./storage-complex');
+const pochiRoutes = require('./src/routes/pochi-routes');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/api/pochi', pochiRoutes);
 
 // Admin authentication - restricted to specific admin email
 const ADMIN_EMAIL = 'delijah5415@gmail.com';
@@ -287,9 +289,23 @@ app.post('/api/auth/login', async (req, res) => {
     };
     res.cookie('si_token', token, cookieOptions);
 
-    return res.json({ success: true, email: user.email, admin: !!isAdmin });
+    // Log activity
+    logUserActivity(email, 'login', req.ip);
+    
+    // Log to storage complex
+    storageComplex.addUserEntry(email, 'login', { ip: req.ip });
+    storageComplex.addLogEntry('info', 'User login', { email });
+
+    return res.json({ 
+      success: true, 
+      email: user.email, 
+      admin: !!isAdmin,
+      isPremium: user.isPremium || false,
+      premiumExpiresAt: user.premiumExpiresAt || null
+    });
   } catch (err) {
     console.error('login error', err && err.message);
+    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/login' });
     return res.status(500).json({ error: err && err.message });
   }
 });
@@ -300,70 +316,38 @@ app.post('/api/auth/logout', (req, res) => {
   return res.json({ success: true });
 });
 
+// GeoIP detection endpoint
+app.get('/api/geo', (req, res) => {
+  // Try Cloudflare country header first (most reliable when using CF)
+  let country = req.headers['cf-ipcountry'];
+  
+  // Fall back to IP-based detection if no CF header
+  if (!country) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection.remoteAddress;
+    // Simple IP range detection for Kenya (simplified - for production use a proper GeoIP database)
+    // Kenya IP ranges typically start with specific prefixes, but this is a basic check
+    // For localhost/development, default to KE
+    if (ip === '::1' || ip === '127.0.0.1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
+      country = 'KE'; // Default to Kenya for local development
+    } else {
+      // For production, you'd use a service like ipapi.co or maxmind
+      country = 'OTHER'; // Default to OTHER for unknown IPs
+    }
+  }
+  
+  // Normalize to uppercase
+  country = String(country).toUpperCase();
+  
+  // Return KE for Kenya, OTHER for everything else
+  const isKenya = country === 'KE' || country === 'KENYA';
+  return res.json({ country: isKenya ? 'KE' : 'OTHER' });
+});
+
 // 9) Add /api/auth/me to introspect token (header or cookie)
 app.get('/api/auth/me', (req, res) => {
   const payload = verifyTokenFromReq(req);
   if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
   return res.json({ success: true, email: payload.email, admin: !!payload.admin });
-});
-
-app.post('/api/pay/mpesa', async (req, res) => {
-  try {
-    // Default to 1000 KES if amount not provided
-    const { phone, accountReference } = req.body || {};
-    const amount = Number(req.body && req.body.amount) || 1000;
-    if (!phone) return res.status(400).json({ error: 'phone required' });
-    const token = await getMpesaAuth();
-    // Prefer explicit MPESA_NUMBER; fall back to older env keys where present
-    // Use explicit MPESA_NUMBER if provided; otherwise use the provided gateway number 0114383762 as fallback
-    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '0114383762';
-    const passkey = process.env.MPESA_PASSKEY || '';
-
-    const endpoint = process.env.MPESA_ENV === 'production'
-      ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-      : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
-
-    // Build body: if passkey is configured include Timestamp and Password, otherwise omit them
-    const body = {
-      BusinessShortCode: shortcode,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: amount,
-      PartyA: phone,
-      PartyB: shortcode,
-      PhoneNumber: phone,
-      CallBackURL: process.env.MPESA_CALLBACK_URL || 'https://example.com/mpesa/callback',
-      AccountReference: accountReference || process.env.MPESA_ACCOUNT_REF || 'SmartInvest',
-      TransactionDesc: 'Payment'
-    };
-    if (passkey) {
-      const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
-      const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
-      body.Password = password;
-      body.Timestamp = timestamp;
-    } else {
-      console.warn('MPESA_PASSKEY not configured — sending STK request without Password/Timestamp (may be rejected by provider)');
-    }
-
-    // Log outgoing request (mask sensitive fields)
-    logMpesa({ stage: 'request', endpoint, body: maskMpesaBody(body) });
-
-    const mpRes = await fetch(endpoint, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    // Read raw response for logging and parsing
-    const raw = await mpRes.text();
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch (e) { /* not JSON */ }
-    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : raw, parsed: parsed || undefined });
-
-    return res.json({ success: true, data: parsed || raw });
-  } catch (err) {
-    console.error('mpesa error', err.message);
-    return res.status(500).json({ error: err.message });
-  }
 });
 
 // PayPal create order (sandbox by default)
@@ -555,68 +539,6 @@ function findUserByEmail(users, email) {
   const emailLower = email.toLowerCase();
   return users.find(u => u.email.toLowerCase() === emailLower);
 }
-
-app.post('/api/auth/signup', bodyParser.json(), (req, res) => {
-  const { email, password, idNumber, driverLicense, taxNumber } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-  // prevent duplicate
-  const users = readUsers();
-  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-    return res.status(409).json({ error: 'Email already registered. Please login.' });
-  }
-
-  const user = {
-    email: email.toLowerCase(),
-    passwordHash: bcrypt.hashSync(password, 10),
-    createdAt: new Date().toISOString(),
-    createdVia: 'signup',
-    // registration IDs
-    idNumber: idNumber || null,
-    driverLicense: driverLicense || null,
-    taxNumber: taxNumber || null
-  };
-  users.push(user);
-  writeUsers(users);
-
-  logUserActivity(email, 'signup', req.ip);
-  storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
-
-  return res.json({ success: true, message: 'signup successful' });
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-    const users = readUsers();
-    const user = findUserByEmail(users, email);
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-
-    const ok = bcrypt.compareSync(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    
-    // Log activity
-    logUserActivity(email, 'login', req.ip);
-    
-    // Log to storage complex
-    storageComplex.addUserEntry(email, 'login', { ip: req.ip });
-    storageComplex.addLogEntry('info', 'User login', { email });
-    
-    // Return user status including premium
-    return res.json({ 
-      success: true, 
-      message: 'login successful',
-      isPremium: user.isPremium || false,
-      premiumExpiresAt: user.premiumExpiresAt || null
-    });
-  } catch (err) {
-    console.error('login error', err.message);
-    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/login' });
-    return res.status(500).json({ error: err.message });
-  }
-});
 
 // Password reset request
 app.post('/api/auth/reset-password-request', async (req, res) => {

@@ -31,7 +31,7 @@
         </script>
         <style>
             :focus { outline: 3px solid #C4B5FD; outline-offset: 2px; }
-            .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0.5rem; padding: 0.5rem 1rem; background: white; color: #4C1D95; border-radius: 0.25rem; }
+            .sr-only-focusable:focus { position: static; inline-size: auto; block-size: auto; margin: 0.5rem; padding: 0.5rem 1rem; background: white; color: #4C1D95; border-radius: 0.25rem; }
             .dashboard-panel { display: none; }
             .dashboard-panel.active { display: block; }
             .dashboard-toggle { border: 1px solid #C4B5FD; border-radius: 9999px; padding: 0.5rem 1.5rem; font-weight: 600; font-size: 0.9rem; color: #6D28D9; background: #fff; transition: all 0.2s ease; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
@@ -106,6 +106,146 @@
             </div>
             <!-- ... existing premium cards ... -->
         </div>
+    </section>
+
+    <!-- Payment Methods (Public Checkout) -->
+    <section id="payments" aria-label="Payments" class="py-16 px-4 bg-white">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-3xl font-bold">Payment Methods</h2>
+          <div class="flex items-center gap-2">
+            <label for="countrySelect" class="text-sm text-gray-600">Country</label>
+            <select id="countrySelect" class="border rounded px-2 py-1">
+              <option value="KE">Kenya</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">Users can see all methods; unavailable ones are disabled.</p>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>M‑Pesa (Kenya)</strong>
+              <span id="badgeMpesa" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Live</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Local M‑Pesa payments are available.</p>
+            <button id="mpesaPayPublicBtn" class="w-full bg-purple-600 text-white px-3 py-2 rounded">Pay now</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>KCB Bank (Kenya)</strong>
+              <span id="badgeKcb" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Live</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Local KCB bank payments are available.</p>
+            <button id="kcbPayPublicBtn" class="w-full bg-purple-600 text-white px-3 py-2 rounded">Pay now</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>M‑Pesa (International)</strong>
+              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Not yet available for other countries.</p>
+            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>Card (Visa/Mastercard)</strong>
+              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Cards will be integrated later.</p>
+            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>PayPal</strong>
+              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">PayPal will be integrated later.</p>
+            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>Stripe</strong>
+              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Stripe will be integrated later.</p>
+            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
+          </div>
+          <div class="border rounded p-4 bg-white">
+            <div class="flex items-center justify-between">
+              <strong>Flutterwave</strong>
+              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
+            </div>
+            <p class="text-gray-600 text-sm mb-2">Flutterwave will be integrated later.</p>
+            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
+          </div>
+        </div>
+        <script>
+          (function(){
+            const select = document.getElementById('countrySelect');
+            const mpBtn = document.getElementById('mpesaPayPublicBtn');
+            const kcbBtn = document.getElementById('kcbPayPublicBtn');
+            const badgeMp = document.getElementById('badgeMpesa');
+            const badgeK = document.getElementById('badgeKcb');
+            
+            function applyCountry(code){
+              const isKE = String(code||'').toUpperCase()==='KE';
+              if (badgeMp) badgeMp.textContent = isKE ? 'Live' : 'Kenya only';
+              if (badgeMp) badgeMp.className = isKE ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-700' : 'text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700';
+              if (badgeK) badgeK.textContent = isKE ? 'Live' : 'Kenya only';
+              if (badgeK) badgeK.className = isKE ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-700' : 'text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700';
+              if (mpBtn) { mpBtn.disabled = !isKE; mpBtn.title = isKE ? '' : 'Unavailable outside Kenya'; mpBtn.className = isKE ? 'w-full bg-purple-600 text-white px-3 py-2 rounded' : 'w-full border px-3 py-2 rounded text-gray-600'; }
+              if (kcbBtn) { kcbBtn.disabled = !isKE; kcbBtn.title = isKE ? '' : 'Unavailable outside Kenya'; kcbBtn.className = isKE ? 'w-full bg-purple-600 text-white px-3 py-2 rounded' : 'w-full border px-3 py-2 rounded text-gray-600'; }
+              try { localStorage.setItem('si_country', code); } catch {}
+            }
+            
+            // Auto-detect country via geoIP endpoint
+            (async function initCountry() {
+              let country = 'KE'; // Default fallback
+              try {
+                // First try to fetch from server geoIP
+                const res = await fetch('/api/geo');
+                if (res.ok) {
+                  const data = await res.json();
+                  country = data.country || 'KE';
+                } else {
+                  // Fall back to localStorage if API fails
+                  country = localStorage.getItem('si_country') || 'KE';
+                }
+              } catch (err) {
+                console.warn('GeoIP detection failed, using localStorage or default:', err);
+                try { country = localStorage.getItem('si_country') || 'KE'; } catch {}
+              }
+              if (select) select.value = country;
+              applyCountry(country);
+            })();
+            
+            if (select) select.addEventListener('change', () => applyCountry(select.value));
+            if (mpBtn) mpBtn.addEventListener('click', async () => {
+              try {
+                const phone = prompt('Enter phone (2547XXXXXXXX)'); if (!phone) return;
+                const amtStr = prompt('Enter amount in KES', '1000'); const amount = Number(amtStr||'1000');
+                mpBtn.disabled = true; mpBtn.textContent = 'Sending...';
+                const res = await fetch('/api/pay/mpesa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, amount, accountReference: 'SmartInvest' }) });
+                let data = {}; try { data = await res.json(); } catch {}
+                alert(res.ok ? 'M-Pesa STK Push sent. Complete on your phone.' : ('M-Pesa error: ' + (data.error || res.status)));
+              } catch(e){ alert('M-Pesa network error'); } finally { mpBtn.disabled = false; mpBtn.textContent = 'Pay now'; }
+            });
+            if (kcbBtn) kcbBtn.addEventListener('click', async () => {
+              const name = prompt('Your full name'); const email = prompt('Your email');
+              const amtStr = prompt('Amount in KES', '1000'); const amount = Number(amtStr||'1000');
+              const reference = prompt('Reference (optional)', '');
+              if (!name || !email || !amount) { alert('Name, email and amount are required'); return; }
+              try {
+                kcbBtn.disabled = true; kcbBtn.textContent = 'Recording...';
+                const res = await fetch('/api/pay/kcb/manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, amount, reference }) });
+                let data = {}; try { data = await res.json(); } catch {}
+                alert(res.ok && data.success ? 'Transfer recorded. Please complete payment to the provided KCB account.' : ('KCB error: ' + (data.error || res.status)));
+              } catch(e){ alert('KCB network error'); } finally { kcbBtn.disabled = false; kcbBtn.textContent = 'Pay now'; }
+            });
+          })();
+        </script>
+      </div>
     </section>
 
     <!-- Files / Marketplace Section -->
