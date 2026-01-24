@@ -13,6 +13,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/pochi', pochiRoutes);
 
+// Lightweight health check
+app.get('/api/health', (req, res) => {
+  return res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    mpesaEnv: process.env.MPESA_ENV || 'sandbox',
+    paypalMode: process.env.PAYPAL_MODE || process.env.PAYPAL_ENV || 'sandbox',
+    pochiEnabled: true
+  });
+});
+
 // Admin authentication - restricted to specific admin email
 const ADMIN_EMAIL = 'delijah5415@gmail.com';
 

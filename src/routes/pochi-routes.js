@@ -38,6 +38,24 @@ router.get('/info', async (req, res) => {
   }
 });
 
+// Health/test endpoint for Pochi
+router.get('/test', async (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      message: 'Pochi route is reachable',
+      config: {
+        name: pochi.pochiAccountName,
+        shortCode: pochi.businessShortCode,
+        environment: pochi.env,
+        callbackUrl: pochi.callbackUrl
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /**
  * POST /api/pochi/stk-push
  * Initiate STK Push payment
