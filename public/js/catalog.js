@@ -3,15 +3,53 @@
   function qsp(name){ const u = new URL(window.location.href); return u.searchParams.get(name); }
   function escapeHtml(str){ return String(str||'').replace(/[&<>"]|'/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
 
+  async function renderList(){
+    const listCard = qs('#list-card');
+    const list = qs('#list');
+    if (!listCard || !list) return;
+    listCard.style.display = 'block';
+    list.innerHTML = 'Loading products…';
+    try {
+      const res = await fetch('/api/catalog');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Unable to load catalog');
+      const files = data.files || [];
+      if (!files.length){ list.innerHTML = '<div class="text-gray-600">No published products yet.</div>'; return; }
+      list.innerHTML = files.map(f => {
+        const title = escapeHtml(f.title);
+        const desc = escapeHtml(f.description || '');
+        const price = Number(f.price || 0).toLocaleString();
+        return `
+          <article class="catalog-row" style="padding:12px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+            <div>
+              <h4 style="margin:0;color:#0f172a;">${title}</h4>
+              <p style="margin:4px 0;color:#475569;font-size:14px;">${desc}</p>
+              <span style="font-weight:600;color:#1a365d;">${price} KES</span>
+            </div>
+            <div>
+              <a class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded text-sm" href="/catalog.html?id=${encodeURIComponent(f.id)}">View</a>
+            </div>
+          </article>`;
+      }).join('');
+    } catch (e){
+      list.innerHTML = `<div class="text-red-600">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
   async function loadItem(){
     const id = qsp('id');
     const container = qs('#item');
-    if (!id){ container.innerHTML = '<div class="text-gray-600">Missing id parameter.</div>'; return; }
+    if (!id){
+      if (container) container.innerHTML = '<h2 class="text-xl font-semibold text-slate-900">Select a product to view details</h2><p class="text-slate-700">Choose an item from the list below.</p>';
+      renderList();
+      return;
+    }
     try {
       const res = await fetch(`/api/catalog/${encodeURIComponent(id)}`);
       const data = await res.json();
       if (!data.success){ throw new Error(data.error || 'Failed to load'); }
       const f = data.file;
+      if (qs('#list-card')) qs('#list-card').style.display = 'none';
       container.innerHTML = `
         <h1 class="text-2xl font-semibold text-slate-900">${escapeHtml(f.title)}</h1>
         <p class="mt-2 text-slate-700">${escapeHtml(f.description||'')}</p>

@@ -30,13 +30,19 @@
     </div>
   </header>
   <main class="container">
-    <div class="card">
+    <div class="card" id="item-card">
       <div id="item">
         <h2 style="color:var(--primary-corporate);margin-block-start:0">Investment Products Catalog</h2>
         <p style="color:var(--text-secondary)">Explore our carefully curated investment opportunities across multiple asset classes.</p>
         <span class="premium-badge">PREMIUM ACCESS</span>
       </div>
     </div>
+
+    <div class="card" id="list-card" style="margin-top:16px; display:none">
+      <h3 style="margin-top:0;color:var(--primary-corporate);">Available Products</h3>
+      <div id="list" class="catalog-list" aria-live="polite"></div>
+    </div>
+
     <p style="margin-block-start:12px;color:var(--text-secondary);font-size:12px;text-align:center">
       💎 Premium features include advanced analytics, priority support, and unlimited portfolios. 
       <a href="/subscription" style="color:var(--accent-gold);text-decoration:none;font-weight:600">Upgrade Now</a>

@@ -66,6 +66,38 @@ namespace SmartInvest.Data
             builder.Entity<Transaction>()
                 .Property(t => t.Amount)
                 .HasPrecision(18, 2);
+
+            builder.Entity<Partnership>()
+                .Property(p => p.CommissionRate)
+                .HasPrecision(6, 4);
+
+            builder.Entity<Partnership>()
+                .Property(p => p.RevenueSharePercentage)
+                .HasPrecision(6, 4);
+
+            builder.Entity<Partnership>()
+                .Property(p => p.MinimumInvestment)
+                .HasPrecision(18, 2);
+
+            builder.Entity<PartnerInvestmentProduct>()
+                .Property(p => p.MinimumInvestment)
+                .HasPrecision(18, 2);
+
+            builder.Entity<PartnerInvestmentProduct>()
+                .Property(p => p.ManagementFee)
+                .HasPrecision(6, 4);
+
+            builder.Entity<PartnerInvestmentProduct>()
+                .Property(p => p.PerformanceFee)
+                .HasPrecision(6, 4);
+
+            builder.Entity<PartnerTransaction>()
+                .Property(p => p.Amount)
+                .HasPrecision(18, 2);
+
+            builder.Entity<PartnerTransaction>()
+                .Property(p => p.CommissionEarned)
+                .HasPrecision(18, 2);
         }
     }
 }

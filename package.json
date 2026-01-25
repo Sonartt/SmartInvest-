@@ -1,4 +1,13 @@
 {
+  "name": "smartinvest",
+  "version": "1.0.0",
+  "description": "SmartInvest application with workflows, incidents, and licensing",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts"
+  },
   "dependencies": {
     "axe-core": "^4.11.0",
     "body-parser": "^2.2.1",
@@ -12,6 +21,14 @@
     "uuid": "^9.0.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "cookie-parser": "^1.4.6"
+    "cookie-parser": "^1.4.6",
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "prisma": "^5.0.0"
   }
 }

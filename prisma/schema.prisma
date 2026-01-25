@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflowsLocked     Workflow[]        @relation("LockedWorkflows")
+  workflowEvents      WorkflowEvent[]
+  approvals           WorkflowApproval[]
+  reportedIncidents   Incident[]        @relation("ReportedIncidents")
+  ownedIncidents      Incident[]        @relation("OwnedIncidents")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  REVIEWER
+  ANALYST
+  INCIDENT_COMMANDER
+  VIEWER
+}
+
+model ContentItem {
+  id        String        @id @default(uuid())
+  state     WorkflowState @default(DRAFT)
+  version   Int           @default(1)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  workflow Workflow?
+}
+
+enum WorkflowState {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+  REJECTED
+}
+
+model Workflow {
+  id         String        @id @default(uuid())
+  contentId  String        @unique
+  state      WorkflowState @default(DRAFT)
+  lockedById String?
+  lockedAt   DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  content    ContentItem        @relation(fields: [contentId], references: [id])
+  lockedBy   User?              @relation("LockedWorkflows", fields: [lockedById], references: [id])
+  events     WorkflowEvent[]
+  approvals  WorkflowApproval[]
+}
+
+model WorkflowEvent {
+  id         String        @id @default(uuid())
+  workflowId String
+  actorId    String
+  fromState  WorkflowState
+  toState    WorkflowState
+  reason     String?
+  meta       Json?
+  createdAt  DateTime      @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  actor    User     @relation(fields: [actorId], references: [id])
+}
+
+model WorkflowApproval {
+  id         String   @id @default(uuid())
+  workflowId String
+  reviewerId String
+  decision   String
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  reviewer User     @relation(fields: [reviewerId], references: [id])
+}
+
+model Incident {
+  id           String           @id @default(uuid())
+  title        String
+  summary      String
+  severity     IncidentSeverity
+  status       IncidentStatus   @default(OPEN)
+  reportedById String
+  ownerId      String?
+  runbookKey   String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  mitigatedAt  DateTime?
+  resolvedAt   DateTime?
+  closedAt     DateTime?
+
+  reportedBy User            @relation("ReportedIncidents", fields: [reportedById], references: [id])
+  owner      User?           @relation("OwnedIncidents", fields: [ownerId], references: [id])
+  timeline   IncidentEvent[]
+  updates    IncidentUpdate[]
+}
+
+enum IncidentSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  MITIGATING
+  RESOLVED
+  CLOSED
+}
+
+model IncidentEvent {
+  id         String   @id @default(uuid())
+  incidentId String
+  message    String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+}
+
+model IncidentUpdate {
+  id           String         @id @default(uuid())
+  incidentId   String
+  status       IncidentStatus
+  publicNote   String?
+  internalNote String?
+  createdAt    DateTime       @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+}
+
+model Partner {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  licenses DataLicense[]
+}
+
+model DataLicense {
+  id                 String            @id @default(uuid())
+  partnerId          String
+  status             LicenseStatus     @default(ACTIVE)
+  allowedPurposes    DataUsagePurpose[]
+  attributionRequired Boolean          @default(false)
+  attributionText    String?
+  allowRedistribution Boolean          @default(false)
+  rateLimitPerMin    Int?
+  startDate          DateTime?
+  endDate            DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  partner      Partner            @relation(fields: [partnerId], references: [id])
+  entitlements DataEntitlement[]
+  usageLogs    DataUsageLog[]
+}
+
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
+enum DataUsagePurpose {
+  ANALYTICS
+  DISPLAY
+  REDISTRIBUTION
+  INTERNAL
+}
+
+model DataEntitlement {
+  id        String   @id @default(uuid())
+  licenseId String
+  datasetKey String
+  createdAt DateTime @default(now())
+
+  license DataLicense @relation(fields: [licenseId], references: [id])
+}
+
+model DataUsageLog {
+  id          String            @id @default(uuid())
+  licenseId   String?
+  datasetKey  String
+  purpose     DataUsagePurpose
+  actorUserId String?
+  ip          String?
+  userAgent   String?
+  requestMeta Json?
+  createdAt   DateTime          @default(now())
+
+  license DataLicense? @relation(fields: [licenseId], references: [id])
+}

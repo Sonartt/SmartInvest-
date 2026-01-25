@@ -7,6 +7,7 @@ using SmartInvest.Services.Analytics;
 using SmartInvest.Services.Calculation;
 using SmartInvest.Services.Compliance;
 using SmartInvest.Services.Notification;
+using SmartInvest.Services.Partner;
 using SmartInvest.Services.Payment;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +37,7 @@ builder.Services.AddScoped<IInvestmentCalculationService, InvestmentCalculationS
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IPartnerService, PartnerService>();
 
 // CORS
 builder.Services.AddCors(options =>
