@@ -246,9 +246,11 @@ MPESA_ENV=sandbox
 
 ### 2. Test Credentials (Safaricom Sandbox)
 
-- **Business Short Code:** 171414
-- **Pass Key:** bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
-- **Test Phone:** 254708374149
+- **Business Short Code:** Your sandbox short code (provided by Safaricom)
+- **Pass Key:** Your sandbox pass key (provided by Safaricom)
+- **Test Phone:** Your test phone number (provided by Safaricom)
+
+> **Note:** Get your sandbox credentials from the [Safaricom Daraja Portal](https://developer.safaricom.co.ke)
 
 ### 3. Simulate Callback
 
