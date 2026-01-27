@@ -1,7 +1,7 @@
 # Pull Request Merge Conflicts Summary
 
 ## Overview
-This document provides a comprehensive analysis of all open pull requests in the SmartInvest- repository and identifies those with merge conflicts that require manual resolution.
+This document provides a comprehensive analysis of all open pull requests in the SmartInvest repository and identifies those with merge conflicts that require manual resolution.
 
 ## Current Status (as of 2026-01-27)
 
@@ -81,7 +81,7 @@ Based on the PR descriptions, the likely conflicts are:
 2. **`server.js`** - Modified by PRs #4, #5, #6, #7
    - PR #4: Added missing helper functions, security fixes
    - PR #5: JWT authentication
-   - PR #6: JWT + 2FA implementation  
+   - PR #6: JWT + 2FA implementation
    - PR #7: Backend APIs for contact/feedback
 
 3. **`admin.html`** - Modified by PRs #4, #5, #7

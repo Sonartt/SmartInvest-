@@ -266,7 +266,8 @@ After resolving conflicts for any PR:
 npm install
 
 # 2. Run linting (if available)
-npm run lint || true
+# Note: If lint script doesn't exist, this will show an error which can be ignored
+npm run lint 2>/dev/null || echo "No lint script found, skipping"
 
 # 3. Check for security vulnerabilities
 npm audit
