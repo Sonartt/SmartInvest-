@@ -1,14 +1,31 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// ===========================================
+// PRISMA SCHEMA - SmartInvest Africa
+// Database: PostgreSQL on Supabase
+// ===========================================
+
 generator client {
   provider = "prisma-client-js"
+  // Optimize for serverless/edge deployments
+  previewFeatures = ["jsonProtocol"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  // Supabase PostgreSQL connection configuration
+  // DATABASE_URL: Use connection pooling (port 6543) for app queries
+  // DIRECT_URL: Use direct connection (port 5432) for migrations
+  // SSL/TLS enabled by default
+  // Example: postgresql://postgres.ref:pass@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true
 }
+
+// ===========================================
+// USER MANAGEMENT
+// ===========================================
 
 model User {
   id        String   @id @default(uuid())

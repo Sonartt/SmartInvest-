@@ -27,5 +27,6 @@
         "**/.git/subtree-cache/**": true,
         "**/node_modules/**": true,
         "**/data/**": true
-    }
+    },
+    "prisma.pinToPrisma6": true
 }

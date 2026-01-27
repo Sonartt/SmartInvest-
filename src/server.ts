@@ -1,6 +1,11 @@
 // src/server.ts
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
 import {
   submitForReview,
   recordReviewDecision,
@@ -11,18 +16,79 @@ import { checkEntitlementAndLog } from "./licensing/entitlements";
 
 const prisma = new PrismaClient();
 const app = express();
-app.use(express.json());
+app.set("trust proxy", 1);
 
-// Simple auth placeholder: expects x-user-id header
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS not allowed"), false);
+    },
+    credentials: true,
+  })
+);
+
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many requests, please try again later.",
+  })
+);
+
+app.use(express.json());
+app.use(cookieParser());
+
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.warn("⚠️  JWT_SECRET not set in .env — using insecure fallback");
+  return "INSECURE-DEV-SECRET-CHANGE-ME";
+})();
+
+interface JWTPayload {
+  userId: string;
+  email: string;
+  admin?: boolean;
+}
+
+function verifyTokenFromReq(req: express.Request): JWTPayload | null {
+  const auth = (req.headers.authorization || "").toString();
+  let token: string | null = null;
+  if (auth && auth.startsWith("Bearer ")) token = auth.split(" ")[1];
+  if (!token && (req as any).cookies?.si_token) token = (req as any).cookies.si_token;
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (e) {
+    return null;
+  }
+}
+
 app.use(async (req, _res, next) => {
-  const userId = req.header("x-user-id");
-  (req as any).userId = userId || null;
+  const payload = verifyTokenFromReq(req);
+  (req as any).userId = payload?.userId || null;
+  (req as any).userEmail = payload?.email || null;
+  (req as any).isAdmin = payload?.admin || false;
   next();
 });
 
 function requireUser(req: any) {
   if (!req.userId) {
-    const err = new Error("Unauthorized: missing x-user-id");
+    const err = new Error("Unauthorized: missing or invalid auth token");
     (err as any).statusCode = 401;
     throw err;
   }

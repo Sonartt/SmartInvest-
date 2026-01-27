@@ -1,47 +1,47 @@
-# SmartInvest-
+# SmartInvest
 
-SmartInvest is a static landing page focused on financial literacy and investment tools for African users.
+Static landing pages plus a Node/TypeScript backend for workflows, incidents, and licensing checks.
 
-## Summary
+## What’s inside
+- Static HTML landing and calculators (see `index.html`, `calculator.html`, `tools/`).
+- Legacy Express server in `server.js` for M-Pesa/PayPal demos, admin UI, and premium flows.
+- New TypeScript/Express API in `src/server.ts` using Prisma/PostgreSQL for content workflows, incident tracking, and dataset entitlement checks.
+- Webhook and simulator scripts in `tools/` and `docs/webhooks.md`.
 
-- Landing page showcasing: Investment Academy, Insights, Tools, SME funding readiness, Community, Contact, and a demo Sign-In flow.
-- Includes demo payment buttons (M-Pesa and PayPal) and accessibility/SEO improvements.
+## Quick start (API + Prisma)
+1. Copy env file: `cp .env.example .env` and fill values (DB, admin creds, M-Pesa/PayPal keys if needed).
+2. Install deps: `npm install`.
+3. Sync DB: `npm run db:push` (or `npx prisma migrate dev --name init` if you want a migration history).
+4. Seed demo data (users, workflows, licenses, incidents): `npm run seed`.
+5. Run the API: `npm run dev` (listens on `PORT`, default `3001`). Health at `/health`.
 
-## Local preview
+### Seeded users (use `x-user-id` header)
+- `user-admin` (admin@example.com)
+- `user-editor` (editor@example.com)
+- `user-reviewer` (reviewer@example.com)
+- `user-analyst` (analyst@example.com)
+- `user-ic` (ic@example.com)
 
-1. From the project root run a simple HTTP server:
+### API snapshots
+- Workflows: `POST /api/workflows/submit { contentId }`, `POST /api/workflows/decision { workflowId, decision }`, `POST /api/workflows/publish { contentId }`.
+- Incidents: `POST /api/incidents` and `POST /api/incidents/:id/status` (ADMIN or INCIDENT_COMMANDER).
+- Licensing: `POST /api/data/request { datasetKey, purpose, requestMeta? }` checks entitlements and logs usage. Seeded datasets: `market-data`, `risk-scores`.
 
-```bash
-python3 -m http.server 8000 --directory .
-```
+## Legacy payments / admin server
+- Run `node server.js` (uses `PORT` default 3000) for M-Pesa STK, PayPal sandbox, KCB manual payments, and the admin UI (`/admin.html`).
+- Configure M-Pesa (`MPESA_*`), PayPal (`PAYPAL_*`), admin basic auth (`ADMIN_USER`/`ADMIN_PASS`), mail (`SMTP_*`), and bank details in `.env`.
+- Simulators: `tools/pochi-test.js`, `tools/simulate_kcb_mark_paid.js`, and webhook helpers in `docs/webhooks.md`.
 
-1. Open the site at: <http://localhost:8000/index.html>
+## Static site preview
+- Quick preview: `python3 -m http.server 8000 --directory .` then open <http://localhost:8000/index.html>.
 
-## Development notes
-
-- Built as a static HTML site that uses the Tailwind CDN.
-- Accessibility: added skip-link, ARIA landmarks, visible focus styles, and proper button types.
-- SEO: added meta description, Open Graph, Twitter card tags, canonical link, and JSON-LD Organization.
-- Payments: demo payment options include M-Pesa, PayPal, and a simple manual Bank transfer (KCB). The Bank transfer option records a pending transfer and shows account details for manual deposit. Recorded transfers are logged to `transactions.json`.
-- Admin: there is a minimal admin UI at `/admin.html` to view and manage KCB manual transfers. You can enable HTTP Basic auth for the admin UI by setting `ADMIN_USER` and `ADMIN_PASS` in your local `.env`.
-- Export & Reconcile: the admin UI supports CSV export of transfers and a simple reconcile endpoint where you can paste bank statement entries (JSON array) to automatically match and mark pending transfers as paid.
-
-## Webhook simulation
-
-See `docs/webhooks.md` for instructions and scripts to simulate PayPal, M-Pesa and KCB webhook flows locally. The scripts are in the `tools/` folder.
-
-## Investment calculator
-
-There is a standalone investment and insurance calculator at `tools/investment_calculator.html`. It supports lump-sum and recurring investment projections, a simple insurance premium calculator, CSV export of results, and printing.
-
-## Contributing
-
-- Open a PR with changes; keep the site static and minimal.
+## Scripts
+- `npm run dev` — start TypeScript API with ts-node.
+- `npm run build` — compile to `dist/`.
+- `npm start` — run compiled server.
+- `npm run db:push` — push Prisma schema to the database.
+- `npm run db:generate` — regenerate Prisma client.
+- `npm run seed` — create demo users/content/licenses/incidents.
 
 ## License
-
-- Add a license file if you plan to open-source this project.
-
-## Contact
-
-- Repository: [SmartInvest- on GitHub](https://github.com/Sonartt/SmartInvest)
+This repository includes a `LICENSE` file; adjust if your deployment needs different terms.

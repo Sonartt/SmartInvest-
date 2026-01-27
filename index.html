@@ -1,376 +1,562 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>SmartInvest Africa</title>
-        <meta name="description" content="SmartInvest Africa — democratizing investment knowledge, tools and opportunities across Africa. Learn, invest, and grow with confidence.">
-        <meta name="robots" content="index,follow">
-        <meta property="og:title" content="SmartInvest Africa">
-        <meta property="og:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
-        <meta property="og:type" content="website">
-        <meta name="theme-color" content="#6D28D9">
-        <link rel="canonical" href="https://yourdomain.example/">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:site" content="@SmartInvestAF">
-        <meta name="twitter:creator" content="@SmartInvestAF">
-        <meta name="twitter:title" content="SmartInvest Africa">
-        <meta name="twitter:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
-        <meta name="twitter:image" content="https://yourdomain.example/social-share.png">
-        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%236D28D9'/%3E%3Ctext x='50' y='55' font-size='42' text-anchor='middle' fill='%23fff'%3ESI%3C/text%3E%3C/svg%3E">
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <script type="application/ld+json">
-        {
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "SmartInvest Africa",
-            "url": "https://yourdomain.example/",
-            "logo": "https://yourdomain.example/logo.png",
-            "sameAs": []
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartInvest Africa - Democratizing Investment Knowledge</title>
+    <meta name="description" content="SmartInvest Africa — democratizing investment knowledge, tools and opportunities across Africa. Learn, invest, and grow with confidence.">
+    <meta name="robots" content="index,follow">
+    <meta property="og:title" content="SmartInvest Africa">
+    <meta property="og:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1a365d">
+    <link rel="canonical" href="https://smartinvest.africa/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@SmartInvestAF">
+    <meta name="twitter:creator" content="@SmartInvestAF">
+    <meta name="twitter:title" content="SmartInvest Africa">
+    <meta name="twitter:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%231a365d'/%3E%3Cstop offset='100%25' style='stop-color:%232563eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3Cpath d='M30 55 L40 45 L50 60 L70 35' stroke='%23d4af37' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='70' cy='35' r='3' fill='%23d4af37'/%3E%3C/svg%3E">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/wwwroot/css/corporate-theme.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-corporate: #0B1F33;
+            --primary-light: #1a365d;
+            --accent-gold: #D4AF37;
+            --accent-light-gold: #f4d03f;
+            --accent-teal: #0891b2;
+            --bg-dark: #05111e;
+            --text-light: #f8fafc;
+            --border-color: #1e3a5f;
         }
-        </script>
-        <style>
-            :focus { outline: 3px solid #C4B5FD; outline-offset: 2px; }
-            .sr-only-focusable:focus { position: static; inline-size: auto; block-size: auto; margin: 0.5rem; padding: 0.5rem 1rem; background: white; color: #4C1D95; border-radius: 0.25rem; }
-            .dashboard-panel { display: none; }
-            .dashboard-panel.active { display: block; }
-            .dashboard-toggle { border: 1px solid #C4B5FD; border-radius: 9999px; padding: 0.5rem 1.5rem; font-weight: 600; font-size: 0.9rem; color: #6D28D9; background: #fff; transition: all 0.2s ease; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
-            .dashboard-toggle.active { background: linear-gradient(130deg, #6D28D9, #9333EA); color: #fff; box-shadow: 0 15px 30px rgba(109, 40, 217, 0.25); }
-            .dashboard-shell { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 1.25rem; padding: 2rem; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
-            .tab-content { display: none; }
-            .tab-content.active { display: block; }
-            .tab-btn { padding: 0.5rem 1rem; border: none; border-radius: 9999px; background: #E5E7EB; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
-            .tab-btn.active { background: #2563EB; color: #fff; }
-        </style>
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--primary-corporate);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-corporate) 0%, var(--primary-light) 100%);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--accent-gold) !important;
+        }
+        
+        .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            transition: color 0.3s ease;
+            margin: 0 8px;
+            font-weight: 500;
+        }
+        
+        .navbar .nav-link:hover {
+            color: var(--accent-gold) !important;
+        }
+        
+        .navbar .nav-link.active {
+            color: var(--accent-gold) !important;
+            border-block-end: 2px solid var(--accent-gold);
+        }
+        
+        .btn-admin {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-light-gold) 100%);
+            border: none;
+            color: var(--primary-corporate);
+            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            margin-inline-start: 12px;
+            white-space: nowrap;
+        }
+        
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3);
+            color: var(--primary-corporate);
+        }
+        
+        .hero-banner {
+            background: linear-gradient(135deg, var(--primary-corporate) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 100px 0 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            inset-block-end: 0;
+            background: url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"%3E%3Cpath d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100" height="100" fill="url(%23grid)" /%3E%3C/svg%3E');
+            opacity: 0.5;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-block-end: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            font-weight: 400;
+            opacity: 0.95;
+            margin-block-end: 2rem;
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+            block-size: 100%;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .feature-icon {
+            inline-size: 64px;
+            block-size: 64px;
+            background: linear-gradient(135deg, var(--accent-teal) 0%, #06b6d4 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin-block-end: 1rem;
+        }
+        
+        .stats-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 60px 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-corporate);
+            margin-block-end: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #c4a02f 100%);
+            border: none;
+            color: #1a365d;
+            font-weight: 600;
+            padding: 12px 32px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3);
+            color: #1a365d;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-teal) 0%, #06b6d4 100%);
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(6, 182, 212, 0.3);
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-corporate);
+            margin-block-end: 1rem;
+        }
+        
+        .trust-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 4px;
+        }
+        
+        .stats-section {
+            background: linear-gradient(180deg, #f8fafc 0%, #e8ecf1 100%);
+            padding: 60px 0;
+            border-block-start: 1px solid var(--border-color);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 30px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px);
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-block-end: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+            block-size: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            background: white;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(212, 175, 55, 0.15);
+            border-color: var(--accent-gold);
+        }
+        
+        .feature-icon {
+            inline-size: 64px;
+            block-size: 64px;
+            background: linear-gradient(135deg, var(--accent-teal) 0%, #06b6d4 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin-block-end: 1rem;
+        }
+    </style>
 </head>
-<body class="antialiased">
-    <a class="sr-only sr-only-focusable" href="#main-content">Skip to content</a>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#d4af37"/>
+                            <stop offset="100%" style="stop-color:#c4a02f"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M30 55 L40 45 L50 60 L70 35" stroke="url(#logoGrad)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="70" cy="35" r="4" fill="#d4af37"/>
+                </svg>
+                <span>SmartInvest Africa</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link active" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about.html">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/calculator.html">Calculator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/catalog.html">Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/pricing.html">Pricing</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/faq.html">FAQ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/contact.html">Contact</a></li>
+                    <li class="nav-item ms-lg-2"><a class="nav-link" href="/login.html">Sign In</a></li>
+                    <li class="nav-item"><a class="btn btn-primary btn-sm" href="/signup.html">Get Started</a></li>
+                    <li class="nav-item"><a class="btn btn-admin btn-sm" href="/admin.html" title="Admin Portal">⚙️ Admin</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <!-- Early Access / Production Status Banner -->
-    <div class="bg-yellow-50 border-b border-yellow-200 text-yellow-900 text-sm text-center py-2 px-4">
-      Status: <strong>Production (Early Access)</strong> — The platform is live and usable while we continue full production.
-    </div>
+    <!-- Hero Section -->
+    <section class="hero-banner">
+        <div class="container hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h1 class="hero-title">Democratizing Investment Across Africa</h1>
+                    <p class="hero-subtitle">Comprehensive investment management with compliance, analytics, and partnerships for the modern African investor</p>
+                    
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <a href="/calculator.html" class="btn btn-light btn-lg px-4">
+                            <span class="me-2">🧮</span> Try Our Calculator
+                        </a>
+                        <a href="/dashboard.html" class="btn btn-gold btn-lg px-4">
+                            <span class="me-2">🚀</span> Get Started Free
+                        </a>
+                    </div>
+                    
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <span class="trust-badge">🛡️ FSB Compliant</span>
+                        <span class="trust-badge">✓ POPIA & GDPR</span>
+                        <span class="trust-badge">✅ NDPR & Kenya DPA</span>
+                        <span class="trust-badge">🔒 Bank-grade Security</span>
+                        <span class="trust-badge">🌍 Pan-African</span>
+                    </div>
+                </div>
+                <div class="col-lg-5 d-none d-lg-block text-center">
+                    <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="chartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#d4af37;stop-opacity:0.8"/>
+                                <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.8"/>
+                            </linearGradient>
+                        </defs>
+                        <rect x="50" y="50" width="300" height="200" rx="15" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                        <polyline points="80,200 120,180 160,140 200,160 240,100 280,120 320,80" 
+                                  fill="none" stroke="url(#chartGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="80" cy="200" r="6" fill="#d4af37"/>
+                        <circle cx="160" cy="140" r="6" fill="#d4af37"/>
+                        <circle cx="240" cy="100" r="6" fill="#d4af37"/>
+                        <circle cx="320" cy="80" r="6" fill="#d4af37"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    <!-- Existing content continues below (unchanged) -->
-    <!-- Top Navigation -->
-                                            <h5 class="font-semibold">All Payment Ledger</h5>
-                                            <p class="text-sm text-gray-600">Mpesa, PayPal, and manual KCB with user details</p>
-                                        </div>
-                                        <button onclick="loadPaymentsLedger()" class="bg-blue-600 text-white px-3 py-2 rounded">Load Payments</button>
-                                    </div>
-                                    <div id="paymentsLedger" class="text-sm text-gray-700 max-h-96 overflow-y-auto border rounded p-3 bg-gray-50">Click "Load Payments" to view the latest ledger.</div>
-                                </div>
-                            </div>
-
-                            <div id="email" class="tab-content bg-white p-6 rounded shadow mb-4">
-                                <h4 class="text-2xl font-bold mb-4">Email Tools</h4>
-                                <div class="mb-4 border p-4 rounded bg-blue-50">
-                                    <h5 class="font-semibold mb-2">Send Email to User</h5>
-                                    <div class="space-y-2">
-                                        <input type="email" id="emailTo" placeholder="Recipient email" class="w-full border rounded p-2" required>
-                                        <input type="text" id="emailSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="emailBody" placeholder="Email body (HTML or plain text)" class="w-full border rounded p-2 h-32" required></textarea>
-                                        <button onclick="sendEmail()" class="w-full bg-blue-600 text-white px-4 py-2 rounded">Send Email</button>
-                                    </div>
-                                    <div id="emailStatus" class="text-sm mt-2"></div>
-                                </div>
-                                <div class="border p-4 rounded">
-                                    <h5 class="font-semibold mb-2">Send Bulk Email</h5>
-                                    <div class="space-y-2">
-                                        <input type="text" id="bulkSubject" placeholder="Subject" class="w-full border rounded p-2" required>
-                                        <textarea id="bulkBody" placeholder="Email body" class="w-full border rounded p-2 h-24" required></textarea>
-                                        <select id="bulkRecipients" class="w-full border rounded p-2">
-                                            <option value="">-- Select Recipients --</option>
-                                            <option value="all-users">All Users</option>
-                                            <option value="premium-users">Premium Users Only</option>
-                                            <option value="free-users">Free Users Only</option>
-                                            <option value="inactive">Inactive Users (7+ days)</option>
-                                        </select>
-                                        <button onclick="sendBulkEmail()" class="w-full bg-green-600 text-white px-4 py-2 rounded">Send Bulk Email</button>
-                                    </div>
-                                    <div id="bulkStatus" class="text-sm mt-2"></div>
-                                </div>
-                            </div>
-                        </div>
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-number">10K+</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-number">$50M+</div>
+                        <div class="stat-label">Assets Under Management</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-number">15+</div>
+                        <div class="stat-label">African Countries</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-number">99.9%</div>
+                        <div class="stat-label">Uptime</div>
                     </div>
                 </div>
             </div>
-        </section>
-
-    <!-- Premium Benefits Section -->
-    <section id="premium-benefits" class="py-20 px-4 bg-gradient-to-r from-amber-50 to-purple-50 border-t-4 border-amber-400">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold mb-4 text-slate-900">Unlock Your Premium Access</h2>
-                <p class="text-xl text-gray-700">Gain exclusive benefits and accelerate your investment journey with SmartInvest Africa</p>
-            </div>
-            <!-- ... existing premium cards ... -->
         </div>
     </section>
 
-    <!-- Payment Methods (Public Checkout) -->
-    <section id="payments" aria-label="Payments" class="py-16 px-4 bg-white">
-      <div class="max-w-7xl mx-auto">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-3xl font-bold">Payment Methods</h2>
-          <div class="flex items-center gap-2">
-            <label for="countrySelect" class="text-sm text-gray-600">Country</label>
-            <select id="countrySelect" class="border rounded px-2 py-1">
-              <option value="KE">Kenya</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
+    <!-- Features Section -->
+    <section class="container my-5 py-5">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Comprehensive Platform Features</h2>
+            <p class="text-muted fs-5">Everything you need for successful investing in one place</p>
         </div>
-        <p class="text-sm text-gray-600 mb-4">Users can see all methods; unavailable ones are disabled.</p>
-        <div class="grid md:grid-cols-3 gap-4">
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>M‑Pesa (Kenya)</strong>
-              <span id="badgeMpesa" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Live</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Local M‑Pesa payments are available.</p>
-            <button id="mpesaPayPublicBtn" class="w-full bg-purple-600 text-white px-3 py-2 rounded">Pay now</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>KCB Bank (Kenya)</strong>
-              <span id="badgeKcb" class="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Live</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Local KCB bank payments are available.</p>
-            <button id="kcbPayPublicBtn" class="w-full bg-purple-600 text-white px-3 py-2 rounded">Pay now</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>M‑Pesa (International)</strong>
-              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Not yet available for other countries.</p>
-            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>Card (Visa/Mastercard)</strong>
-              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Cards will be integrated later.</p>
-            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>PayPal</strong>
-              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">PayPal will be integrated later.</p>
-            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>Stripe</strong>
-              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Stripe will be integrated later.</p>
-            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
-          </div>
-          <div class="border rounded p-4 bg-white">
-            <div class="flex items-center justify-between">
-              <strong>Flutterwave</strong>
-              <span class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700">Coming soon</span>
-            </div>
-            <p class="text-gray-600 text-sm mb-2">Flutterwave will be integrated later.</p>
-            <button class="w-full border px-3 py-2 rounded text-gray-600" disabled aria-disabled="true" title="Unavailable">Unavailable</button>
-          </div>
-        </div>
-        <script>
-          (function(){
-            const select = document.getElementById('countrySelect');
-            const mpBtn = document.getElementById('mpesaPayPublicBtn');
-            const kcbBtn = document.getElementById('kcbPayPublicBtn');
-            const badgeMp = document.getElementById('badgeMpesa');
-            const badgeK = document.getElementById('badgeKcb');
-            
-            function applyCountry(code){
-              const isKE = String(code||'').toUpperCase()==='KE';
-              if (badgeMp) badgeMp.textContent = isKE ? 'Live' : 'Kenya only';
-              if (badgeMp) badgeMp.className = isKE ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-700' : 'text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700';
-              if (badgeK) badgeK.textContent = isKE ? 'Live' : 'Kenya only';
-              if (badgeK) badgeK.className = isKE ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-700' : 'text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700';
-              if (mpBtn) { mpBtn.disabled = !isKE; mpBtn.title = isKE ? '' : 'Unavailable outside Kenya'; mpBtn.className = isKE ? 'w-full bg-purple-600 text-white px-3 py-2 rounded' : 'w-full border px-3 py-2 rounded text-gray-600'; }
-              if (kcbBtn) { kcbBtn.disabled = !isKE; kcbBtn.title = isKE ? '' : 'Unavailable outside Kenya'; kcbBtn.className = isKE ? 'w-full bg-purple-600 text-white px-3 py-2 rounded' : 'w-full border px-3 py-2 rounded text-gray-600'; }
-              try { localStorage.setItem('si_country', code); } catch {}
-            }
-            
-            // Auto-detect country via geoIP endpoint
-            (async function initCountry() {
-              let country = 'KE'; // Default fallback
-              try {
-                // First try to fetch from server geoIP
-                const res = await fetch('/api/geo');
-                if (res.ok) {
-                  const data = await res.json();
-                  country = data.country || 'KE';
-                } else {
-                  // Fall back to localStorage if API fails
-                  country = localStorage.getItem('si_country') || 'KE';
-                }
-              } catch (err) {
-                console.warn('GeoIP detection failed, using localStorage or default:', err);
-                try { country = localStorage.getItem('si_country') || 'KE'; } catch {}
-              }
-              if (select) select.value = country;
-              applyCountry(country);
-            })();
-            
-            if (select) select.addEventListener('change', () => applyCountry(select.value));
-            if (mpBtn) mpBtn.addEventListener('click', async () => {
-              try {
-                const phone = prompt('Enter phone (2547XXXXXXXX)'); if (!phone) return;
-                const amtStr = prompt('Enter amount in KES', '1000'); const amount = Number(amtStr||'1000');
-                mpBtn.disabled = true; mpBtn.textContent = 'Sending...';
-                const res = await fetch('/api/pay/mpesa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, amount, accountReference: 'SmartInvest' }) });
-                let data = {}; try { data = await res.json(); } catch {}
-                alert(res.ok ? 'M-Pesa STK Push sent. Complete on your phone.' : ('M-Pesa error: ' + (data.error || res.status)));
-              } catch(e){ alert('M-Pesa network error'); } finally { mpBtn.disabled = false; mpBtn.textContent = 'Pay now'; }
-            });
-            if (kcbBtn) kcbBtn.addEventListener('click', async () => {
-              const name = prompt('Your full name'); const email = prompt('Your email');
-              const amtStr = prompt('Amount in KES', '1000'); const amount = Number(amtStr||'1000');
-              const reference = prompt('Reference (optional)', '');
-              if (!name || !email || !amount) { alert('Name, email and amount are required'); return; }
-              try {
-                kcbBtn.disabled = true; kcbBtn.textContent = 'Recording...';
-                const res = await fetch('/api/pay/kcb/manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, amount, reference }) });
-                let data = {}; try { data = await res.json(); } catch {}
-                alert(res.ok && data.success ? 'Transfer recorded. Please complete payment to the provided KCB account.' : ('KCB error: ' + (data.error || res.status)));
-              } catch(e){ alert('KCB network error'); } finally { kcbBtn.disabled = false; kcbBtn.textContent = 'Pay now'; }
-            });
-          })();
-        </script>
-      </div>
-    </section>
 
-    <!-- Files / Marketplace Section -->
-    <section id="files" aria-label="Files" class="py-20 px-4 bg-white">
-        <div class="max-w-7xl mx-auto">
-            <h2 class="text-4xl font-bold mb-6 text-center gradient-text">Files & Resources</h2>
-            <p class="text-center text-gray-600 mb-6">Browse available files and purchase to get access.</p>
-            <div id="catalog" class="grid md:grid-cols-3 gap-6">
-                <div class="col-span-3 text-center text-gray-500">Loading catalog…</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Academy Section -->
-    <section id="academy" aria-label="Academy" class="py-20 px-4 bg-white">
-        <div class="max-w-7xl mx-auto">
-            <h2 id="academy-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Academy</h2>
-            <!-- ... existing academy cards ... -->
-        </div>
-    </section>
-
-    <!-- Insights Section -->
-    <section id="insights" aria-label="Insights" class="py-20 px-4 bg-gray-100">
-        <div class="max-w-7xl mx-auto">
-            <h2 id="insights-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Latest Insights</h2>
-            <!-- ... existing insights cards ... -->
-        </div>
-    </section>
-
-    <!-- Tools Section -->
-    <section id="tools" aria-label="Tools" class="py-20 px-4 bg-white">
-        <div class="max-w-7xl mx-auto">
-            <h2 id="tools-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Tools</h2>
-            <!-- ... existing tool cards ... -->
-        </div>
-    </section>
-
-    <!-- SME Section -->
-    <section id="sme" aria-label="SME Funding" class="py-20 px-4 bg-gradient-to-r from-purple-600 to-purple-800 text-white">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold mb-6">SME Funding Readiness</h2>
-            <p class="text-lg mb-8 text-purple-100">Empowering Small and Medium Enterprises with pitching skills, valuation knowledge, and understanding investor expectations.</p>
-            <button class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Get Started</button>
-        </div>
-    </section>
-
-    <!-- Community Section -->
-    <section id="community" aria-label="Community" class="py-20 px-4 bg-gray-100">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold mb-6 gradient-text">Join Our Community</h2>
-            <p class="text-lg text-gray-700 mb-8">Connect with fellow investors, share insights, and grow together in SmartInvest Africa's vibrant community.</p>
-            <button class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Join Now</button>
-        </div>
-    </section>
-
-    <!-- GUND Section -->
-    <section id="gund" aria-label="GUND" class="py-20 px-4 bg-white">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl font-bold mb-6 gradient-text">GUND</h2>
-            <p class="text-lg text-gray-700">Through trusted knowledge, innovative tools, and a supportive community.</p>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" aria-label="Contact" class="py-20 px-4 bg-gray-100">
-        <div class="max-w-2xl mx-auto">
-            <h2 class="text-4xl font-bold mb-12 text-center gradient-text">Contact Us</h2>
-            <form class="bg-white rounded-lg p-8 shadow-md" onsubmit="handleContactSubmit(event)">
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Name</label>
-                    <input type="text" placeholder="Your Name" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">📊</div>
+                        <h5 class="card-title fw-bold">Advanced Analytics</h5>
+                        <p class="card-text text-muted">Real-time portfolio tracking with risk metrics, CAGR, Sharpe ratio, and comprehensive performance analytics</p>
+                    </div>
                 </div>
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
-                    <input type="email" placeholder="Your Email" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">🛡️</div>
+                        <h5 class="card-title fw-bold">Full Compliance</h5>
+                        <p class="card-text text-muted">POPIA, GDPR, NDPR, Kenya DPA, FICA, FSB, AML/KYC compliant - meeting African & global regulatory requirements</p>
+                    </div>
                 </div>
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Message</label>
-                    <textarea placeholder="Your Message" rows="4" class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" required></textarea>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">🤝</div>
+                        <h5 class="card-title fw-bold">Partnership Network</h5>
+                        <p class="card-text text-muted">Access verified financial institutions and curated investment products across Africa</p>
+                    </div>
                 </div>
-                <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Send Message</button>
-            </form>
-            <!-- Direct contact details block (added) -->
-            <div id="directContactCard" class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-6">
-              <h3 class="text-2xl font-bold text-purple-700 mb-2">Direct Contact</h3>
-              <p class="text-gray-700"><strong>Phone:</strong> <a href="tel:+254114383762" class="text-purple-700 hover:underline">0114383762</a></p>
-              <p class="text-gray-700"><strong>Email:</strong> <a href="mailto:delijah5415@gmail.com" class="text-purple-700 hover:underline">delijah5415@gmail.com</a></p>
-              <p class="text-sm text-gray-600 mt-2">Production status: Live and usable while we continue full production.</p>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">💳</div>
+                        <h5 class="card-title fw-bold">Multi-Payment Support</h5>
+                        <p class="card-text text-muted">M-Pesa, Paystack, Flutterwave, Stripe, PayPal - African & global payment options</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">🧮</div>
+                        <h5 class="card-title fw-bold">Smart Calculators</h5>
+                        <p class="card-text text-muted">Compound interest, ROI, tax calculations optimized for ZA, NG, GH, KE and more</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body p-4">
+                        <div class="feature-icon mx-auto">🌐</div>
+                        <h5 class="card-title fw-bold">Cloud Infrastructure</h5>
+                        <p class="card-text text-muted">Powered by Supabase for scalable, secure, and reliable serverless PostgreSQL with auto-scaling</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="bg-light py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h2 class="section-title mb-3">Ready to Start Your Investment Journey?</h2>
+                    <p class="fs-5 text-muted">Join thousands of African investors who trust SmartInvest for their financial future</p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a href="/dashboard.html" class="btn btn-primary btn-lg px-5">Create Free Account</a>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-white py-8 px-4">
-        <div class="max-w-7xl mx-auto text-center">
-            <p>&copy; 2024 SmartInvest Africa. All rights reserved.</p>
-            <div class="mt-2 text-sm text-purple-100">Contact: 0114383762 • delijah5415@gmail.com</div>
-            <div class="mt-1 text-xs text-purple-200">Status: Production (Early Access)</div>
+    <footer class="bg-dark text-white py-5" style="background: linear-gradient(135deg, var(--primary-corporate) 0%, var(--primary-light) 100%) !important;">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="fw-bold mb-3" style="color: var(--accent-gold);">SmartInvest Africa</h5>
+                    <p class="text-white-50">Democratizing investment knowledge, tools, and opportunities across Africa.</p>
+                    <div class="d-flex gap-3 mt-3">
+                        <a href="#" class="text-white-50" title="Twitter"><svg width="24" height="24" fill="currentColor"><use href="#twitter-icon"/></svg></a>
+                        <a href="#" class="text-white-50" title="LinkedIn"><svg width="24" height="24" fill="currentColor"><use href="#linkedin-icon"/></svg></a>
+                        <a href="#" class="text-white-50" title="Facebook"><svg width="24" height="24" fill="currentColor"><use href="#facebook-icon"/></svg></a>
+                    </div>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="fw-bold mb-3" style="color: var(--accent-gold);">Company</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="/about.html" class="text-white-50 text-decoration-none">About Us</a></li>
+                        <li class="mb-2"><a href="/contact.html" class="text-white-50 text-decoration-none">Contact</a></li>
+                        <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Careers</a></li>
+                        <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="fw-bold mb-3" style="color: var(--accent-gold);">Product</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="/calculator.html" class="text-white-50 text-decoration-none">Calculator</a></li>
+                        <li class="mb-2"><a href="/catalog.html" class="text-white-50 text-decoration-none">Products</a></li>
+                        <li class="mb-2"><a href="/pricing.html" class="text-white-50 text-decoration-none">Pricing</a></li>
+                        <li class="mb-2"><a href="/faq.html" class="text-white-50 text-decoration-none">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="fw-bold mb-3" style="color: var(--accent-gold);">Legal</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="/privacy.html" class="text-white-50 text-decoration-none">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="/terms.html" class="text-white-50 text-decoration-none">Terms of Service</a></li>
+                        <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Compliance</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h6 class="fw-bold mb-3" style="color: var(--accent-gold);">Support</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Help Center</a></li>
+                        <li class="mb-2"><a href="/contact.html" class="text-white-50 text-decoration-none">Contact Support</a></li>
+                        <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">System Status</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0 text-white-50">&copy; 2026 SmartInvest Africa. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <span class="text-white-50 small">🛡️ FSB Licensed | POPIA & GDPR Compliant</span>
+                </div>
+            </div>
         </div>
     </footer>
 
-<script src="/public/js/dashboard-hub.js"></script>
-<!-- Sign In Section -->
-<section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
-  <div class="max-w-md mx-auto bg-gray-50 p-8 rounded-lg shadow-md">
-    <h2 class="text-3xl font-bold mb-6 text-center text-purple-600">Sign In</h2>
-    <form onsubmit="demoLogin(event)" class="space-y-4">
-      <input id="loginEmail" type="email" placeholder="Email" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
-      <input id="loginPassword" type="password" placeholder="Password" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
-      <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
-    </form>
-    <hr class="my-6">
-    <h3 class="text-xl font-semibold mb-4 text-center">Create an account</h3>
-    <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4">
-        <input id="signupEmail" type="email" placeholder="Email" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
-        <input id="signupPassword" type="password" placeholder="Password" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600" />
-        <div class="flex items-start gap-2">
-            <input id="acceptTerms" type="checkbox" class="mt-1" />
-            <label for="acceptTerms" class="text-sm">I agree to the <a href="/terms.html" class="text-purple-600 underline">Terms & Conditions</a> and acknowledge SmartInvest is not responsible for any investment losses.</label>
-        </div>
-        <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Sign Up</button>
-    </form>
-    <p class="text-center text-sm text-gray-500 mt-4">Demo only — no real authentication</p>
-  </div>
-</section>
+    <!-- SVG Icons -->
+    <svg style="display: none;">
+        <symbol id="twitter-icon" viewBox="0 0 24 24">
+            <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+        </symbol>
+        <symbol id="linkedin-icon" viewBox="0 0 24 24">
+            <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/>
+            <circle cx="4" cy="4" r="2"/>
+        </symbol>
+        <symbol id="facebook-icon" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
+        </symbol>
+    </svg>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

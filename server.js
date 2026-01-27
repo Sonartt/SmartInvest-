@@ -4,14 +4,37 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const storageComplex = require('./storage-complex');
 const pochiRoutes = require('./src/routes/pochi-routes');
 
 const app = express();
 app.use(cors());
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/pochi', pochiRoutes);
+
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.warn('⚠️  JWT_SECRET not set in .env — using insecure fallback');
+  return 'INSECURE-DEV-SECRET-CHANGE-ME';
+})();
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
+
+// JWT token verification helper
+function verifyTokenFromReq(req) {
+  const auth = (req.headers.authorization || '').toString();
+  let token = null;
+  if (auth && auth.startsWith('Bearer ')) token = auth.split(' ')[1];
+  if (!token && req.cookies && req.cookies.si_token) token = req.cookies.si_token;
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    return null;
+  }
+}
 
 // Lightweight health check
 app.get('/api/health', (req, res) => {
@@ -24,11 +47,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Admin authentication - restricted to specific admin email
-const ADMIN_EMAIL = 'delijah5415@gmail.com';
-
+// Admin authentication - requires valid JWT with admin flag OR Basic auth with ADMIN_USER/ADMIN_PASS from .env
 function adminAuth(req, res, next) {
   const adminUserEnv = process.env.ADMIN_USER;
+  const adminPassEnv = process.env.ADMIN_PASS;
+  
+  if (!adminUserEnv || !adminPassEnv) {
+    return res.status(500).json({ error: 'Admin authentication not configured: set ADMIN_USER and ADMIN_PASS in .env' });
+  }
+  
   const payload = verifyTokenFromReq(req);
   if (payload && payload.admin) {
     req.user = { email: payload.email, admin: true };
@@ -37,10 +64,10 @@ function adminAuth(req, res, next) {
 
   // Fallback: Basic auth if ADMIN_USER configured
   const auth = (req.headers.authorization || '').toString();
-  if (adminUserEnv && auth && auth.startsWith('Basic ')) {
+  if (auth && auth.startsWith('Basic ')) {
     const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
     const [user, pass] = creds.split(':');
-    if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
+    if (user === adminUserEnv && pass === adminPassEnv) {
       req.user = { email: user, admin: true };
       return next();
     }
@@ -48,7 +75,7 @@ function adminAuth(req, res, next) {
     return res.status(401).end('Unauthorized');
   }
 
-  return res.status(401).json({ error: 'Unauthorized' });
+  return res.status(401).json({ error: 'Unauthorized: admin access required' });
 }
 
 const PORT = process.env.PORT || 3000;
@@ -1864,5 +1891,507 @@ app.get('/api/tools/risk-profiler', requirePremium, (req, res) => {
 app.get('/api/tools/recommendations', requirePremium, (req, res) => {
   return res.json({ success: true, message: 'AI recommendations', isPremium: true });
 });
+
+// ============================================================================
+// MODERN PAYMENT SYSTEM API ENDPOINTS
+// ============================================================================
+
+// Helper: require user authentication (lighter than requirePremium)
+function requireAuth(req, res, next) {
+  const payload = verifyTokenFromReq(req);
+  if (!payload || !payload.email) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  req.user = { email: payload.email, admin: payload.admin || false };
+  return next();
+}
+
+// Helper: write transactions to file
+function writeTransactions(transactions) {
+  try {
+    const file = './transactions.json';
+    fs.writeFileSync(file, JSON.stringify(transactions, null, 2));
+  } catch (e) {
+    console.error('writeTransactions error', e.message);
+  }
+}
+
+// 1. Process Payment (POST /api/payments/process)
+app.post('/api/payments/process', requireAuth, async (req, res) => {
+  try {
+    const { amount, currency, method, phone, email, description, reference } = req.body;
+    
+    // Validation
+    if (!amount || !currency || !method) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: amount, currency, method' 
+      });
+    }
+    
+    // Generate transaction ID
+    const transactionId = `txn_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    
+    // Create transaction record
+    const transaction = {
+      id: transactionId,
+      userId: req.user.email,
+      amount: parseFloat(amount),
+      currency,
+      method,
+      status: 'processing',
+      description: description || '',
+      email: email || req.user.email,
+      phone: phone || '',
+      reference: reference || `SMI-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+      timestamp: new Date().toISOString(),
+      provider: method,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Read existing transactions
+    const transactions = readTransactions();
+    transactions.push(transaction);
+    writeTransactions(transactions);
+    
+    // Simulate payment processing based on method
+    // In production, integrate with actual payment gateways
+    let processingMessage = '';
+    switch (method) {
+      case 'mpesa':
+        processingMessage = 'M-Pesa STK push initiated. Check your phone.';
+        // In production: call actual M-Pesa API
+        break;
+      case 'paystack':
+        processingMessage = 'Redirecting to Paystack payment page...';
+        // In production: create Paystack transaction
+        break;
+      case 'stripe':
+        processingMessage = 'Stripe payment session created.';
+        // In production: create Stripe payment intent
+        break;
+      case 'paypal':
+        processingMessage = 'Redirecting to PayPal...';
+        // In production: create PayPal order
+        break;
+      case 'flutterwave':
+        processingMessage = 'Flutterwave payment initiated.';
+        // In production: create Flutterwave transaction
+        break;
+      default:
+        processingMessage = 'Payment processing...';
+    }
+    
+    return res.json({
+      success: true,
+      transactionId,
+      reference: transaction.reference,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      status: 'processing',
+      message: processingMessage
+    });
+    
+  } catch (err) {
+    console.error('Payment processing error:', err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Payment processing failed', 
+      message: err.message 
+    });
+  }
+});
+
+// 2. Record Transaction (POST /api/payments/record)
+app.post('/api/payments/record', requireAuth, (req, res) => {
+  try {
+    const { transactionId, amount, currency, method, status, email, phone, reference, description } = req.body;
+    
+    if (!transactionId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'transactionId is required' 
+      });
+    }
+    
+    const transactions = readTransactions();
+    const existingTx = transactions.find(tx => tx.id === transactionId || tx.reference === reference);
+    
+    if (existingTx) {
+      // Update existing transaction
+      existingTx.status = status || existingTx.status;
+      existingTx.email = email || existingTx.email;
+      existingTx.phone = phone || existingTx.phone;
+      existingTx.updatedAt = new Date().toISOString();
+      if (description) existingTx.description = description;
+    } else {
+      // Create new record
+      transactions.push({
+        id: transactionId,
+        userId: req.user.email,
+        amount: parseFloat(amount) || 0,
+        currency: currency || 'USD',
+        method: method || 'unknown',
+        status: status || 'pending',
+        description: description || '',
+        email: email || req.user.email,
+        phone: phone || '',
+        reference: reference || transactionId,
+        timestamp: new Date().toISOString(),
+        provider: method || 'unknown',
+        createdAt: new Date().toISOString()
+      });
+    }
+    
+    writeTransactions(transactions);
+    
+    return res.json({
+      success: true,
+      message: 'Transaction recorded successfully'
+    });
+    
+  } catch (err) {
+    console.error('Transaction recording error:', err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to record transaction' 
+    });
+  }
+});
+
+// 3. Get User Transaction History (GET /api/payments/user/history)
+app.get('/api/payments/user/history', requireAuth, (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 10));
+    const searchQuery = (req.query.search || '').toLowerCase();
+    const statusFilter = req.query.status;
+    
+    const allTransactions = readTransactions();
+    
+    // Filter by user email
+    let userTransactions = allTransactions.filter(tx => 
+      tx.userId === req.user.email || tx.email === req.user.email
+    );
+    
+    // Apply search filter
+    if (searchQuery) {
+      userTransactions = userTransactions.filter(tx => 
+        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
+        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
+        (tx.id && tx.id.toLowerCase().includes(searchQuery))
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter && statusFilter !== 'all') {
+      userTransactions = userTransactions.filter(tx => 
+        tx.status === statusFilter
+      );
+    }
+    
+    // Sort by timestamp (newest first)
+    userTransactions.sort((a, b) => 
+      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
+    );
+    
+    // Pagination
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const paginatedTransactions = userTransactions.slice(start, end);
+    
+    // Format transactions for frontend
+    const formattedTransactions = paginatedTransactions.map(tx => ({
+      id: tx.id,
+      amount: tx.amount,
+      currency: tx.currency || 'USD',
+      method: tx.method || tx.provider || 'unknown',
+      status: tx.status || 'pending',
+      description: tx.description || `Payment via ${tx.method || tx.provider}`,
+      email: tx.email,
+      phone: tx.phone,
+      reference: tx.reference,
+      timestamp: tx.timestamp || tx.createdAt,
+      receiptUrl: tx.receipt || tx.receiptUrl || null,
+      note: tx.note || null
+    }));
+    
+    return res.json({
+      success: true,
+      transactions: formattedTransactions,
+      pagination: {
+        page,
+        pageSize,
+        total: userTransactions.length,
+        totalPages: Math.ceil(userTransactions.length / pageSize)
+      }
+    });
+    
+  } catch (err) {
+    console.error('Get user history error:', err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to retrieve transaction history' 
+    });
+  }
+});
+
+// 4. Get All Transactions - Admin Only (GET /api/payments/admin/all)
+app.get('/api/payments/admin/all', adminAuth, (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 15));
+    const searchQuery = (req.query.search || '').toLowerCase();
+    const statusFilter = req.query.status;
+    
+    let allTransactions = readTransactions();
+    
+    // Apply search filter
+    if (searchQuery) {
+      allTransactions = allTransactions.filter(tx => 
+        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
+        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
+        (tx.email && tx.email.toLowerCase().includes(searchQuery)) ||
+        (tx.id && tx.id.toLowerCase().includes(searchQuery)) ||
+        (tx.userId && tx.userId.toLowerCase().includes(searchQuery))
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter && statusFilter !== 'all') {
+      allTransactions = allTransactions.filter(tx => 
+        tx.status === statusFilter
+      );
+    }
+    
+    // Sort by timestamp (newest first)
+    allTransactions.sort((a, b) => 
+      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
+    );
+    
+    // Pagination
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const paginatedTransactions = allTransactions.slice(start, end);
+    
+    // Format transactions for admin view
+    const formattedTransactions = paginatedTransactions.map(tx => ({
+      id: tx.id,
+      userId: tx.userId || tx.email,
+      amount: tx.amount,
+      currency: tx.currency || 'USD',
+      method: tx.method || tx.provider || 'unknown',
+      status: tx.status || 'pending',
+      description: tx.description || `Payment via ${tx.method || tx.provider}`,
+      email: tx.email,
+      phone: tx.phone,
+      reference: tx.reference,
+      timestamp: tx.timestamp || tx.createdAt,
+      receiptUrl: tx.receipt || tx.receiptUrl || null,
+      note: tx.note || null,
+      paidAt: tx.paidAt || null,
+      updatedAt: tx.updatedAt || null
+    }));
+    
+    return res.json({
+      success: true,
+      transactions: formattedTransactions,
+      pagination: {
+        page,
+        pageSize,
+        total: allTransactions.length,
+        totalPages: Math.ceil(allTransactions.length / pageSize)
+      }
+    });
+    
+  } catch (err) {
+    console.error('Get admin transactions error:', err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to retrieve transactions' 
+    });
+  }
+});
+
+// 5. Export Transactions to CSV - Admin Only (GET /api/payments/export/csv)
+app.get('/api/payments/export/csv', adminAuth, (req, res) => {
+  try {
+    const allTransactions = readTransactions();
+    
+    // Sort by timestamp (newest first)
+    allTransactions.sort((a, b) => 
+      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
+    );
+    
+    // CSV Headers
+    const headers = [
+      'Transaction ID',
+      'User ID/Email',
+      'Amount',
+      'Currency',
+      'Payment Method',
+      'Status',
+      'Description',
+      'Email',
+      'Phone',
+      'Reference',
+      'Timestamp',
+      'Receipt URL',
+      'Note'
+    ];
+    
+    // CSV Rows
+    const rows = allTransactions.map(tx => [
+      tx.id || '',
+      tx.userId || tx.email || '',
+      tx.amount || '0',
+      tx.currency || 'USD',
+      tx.method || tx.provider || 'unknown',
+      tx.status || 'pending',
+      (tx.description || '').replace(/,/g, ';'), // Escape commas
+      tx.email || '',
+      tx.phone || '',
+      tx.reference || '',
+      tx.timestamp || tx.createdAt || '',
+      tx.receipt || tx.receiptUrl || '',
+      (tx.note || '').replace(/,/g, ';') // Escape commas
+    ]);
+    
+    // Build CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Set headers for CSV download
+    const filename = `smartinvest-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    return res.send(csvContent);
+    
+  } catch (err) {
+    console.error('Export CSV error:', err.message);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to export transactions' 
+    });
+  }
+});
+
+// Admin action endpoints for transaction management
+app.post('/api/payments/admin/verify', adminAuth, (req, res) => {
+  try {
+    const { transactionId } = req.body;
+    if (!transactionId) {
+      return res.status(400).json({ success: false, error: 'transactionId required' });
+    }
+    
+    const transactions = readTransactions();
+    const tx = transactions.find(t => t.id === transactionId);
+    
+    if (!tx) {
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    }
+    
+    tx.status = 'completed';
+    tx.verifiedAt = new Date().toISOString();
+    tx.verifiedBy = req.user.email;
+    tx.note = (tx.note || '') + `\nVerified by ${req.user.email} on ${new Date().toISOString()}`;
+    
+    writeTransactions(transactions);
+    
+    return res.json({ success: true, message: 'Transaction verified' });
+  } catch (err) {
+    console.error('Verify transaction error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to verify transaction' });
+  }
+});
+
+app.post('/api/payments/admin/dispute', adminAuth, (req, res) => {
+  try {
+    const { transactionId, reason } = req.body;
+    if (!transactionId) {
+      return res.status(400).json({ success: false, error: 'transactionId required' });
+    }
+    
+    const transactions = readTransactions();
+    const tx = transactions.find(t => t.id === transactionId);
+    
+    if (!tx) {
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    }
+    
+    tx.status = 'disputed';
+    tx.disputedAt = new Date().toISOString();
+    tx.disputedBy = req.user.email;
+    tx.note = (tx.note || '') + `\nDisputed by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
+    
+    writeTransactions(transactions);
+    
+    return res.json({ success: true, message: 'Transaction marked as disputed' });
+  } catch (err) {
+    console.error('Dispute transaction error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to dispute transaction' });
+  }
+});
+
+app.post('/api/payments/admin/refund', adminAuth, (req, res) => {
+  try {
+    const { transactionId, reason } = req.body;
+    if (!transactionId) {
+      return res.status(400).json({ success: false, error: 'transactionId required' });
+    }
+    
+    const transactions = readTransactions();
+    const tx = transactions.find(t => t.id === transactionId);
+    
+    if (!tx) {
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    }
+    
+    tx.status = 'refunded';
+    tx.refundedAt = new Date().toISOString();
+    tx.refundedBy = req.user.email;
+    tx.note = (tx.note || '') + `\nRefunded by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
+    
+    writeTransactions(transactions);
+    
+    return res.json({ success: true, message: 'Transaction refunded' });
+  } catch (err) {
+    console.error('Refund transaction error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to refund transaction' });
+  }
+});
+
+app.post('/api/payments/admin/note', adminAuth, (req, res) => {
+  try {
+    const { transactionId, note } = req.body;
+    if (!transactionId || !note) {
+      return res.status(400).json({ success: false, error: 'transactionId and note required' });
+    }
+    
+    const transactions = readTransactions();
+    const tx = transactions.find(t => t.id === transactionId);
+    
+    if (!tx) {
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
+    }
+    
+    tx.note = (tx.note || '') + `\n[${new Date().toISOString()}] ${req.user.email}: ${note}`;
+    tx.updatedAt = new Date().toISOString();
+    
+    writeTransactions(transactions);
+    
+    return res.json({ success: true, message: 'Note added successfully' });
+  } catch (err) {
+    console.error('Add note error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to add note' });
+  }
+});
+
+// ============================================================================
+// END OF MODERN PAYMENT SYSTEM API
+// ============================================================================
 
 app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));

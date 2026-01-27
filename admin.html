@@ -5,13 +5,62 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin Dashboard — SmartInvest</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <!-- Classic corporate palette -->
   <link rel="stylesheet" href="/public/css/classic.css">
+  <link rel="stylesheet" href="/public/css/modern-payment-interface.css">
+  <link rel="stylesheet" href="/public/css/transaction-history.css">
   <style>
+    :root {
+      --primary-corporate: #0B1F33;
+      --primary-light: #1a365d;
+      --accent-gold: #D4AF37;
+      --accent-teal: #0891b2;
+    }
+    
+    body {
+      background: linear-gradient(to bottom, #f8fafc, #e8ecf1);
+      font-family: 'Inter', sans-serif;
+    }
+    
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .tab-btn { padding: 0.5rem 1rem; border: none; background: #e5e7eb; cursor: pointer; border-radius: 9999px; font-weight: 600; }
-    .tab-btn.active { background: #0B1F33; color: white; border: 1px solid #D4AF37; }
+    .tab-btn { 
+      padding: 0.75rem 1.25rem; 
+      border: 2px solid transparent; 
+      background: white; 
+      cursor: pointer; 
+      border-radius: 8px; 
+      font-weight: 600;
+      color: var(--primary-corporate);
+      transition: all 0.3s ease;
+    }
+    .tab-btn:hover {
+      background: #f0f9ff;
+      border-color: var(--accent-gold);
+    }
+    .tab-btn.active { 
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-teal) 100%);
+      color: var(--primary-corporate);
+      border-color: var(--accent-gold);
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--primary-corporate) 0%, var(--primary-light) 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    header h1 {
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+    
+    header a {
+      color: white;
+    }
+    
+    header a:hover {
+      color: var(--accent-gold);
+    }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -119,7 +168,14 @@
 
     <!-- Payments Tab -->
     <section id="payments" class="tab-content bg-white p-6 rounded shadow classic-card mb-4">
-      <h2 class="text-2xl font-bold mb-4 gradient-text">Payments</h2>
+      <h2 class="text-2xl font-bold mb-4 gradient-text">Payments Management</h2>
+
+      <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-4">Transaction History & Analytics</h3>
+        <div id="adminTransactionsContainer" class="transactions-container"></div>
+      </div>
+
+      <hr class="my-6">
 
       <div class="grid md:grid-cols-2 gap-6">
         <div>
@@ -704,9 +760,25 @@
       loadMessages();
       loadKCBTransfers();
       loadStorageStats();
+      
+      // Initialize transaction history viewer for admin
+      if (window.TransactionHistoryViewer) {
+        const adminHistoryViewer = new window.TransactionHistoryViewer({
+          apiBase: '/api/payments',
+          containerId: 'adminTransactionsContainer',
+          adminMode: true,
+          pageSize: 15
+        });
+        
+        // Initialize when admin loads the payments tab
+        adminHistoryViewer.init();
+      }
     });
   </script>
 
+  <script src="/public/js/admin-access-control.js"></script>
+  <script src="/public/js/modern-payment-interface.js"></script>
+  <script src="/public/js/transaction-history-viewer.js"></script>
   <script src="/public/js/dashboard-hub.js"></script>
 </body>
 </html>
