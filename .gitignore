@@ -1,6 +1,24 @@
 node_modules/
 .env
+.env.local
+.env.*.local
 .DS_Store
 *.log
 data/*.json
 transactions.json
+
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+.env.production
+secrets/
+credentials/
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# OS files
+Thumbs.db
