@@ -5,67 +5,158 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SmartInvest Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="/wwwroot/css/animations.css" rel="stylesheet">
   <style>
     .dashboard-card {
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .dashboard-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
     }
     .stat-card {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border-radius: 12px;
       padding: 1.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+      transform: rotate(45deg);
+      transition: all 0.5s ease;
+    }
+    .stat-card:hover::before {
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    .stat-card:hover {
+      transform: scale(1.05);
     }
     .nav-tab {
       padding: 0.75rem 1.5rem;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .nav-tab::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #7C3AED, #EC4899);
+      transition: width 0.3s ease;
     }
     .nav-tab:hover {
-      background: #F3F4F6;
+      background: linear-gradient(to bottom, #F3F4F6, transparent);
+    }
+    .nav-tab:hover::before {
+      width: 100%;
     }
     .nav-tab.active {
-      border-bottom-color: #7C3AED;
       color: #7C3AED;
       font-weight: 600;
     }
+    .nav-tab.active::before {
+      width: 100%;
+    }
     .tab-content {
       display: none;
+      animation: fadeInUp 0.5s ease;
     }
     .tab-content.active {
       display: block;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .action-button {
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    .action-button:active {
+      transform: translateY(0);
+    }
+    .refresh-button {
+      transition: all 0.3s ease;
+    }
+    .refresh-button:hover {
+      transform: rotate(180deg);
+    }
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
   </style>
 </head>
 <body class="bg-gray-50">
   <!-- Header -->
-  <header class="bg-white shadow-sm border-b">
+  <header class="bg-white shadow-sm border-b sticky top-0 z-50 transition-all">
     <div class="max-w-7xl mx-auto px-4 py-4">
       <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold text-purple-600">SmartInvest Admin</h1>
+        <div class="animate-on-scroll slide-in-left">
+          <h1 class="text-2xl font-bold gradient-text">📊 SmartInvest Admin</h1>
           <p class="text-sm text-gray-500">Dashboard & Management Console</p>
         </div>
-        <div class="flex gap-3">
-          <a href="/" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition">View Site</a>
-          <button onclick="refreshAllData()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">🔄 Refresh All</button>
+        <div class="flex gap-3 animate-on-scroll slide-in-right">
+          <a href="/" class="btn-enhanced bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition">
+            🏠 View Site
+          </a>
+          <button onclick="refreshAllData()" class="btn-enhanced bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+            <span class="refresh-button inline-block">🔄</span> Refresh All
+          </button>
         </div>
       </div>
     </div>
   </header>
 
   <!-- Navigation Tabs -->
-  <div class="bg-white border-b">
+  <div class="bg-white border-b sticky top-[89px] z-40">
     <div class="max-w-7xl mx-auto px-4">
-      <nav class="flex gap-1">
-        <div class="nav-tab active" onclick="switchTab('overview')">📊 Overview</div>
-        <div class="nav-tab" onclick="switchTab('messages')">💬 Messages</div>
-        <div class="nav-tab" onclick="switchTab('transfers')">💰 Transfers</div>
-        <div class="nav-tab" onclick="switchTab('files')">📁 Files</div>
+      <nav class="flex gap-1 overflow-x-auto">
+        <div class="nav-tab active" onclick="switchTab('overview')">
+          <span class="text-xl">📊</span> Overview
+        </div>
+        <div class="nav-tab" onclick="switchTab('messages')">
+          <span class="text-xl">💬</span> Messages
+          <span class="notification-badge" id="messagesBadge" style="display:none;">0</span>
+        </div>
+        <div class="nav-tab" onclick="switchTab('transfers')">
+          <span class="text-xl">💰</span> Transfers
+          <span class="notification-badge" id="transfersBadge" style="display:none;">0</span>
+        </div>
+        <div class="nav-tab" onclick="switchTab('files')">
+          <span class="text-xl">📁</span> Files
+        </div>
       </nav>
     </div>
   </div>
@@ -76,28 +167,30 @@
     <!-- Overview Tab -->
     <div id="overview" class="tab-content active">
       <div class="grid md:grid-cols-3 gap-6 mb-6">
-        <div class="stat-card">
+        <div class="stat-card animate-on-scroll slide-in-left">
           <div class="text-sm opacity-90">Total Messages</div>
           <div class="text-3xl font-bold mt-2" id="statMessages">0</div>
           <div class="text-xs opacity-75 mt-1">All time</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card animate-on-scroll scale-in" style="animation-delay: 0.1s;">
           <div class="text-sm opacity-90">Pending Transfers</div>
           <div class="text-3xl font-bold mt-2" id="statTransfers">0</div>
           <div class="text-xs opacity-75 mt-1">Awaiting confirmation</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card animate-on-scroll slide-in-right" style="animation-delay: 0.2s;">
           <div class="text-sm opacity-90">Total Files</div>
           <div class="text-3xl font-bold mt-2" id="statFiles">0</div>
           <div class="text-xs opacity-75 mt-1">In marketplace</div>
         </div>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6 dashboard-card">
-        <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+      <div class="bg-white rounded-lg shadow-lg p-6 dashboard-card animate-on-scroll">
+        <h2 class="text-xl font-bold mb-4 gradient-text">⚡ Quick Actions</h2>
         <div class="grid md:grid-cols-2 gap-4">
-          <button onclick="switchTab('messages')" class="bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition">
-            <div class="font-semibold text-purple-700">💬 View Messages</div>
+          <button onclick="switchTab('messages')" class="action-button bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-purple-700 flex items-center gap-2">
+              <span class="text-2xl">💬</span> View Messages
+            </div>
             <div class="text-sm text-gray-600 mt-1">Respond to visitor inquiries</div>
           </button>
           <button onclick="switchTab('transfers')" class="bg-blue-100 hover:bg-blue-200 p-4 rounded-lg text-left transition">
@@ -366,7 +459,25 @@ async function replyMessage(id){
   if (d.success) { alert('Replied'); el.value = ''; loadAdminMessages(); } else { alert('Failed: '+(d.error||'')); }
 }
 
+// Scroll Animation Observer
+function initScrollAnimations() {
+  const elements = document.querySelectorAll('.animate-on-scroll');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  elements.forEach(el => observer.observe(el));
+}
+
 // Initialize on page load
+window.addEventListener('load', () => {
+  initScrollAnimations();
+});
+
 load();
 loadFiles();
 loadAdminMessages();
