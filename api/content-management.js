@@ -9,8 +9,10 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const CONTENT_DIR = path.join(__dirname, 'data', 'content');
-const USERS_TRACKING_FILE = path.join(__dirname, 'data', 'user-analytics.json');
+// Get the root directory (parent of api folder)
+const ROOT_DIR = path.join(__dirname, '..');
+const CONTENT_DIR = path.join(ROOT_DIR, 'data', 'content');
+const USERS_TRACKING_FILE = path.join(ROOT_DIR, 'data', 'user-analytics.json');
 const COURSES_FILE = path.join(CONTENT_DIR, 'courses.json');
 const INSIGHTS_FILE = path.join(CONTENT_DIR, 'insights.json');
 const TOOLS_FILE = path.join(CONTENT_DIR, 'tools.json');
