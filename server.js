@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const contentAPI = require('./api/content-management');
 
 const app = express();
 app.use(cors());
@@ -270,6 +271,18 @@ app.post('/api/auth/signup', async (req, res) => {
     const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
     users.push(user);
     writeUsers(users);
+    
+    // Track signup in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
+    
     return res.json({ success: true, message: 'signup successful' });
   } catch (err) {
     console.error('signup error', err.message);
@@ -286,6 +299,18 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+    
+    // Track login in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
+    
     // For demo: return a simple success message. In production return a session or JWT.
     return res.json({ success: true, message: 'login successful' });
   } catch (err) {
@@ -878,12 +903,27 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-expanded.html'));
+});
+
 app.get('/terms.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'terms.html'));
 });
 
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
+
+// ============================================================================
+// INTEGRATE NEW CONTENT MANAGEMENT & ANALYTICS ENDPOINTS
+// ============================================================================
+contentAPI.courseEndpoints(app, adminAuth);
+contentAPI.insightsEndpoints(app, adminAuth);
+contentAPI.toolsEndpoints(app, adminAuth);
+contentAPI.smeEndpoints(app, adminAuth);
+contentAPI.communityEndpoints(app, adminAuth);
+contentAPI.analyticsEndpoints(app, adminAuth);
+contentAPI.publicEndpoints(app);
 
 // Export app for Vercel serverless
 module.exports = app;

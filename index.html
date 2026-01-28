@@ -750,6 +750,16 @@
         initScrollAnimations();
         updateScrollProgress();
         updateNavbar();
+        
+        // Track visitor
+        fetch('/api/analytics/visitor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source: document.referrer ? 'referral' : 'direct',
+                referrer: document.referrer
+            })
+        }).catch(e => console.log('analytics tracking skipped'));
     });
 
     function scrollToSection(sectionId) {
