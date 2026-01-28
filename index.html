@@ -1247,6 +1247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set initial language from localStorage
     const savedLang = localStorage.getItem('si_language') || 'en';
+    document.documentElement.setAttribute('lang', savedLang);
     
     // Lazy load images (if any are added later)
     if ('loading' in HTMLImageElement.prototype) {
