@@ -9,8 +9,11 @@
         <meta property="og:title" content="SmartInvest Africa">
         <meta property="og:description" content="Democratizing investment knowledge, tools and opportunity across Africa.">
         <meta property="og:type" content="website">
-        <meta name="theme-color" content="#6D28D9">
+        <meta name="theme-color" content="#0F172A">
         <link rel="canonical" href="https://yourdomain.example/">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:site" content="@SmartInvestAF">
         <meta name="twitter:creator" content="@SmartInvestAF">
@@ -30,26 +33,211 @@
         }
         </script>
         <style>
+            /* Corporate Color Palette */
+            :root {
+                --corporate-primary: #0F172A;      /* Slate 900 - Deep Professional Navy */
+                --corporate-secondary: #1E40AF;    /* Blue 700 - Corporate Blue */
+                --corporate-accent: #3B82F6;       /* Blue 500 - Bright Accent */
+                --corporate-success: #059669;      /* Emerald 600 - Success Green */
+                --corporate-warning: #D97706;      /* Amber 600 - Warning Orange */
+                --corporate-light: #F8FAFC;        /* Slate 50 - Light Background */
+                --corporate-gray: #64748B;         /* Slate 500 - Neutral Gray */
+                --corporate-dark: #1E293B;         /* Slate 800 - Dark Elements */
+                --corporate-border: #E2E8F0;       /* Slate 200 - Borders */
+                --corporate-text: #334155;         /* Slate 700 - Body Text */
+            }
+
+            /* Corporate Typography */
+            * {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }
+
+            body {
+                color: var(--corporate-text);
+                background-color: var(--corporate-light);
+                letter-spacing: -0.01em;
+            }
+
+            /* Payment Toast Notification System */
+            .payment-toast-container {
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                max-width: 400px;
+            }
+
+            .payment-toast {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                border-left: 4px solid var(--corporate-success);
+                transform-origin: right center;
+            }
+
+            .payment-toast.processing {
+                border-left-color: var(--corporate-accent);
+            }
+
+            .payment-toast.error {
+                border-left-color: #DC2626;
+            }
+
+            .payment-toast.warning {
+                border-left-color: var(--corporate-warning);
+            }
+
+            .payment-toast-icon {
+                font-size: 28px;
+                line-height: 1;
+                flex-shrink: 0;
+                animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+            }
+
+            .payment-toast-content {
+                flex: 1;
+            }
+
+            .payment-toast-title {
+                font-weight: 700;
+                font-size: 15px;
+                color: var(--corporate-primary);
+                margin-bottom: 4px;
+                letter-spacing: -0.02em;
+            }
+
+            .payment-toast-message {
+                font-size: 13px;
+                color: var(--corporate-gray);
+                line-height: 1.5;
+                margin-bottom: 8px;
+            }
+
+            .payment-toast-details {
+                display: flex;
+                gap: 12px;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid var(--corporate-border);
+                font-size: 12px;
+            }
+
+            .payment-toast-detail {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .payment-toast-detail-label {
+                color: var(--corporate-gray);
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin-bottom: 2px;
+            }
+
+            .payment-toast-detail-value {
+                color: var(--corporate-primary);
+                font-weight: 600;
+            }
+
+            .payment-toast-close {
+                background: none;
+                border: none;
+                color: var(--corporate-gray);
+                cursor: pointer;
+                font-size: 20px;
+                line-height: 1;
+                padding: 0;
+                width: 24px;
+                height: 24px;
+                flex-shrink: 0;
+                transition: all 0.2s;
+                border-radius: 6px;
+            }
+
+            .payment-toast-close:hover {
+                background: var(--corporate-border);
+                color: var(--corporate-primary);
+            }
+
+            .payment-toast-progress {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: var(--corporate-border);
+                border-radius: 0 0 12px 12px;
+                overflow: hidden;
+            }
+
+            .payment-toast-progress-bar {
+                height: 100%;
+                background: var(--corporate-success);
+                width: 100%;
+                animation: progressBar 5s linear;
+            }
+
+            .payment-toast.processing .payment-toast-progress-bar {
+                background: var(--corporate-accent);
+            }
+
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(120%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes scaleIn {
+                from {
+                    transform: scale(0);
+                    opacity: 0;
+                }
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes progressBar {
+                from { width: 100%; }
+                to { width: 0%; }
+            }
+
             /* Smooth scrolling */
             html {
                 scroll-behavior: smooth;
             }
 
-            /* Navigation Bar Styles */
+            /* Navigation Bar Styles - Corporate */
             .navbar {
                 position: fixed;
                 top: 0;
                 left: 0;
                 right: 0;
                 z-index: 1000;
-                background: linear-gradient(135deg, rgba(109, 40, 217, 0.95) 0%, rgba(91, 33, 182, 0.95) 100%);
-                backdrop-filter: blur(10px);
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
                 transition: all 0.3s ease;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+                border-bottom: 1px solid var(--corporate-border);
             }
             .navbar.scrolled {
-                background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                background: white;
+                box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
             }
             .navbar-content {
                 max-width: 1280px;
@@ -62,15 +250,16 @@
             .navbar-brand {
                 font-size: 1.5rem;
                 font-weight: 800;
-                color: white;
+                color: var(--corporate-primary);
                 text-decoration: none;
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                transition: transform 0.3s ease;
+                transition: all 0.3s ease;
+                letter-spacing: -0.03em;
             }
             .navbar-brand:hover {
-                transform: scale(1.05);
+                color: var(--corporate-secondary);
             }
             .navbar-menu {
                 display: flex;
@@ -78,15 +267,17 @@
                 align-items: center;
             }
             .navbar-link {
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--corporate-text);
                 text-decoration: none;
-                font-weight: 500;
+                font-weight: 600;
                 transition: all 0.3s ease;
                 position: relative;
                 padding-bottom: 0.25rem;
+                font-size: 14px;
+                letter-spacing: -0.01em;
             }
             .navbar-link:hover {
-                color: white;
+                color: var(--corporate-secondary);
             }
             .navbar-link::after {
                 content: '';
@@ -148,10 +339,20 @@
                 }
             }
 
-            /* Enhanced Button Animations */
+            /* Enhanced Button Animations - Corporate */
             .btn-primary {
                 position: relative;
                 overflow: hidden;
+                background: linear-gradient(135deg, var(--corporate-secondary), var(--corporate-accent));
+                color: white;
+                padding: 0.75rem 1.75rem;
+                border-radius: 8px;
+                font-weight: 700;
+                font-size: 14px;
+                letter-spacing: -0.01em;
+                border: none;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
                 transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             }
             .btn-primary::before {
@@ -172,7 +373,7 @@
             }
             .btn-primary:hover {
                 transform: translateY(-3px) scale(1.02);
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+                box-shadow: 0 10px 30px rgba(30, 64, 175, 0.35);
             }
             .btn-primary:active {
                 transform: translateY(-1px) scale(0.98);
@@ -325,6 +526,7 @@
                 border-radius: 0.25rem;
             }
             /* Chat Widget Styles */
+            /* Chat Widget - Corporate Styling */
             .chat-widget {
                 position: fixed;
                 bottom: 20px;
@@ -332,100 +534,118 @@
                 z-index: 1000;
             }
             .chat-button {
-                width: 60px;
-                height: 60px;
+                width: 64px;
+                height: 64px;
                 border-radius: 50%;
-                background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+                background: linear-gradient(135deg, var(--corporate-secondary), var(--corporate-accent));
                 color: white;
                 border: none;
                 cursor: pointer;
-                box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+                box-shadow: 0 8px 24px rgba(30, 64, 175, 0.3);
                 transition: all 0.3s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 24px;
+                font-size: 28px;
             }
             .chat-button:hover {
-                transform: scale(1.1);
-                box-shadow: 0 6px 16px rgba(124, 58, 237, 0.6);
+                transform: scale(1.1) translateY(-2px);
+                box-shadow: 0 12px 32px rgba(30, 64, 175, 0.4);
             }
             .chat-window {
                 position: fixed;
-                bottom: 90px;
+                bottom: 100px;
                 right: 20px;
-                width: 350px;
-                height: 500px;
+                width: 380px;
+                height: 550px;
                 background: white;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
                 display: none;
                 flex-direction: column;
                 overflow: hidden;
                 z-index: 999;
+                border: 1px solid var(--corporate-border);
             }
             .chat-window.active {
                 display: flex;
             }
             .chat-header {
-                background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+                background: linear-gradient(135deg, var(--corporate-primary), var(--corporate-secondary));
                 color: white;
-                padding: 16px;
+                padding: 20px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
             .chat-messages {
                 flex: 1;
-                padding: 16px;
+                padding: 20px;
                 overflow-y: auto;
-                background: #F9FAFB;
+                background: var(--corporate-light);
             }
             .chat-message {
-                margin-bottom: 12px;
-                padding: 10px 14px;
+                margin-bottom: 16px;
+                padding: 12px 16px;
                 border-radius: 12px;
-                max-width: 80%;
+                max-width: 85%;
                 word-wrap: break-word;
+                font-size: 14px;
+                line-height: 1.5;
             }
             .chat-message.user {
-                background: #7C3AED;
+                background: var(--corporate-secondary);
                 color: white;
                 margin-left: auto;
                 text-align: right;
+                border-bottom-right-radius: 4px;
             }
             .chat-message.bot {
                 background: white;
-                color: #1F2937;
+                color: var(--corporate-text);
                 margin-right: auto;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+                border: 1px solid var(--corporate-border);
+                border-bottom-left-radius: 4px;
             }
             .chat-input-container {
                 padding: 16px;
                 background: white;
-                border-top: 1px solid #E5E7EB;
+                border-top: 1px solid var(--corporate-border);
                 display: flex;
-                gap: 8px;
+                gap: 10px;
             }
             .chat-input {
                 flex: 1;
-                border: 1px solid #D1D5DB;
-                border-radius: 20px;
-                padding: 8px 16px;
+                border: 1px solid var(--corporate-border);
+                border-radius: 24px;
+                padding: 10px 18px;
                 outline: none;
+                font-size: 14px;
+                transition: all 0.2s;
             }
             .chat-input:focus {
-                border-color: #7C3AED;
+                border-color: var(--corporate-secondary);
+                box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
             }
             .chat-send-btn {
-                background: #7C3AED;
+                background: var(--corporate-secondary);
                 color: white;
                 border: none;
                 border-radius: 50%;
-                width: 40px;
-                height: 40px;
+                width: 44px;
+                height: 44px;
                 cursor: pointer;
-                transition: background 0.3s;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .chat-send-btn:hover {
+                background: var(--corporate-accent);
+                transform: scale(1.05);
             }
             .chat-send-btn:hover {
                 background: #6D28D9;
@@ -761,6 +981,9 @@
 </head>
 <body class="antialiased">
 
+    <!-- Payment Toast Notification Container -->
+    <div class="payment-toast-container" id="paymentToastContainer"></div>
+
     <a class="sr-only sr-only-focusable" href="#main-content">Skip to content</a>
 
     <!-- Scroll Progress Bar -->
@@ -792,23 +1015,43 @@
         ↑
     </button>
 
-        <!-- Hero Section -->
-        <section id="hero" class="bg-gradient-to-br from-purple-600 to-purple-800 text-white pt-32 pb-20 px-4">
-        <main id="main-content" class="max-w-7xl mx-auto text-center fade-in-up">
-            <h1 class="text-5xl md:text-6xl font-bold mb-6 animate-on-scroll">SmartInvest Africa</h1>
-            <p class="text-xl md:text-2xl mb-8 text-purple-100 animate-on-scroll">Democratizing investment knowledge, tools and opportunity across Africa. Learn, invest, and grow with confidence.</p>
+        <!-- Hero Section - Corporate -->
+        <section id="hero" class="relative overflow-hidden pt-32 pb-20 px-4" style="background: linear-gradient(135deg, #0F172A 0%, #1E40AF 100%);">
+        <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.4\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+        <main id="main-content" class="relative max-w-7xl mx-auto text-center fade-in-up">
+            <div class="inline-block px-4 py-2 bg-blue-500 bg-opacity-20 rounded-full mb-6 animate-on-scroll">
+                <span class="text-blue-200 text-sm font-semibold tracking-wide">🏆 TRUSTED BY 10,000+ AFRICAN INVESTORS</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black mb-6 animate-on-scroll text-white" style="letter-spacing: -0.03em; line-height: 1.1;">
+                Build Wealth Through<br/>
+                <span class="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">Smart Investing</span>
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 text-gray-300 animate-on-scroll max-w-3xl mx-auto" style="line-height: 1.6;">
+                Professional investment education, tools, and opportunities for African investors. Start your journey to financial freedom today.
+            </p>
             <div class="flex flex-col md:flex-row gap-4 justify-center mb-8 animate-on-scroll">
-                <button type="button" onclick="scrollToSection('academy')" class="btn-primary bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">Explore Courses</button>
-                <button type="button" onclick="scrollToSection('insights')" class="btn-primary border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">Read Insights</button>
+                <button type="button" onclick="scrollToSection('academy')" class="btn-primary bg-white text-slate-900 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition text-lg shadow-xl">
+                    Explore Courses →
+                </button>
+                <button type="button" onclick="scrollToSection('insights')" class="btn-primary border-2 border-white text-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-slate-900 transition text-lg">
+                    Read Insights
+                </button>
             </div>
             
-            <!-- Payment Section -->
-            <div class="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-8 max-w-md mx-auto scale-in">
-                <h3 class="text-2xl font-bold mb-4">Get Started Now</h3>
+            <!-- Payment Section - Corporate -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-xl rounded-2xl p-8 max-w-md mx-auto scale-in border border-white border-opacity-20 shadow-2xl">
+                <h3 class="text-2xl font-bold mb-2 text-white">Get Premium Access</h3>
+                <p class="text-blue-200 mb-6 text-sm">Unlock all features and start investing smarter</p>
                 <div class="space-y-3">
-                    <button type="button" onclick="handleMpesaPay()" id="mpesaBtn" data-phone="254114383762" class="btn-primary w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition">💳 Pay with M-Pesa</button>
-                    <button type="button" onclick="handlePayPalPay()" id="paypalBtn" class="btn-primary w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">💰 Pay with PayPal</button>
-                    <button type="button" onclick="toggleBankForm(true)" id="bankBtn" class="btn-primary w-full bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold transition">🏦 Bank transfer (KCB)</button>
+                    <button type="button" onclick="handleMpesaPay()" id="mpesaBtn" data-phone="254114383762" class="btn-primary w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl font-bold transition shadow-lg text-base">
+                        💳 Pay with M-Pesa
+                    </button>
+                    <button type="button" onclick="handlePayPalPay()" id="paypalBtn" class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-xl font-bold transition shadow-lg text-base">
+                        💰 Pay with PayPal
+                    </button>
+                    <button type="button" onclick="toggleBankForm(true)" id="bankBtn" class="btn-primary w-full bg-slate-700 hover:bg-slate-800 text-white px-6 py-4 rounded-xl font-bold transition shadow-lg text-base">
+                        🏦 Bank Transfer (KCB)
+                    </button>
                 </div>
                 <div id="paymentMessage" class="mt-4 text-sm text-yellow-200"></div>
                 <div id="bankForm" class="mt-4 p-4 bg-white bg-opacity-90 rounded shadow-sm" style="display:none;">
@@ -1125,6 +1368,68 @@
         }
     }
 
+    // Payment Toast Notification System
+    function showPaymentToast(type, title, message, details = {}) {
+        const container = document.getElementById('paymentToastContainer');
+        const toastId = 'toast-' + Date.now();
+        
+        const icons = {
+            success: '✅',
+            processing: '⏳',
+            error: '❌',
+            warning: '⚠️'
+        };
+
+        let detailsHtml = '';
+        if (Object.keys(details).length > 0) {
+            detailsHtml = '<div class="payment-toast-details">';
+            for (const [key, value] of Object.entries(details)) {
+                detailsHtml += `
+                    <div class="payment-toast-detail">
+                        <span class="payment-toast-detail-label">${key}</span>
+                        <span class="payment-toast-detail-value">${value}</span>
+                    </div>
+                `;
+            }
+            detailsHtml += '</div>';
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `payment-toast ${type}`;
+        toast.id = toastId;
+        toast.innerHTML = `
+            <div class="payment-toast-icon">${icons[type] || '📢'}</div>
+            <div class="payment-toast-content">
+                <div class="payment-toast-title">${title}</div>
+                <div class="payment-toast-message">${message}</div>
+                ${detailsHtml}
+            </div>
+            <button class="payment-toast-close" onclick="removePaymentToast('${toastId}')" aria-label="Close notification">×</button>
+            <div class="payment-toast-progress">
+                <div class="payment-toast-progress-bar"></div>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            removePaymentToast(toastId);
+        }, 5000);
+
+        return toastId;
+    }
+
+    function removePaymentToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+            toast.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+    }
+
     async function handleMpesaPay() {
         if (loading) return;
         loading = true;
@@ -1134,6 +1439,14 @@
         btn.textContent = 'Processing...';
         msgDiv.textContent = '';
 
+        // Show processing notification
+        const processingToastId = showPaymentToast(
+            'processing',
+            'Processing M-Pesa Payment',
+            'Please wait while we initiate your payment...',
+            { Method: 'M-Pesa', Amount: 'KES 1,000' }
+        );
+
         try {
             const phone = btn.dataset.phone || '254114383762';
             const res = await fetch('/api/pay/mpesa', {
@@ -1142,11 +1455,49 @@
                 body: JSON.stringify({ amount: 1000, phone })
             });
             const data = await res.json();
-            msgDiv.textContent = data.success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
-            msgDiv.className = data.success ? 'mt-4 text-sm text-green-300' : 'mt-4 text-sm text-red-300';
+            
+            // Remove processing notification
+            removePaymentToast(processingToastId);
+            
+            if (data.success) {
+                msgDiv.textContent = 'M-Pesa STK Push sent. Complete payment on your phone.';
+                msgDiv.className = 'mt-4 text-sm text-green-300';
+                
+                // Show success notification
+                showPaymentToast(
+                    'success',
+                    'Payment Request Sent!',
+                    'Check your phone to complete the M-Pesa payment.',
+                    { 
+                        Phone: phone,
+                        Amount: 'KES 1,000',
+                        Action: 'Enter PIN on phone'
+                    }
+                );
+            } else {
+                msgDiv.textContent = 'M-Pesa payment failed.';
+                msgDiv.className = 'mt-4 text-sm text-red-300';
+                
+                // Show error notification
+                showPaymentToast(
+                    'error',
+                    'Payment Failed',
+                    data.message || 'Unable to process M-Pesa payment. Please try again.',
+                    { Method: 'M-Pesa' }
+                );
+            }
         } catch (error) {
+            removePaymentToast(processingToastId);
             msgDiv.textContent = 'Network error. Please try again.';
             msgDiv.className = 'mt-4 text-sm text-red-300';
+            
+            // Show error notification
+            showPaymentToast(
+                'error',
+                'Connection Error',
+                'Unable to connect to payment server. Please check your internet connection.',
+                { Error: 'Network timeout' }
+            );
         } finally {
             loading = false;
             btn.disabled = false;
@@ -1162,6 +1513,14 @@
         btn.disabled = true;
         btn.textContent = 'Processing...';
         msgDiv.textContent = '';
+
+        const processingToastId = showPaymentToast(
+            'processing',
+            'Processing File Purchase',
+            'Initiating M-Pesa payment for your file...',
+            { File: fileId, Amount: 'KES 1,000' }
+        );
+
         try {
             const phone = btn.dataset.phone || '254114383762';
             const res = await fetch('/api/pay/mpesa', {
@@ -1170,11 +1529,28 @@
                 body: JSON.stringify({ amount: 1000, phone, accountReference: fileId })
             });
             const data = await res.json();
-            msgDiv.textContent = data.success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
-            msgDiv.className = data.success ? 'mt-4 text-sm text-green-300' : 'mt-4 text-sm text-red-300';
+            
+            removePaymentToast(processingToastId);
+            
+            if (data.success) {
+                msgDiv.textContent = 'M-Pesa STK Push sent. Complete payment on your phone.';
+                msgDiv.className = 'mt-4 text-sm text-green-300';
+                showPaymentToast(
+                    'success',
+                    'Purchase Request Sent!',
+                    'Complete payment on your phone to download the file.',
+                    { File: fileId, Phone: phone, Amount: 'KES 1,000' }
+                );
+            } else {
+                msgDiv.textContent = 'M-Pesa payment failed.';
+                msgDiv.className = 'mt-4 text-sm text-red-300';
+                showPaymentToast('error', 'Purchase Failed', data.message || 'Payment processing error.', { File: fileId });
+            }
         } catch (error) {
+            removePaymentToast(processingToastId);
             msgDiv.textContent = 'Network error. Please try again.';
             msgDiv.className = 'mt-4 text-sm text-red-300';
+            showPaymentToast('error', 'Connection Error', 'Network error during purchase.', { File: fileId });
         } finally {
             loading = false;
             btn.disabled = false;
@@ -1191,20 +1567,41 @@
         btn.textContent = 'Processing...';
         msgDiv.textContent = '';
 
+        const processingToastId = showPaymentToast(
+            'processing',
+            'Redirecting to PayPal',
+            'Creating secure payment session...',
+            { Method: 'PayPal', Amount: 'USD 10' }
+        );
+
         try {
             const res = await fetch('/api/pay/paypal/create-order', {
                 method: 'POST'
             });
             const data = await res.json();
+            
+            removePaymentToast(processingToastId);
+            
             if (data?.approveUrl) {
-                window.location.href = data.approveUrl;
+                showPaymentToast(
+                    'success',
+                    'Redirecting to PayPal',
+                    'You will be redirected to complete your payment securely.',
+                    { Amount: 'USD 10', Action: 'Complete on PayPal' }
+                );
+                setTimeout(() => {
+                    window.location.href = data.approveUrl;
+                }, 1500);
             } else {
                 msgDiv.textContent = 'PayPal order creation failed.';
                 msgDiv.className = 'mt-4 text-sm text-red-300';
+                showPaymentToast('error', 'PayPal Error', 'Unable to create payment order.', { Method: 'PayPal' });
             }
         } catch (error) {
+            removePaymentToast(processingToastId);
             msgDiv.textContent = 'Network error. Please try again.';
             msgDiv.className = 'mt-4 text-sm text-red-300';
+            showPaymentToast('error', 'Connection Error', 'Unable to connect to PayPal.', { Error: 'Network' });
         } finally {
             loading = false;
             btn.disabled = false;
