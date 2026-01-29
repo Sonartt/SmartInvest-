@@ -2,7 +2,10 @@ node_modules/
 .env
 .DS_Store
 *.log
+bin/
+obj/
 data/*.json
+data/content/
 transactions.json
 uploads/*
 !uploads/.gitkeep
