@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>SmartInvest Africa</title>
+        <title>SmartInvest Africa - Your Gateway to Investment</title>
         <meta name="description" content="SmartInvest Africa — democratizing investment knowledge, tools and opportunities across Africa. Learn, invest, and grow with confidence.">
         <meta name="robots" content="index,follow">
         <meta property="og:title" content="SmartInvest Africa">
@@ -61,13 +61,13 @@
             /* Payment Toast Notification System */
             .payment-toast-container {
                 position: fixed;
-                top: 80px;
-                right: 20px;
+                inset-block-start: 80px;
+                inset-inline-end: 20px;
                 z-index: 10000;
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
-                max-width: 400px;
+                max-inline-size: 400px;
             }
 
             .payment-toast {
@@ -79,20 +79,33 @@
                 align-items: flex-start;
                 gap: 16px;
                 animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-                border-left: 4px solid var(--corporate-success);
+                border-inline-start: 4px solid var(--corporate-success);
                 transform-origin: right center;
             }
 
             .payment-toast.processing {
-                border-left-color: var(--corporate-accent);
+                border-inline-start-color: var(--corporate-accent);
             }
 
             .payment-toast.error {
-                border-left-color: #DC2626;
+                border-inline-start-color: #DC2626;
             }
 
             .payment-toast.warning {
-                border-left-color: var(--corporate-warning);
+                border-inline-start-color: var(--corporate-warning);
+            }
+
+            .pulse-glow {
+                animation: pulseGlow 2s ease-in-out infinite;
+            }
+
+            @keyframes pulseGlow {
+                0%, 100% {
+                    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 40px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.4);
+                }
             }
 
             .payment-toast-icon {
@@ -110,7 +123,7 @@
                 font-weight: 700;
                 font-size: 15px;
                 color: var(--corporate-primary);
-                margin-bottom: 4px;
+                margin-block-end: 4px;
                 letter-spacing: -0.02em;
             }
 
@@ -118,15 +131,15 @@
                 font-size: 13px;
                 color: var(--corporate-gray);
                 line-height: 1.5;
-                margin-bottom: 8px;
+                margin-block-end: 8px;
             }
 
             .payment-toast-details {
                 display: flex;
                 gap: 12px;
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid var(--corporate-border);
+                margin-block-start: 10px;
+                padding-block-start: 10px;
+                border-block-start: 1px solid var(--corporate-border);
                 font-size: 12px;
             }
 
@@ -140,7 +153,7 @@
                 font-size: 11px;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
-                margin-bottom: 2px;
+                margin-block-end: 2px;
             }
 
             .payment-toast-detail-value {
@@ -156,8 +169,8 @@
                 font-size: 20px;
                 line-height: 1;
                 padding: 0;
-                width: 24px;
-                height: 24px;
+                inline-size: 24px;
+                block-size: 24px;
                 flex-shrink: 0;
                 transition: all 0.2s;
                 border-radius: 6px;
@@ -170,19 +183,19 @@
 
             .payment-toast-progress {
                 position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 3px;
+                inset-block-end: 0;
+                inset-inline-start: 0;
+                inset-inline-end: 0;
+                block-size: 3px;
                 background: var(--corporate-border);
                 border-radius: 0 0 12px 12px;
                 overflow: hidden;
             }
 
             .payment-toast-progress-bar {
-                height: 100%;
+                block-size: 100%;
                 background: var(--corporate-success);
-                width: 100%;
+                inline-size: 100%;
                 animation: progressBar 5s linear;
             }
 
@@ -213,8 +226,8 @@
             }
 
             @keyframes progressBar {
-                from { width: 100%; }
-                to { width: 0%; }
+                from { inline-size: 100%; }
+                to { inline-size: 0%; }
             }
 
             /* Smooth scrolling */
@@ -225,22 +238,22 @@
             /* Navigation Bar Styles - Corporate */
             .navbar {
                 position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
+                inset-block-start: 0;
+                inset-inline-start: 0;
+                inset-inline-end: 0;
                 z-index: 1000;
                 background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(20px);
                 transition: all 0.3s ease;
                 box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-                border-bottom: 1px solid var(--corporate-border);
+                border-block-end: 1px solid var(--corporate-border);
             }
             .navbar.scrolled {
                 background: white;
                 box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
             }
             .navbar-content {
-                max-width: 1280px;
+                max-inline-size: 1280px;
                 margin: 0 auto;
                 padding: 1rem 1.5rem;
                 display: flex;
@@ -272,7 +285,7 @@
                 font-weight: 600;
                 transition: all 0.3s ease;
                 position: relative;
-                padding-bottom: 0.25rem;
+                padding-block-end: 0.25rem;
                 font-size: 14px;
                 letter-spacing: -0.01em;
             }
@@ -282,18 +295,18 @@
             .navbar-link::after {
                 content: '';
                 position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 0;
-                height: 2px;
+                inset-block-end: 0;
+                inset-inline-start: 0;
+                inline-size: 0;
+                block-size: 2px;
                 background: linear-gradient(90deg, #D4AF37, #F4D03F);
                 transition: width 0.3s ease;
             }
             .navbar-link:hover::after {
-                width: 100%;
+                inline-size: 100%;
             }
             .navbar-link.active::after {
-                width: 100%;
+                inline-size: 100%;
             }
             .navbar-cta {
                 background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
@@ -318,13 +331,13 @@
                 cursor: pointer;
                 padding: 0.5rem;
             }
-            @media (max-width: 768px) {
+            @media (max-inline-size: 768px) {
                 .navbar-menu {
                     display: none;
                     position: absolute;
-                    top: 100%;
-                    left: 0;
-                    right: 0;
+                    inset-block-start: 100%;
+                    inset-inline-start: 0;
+                    inset-inline-end: 0;
                     background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
                     flex-direction: column;
                     padding: 1rem;
@@ -358,18 +371,18 @@
             .btn-primary::before {
                 content: '';
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 0;
-                height: 0;
+                inset-block-start: 50%;
+                inset-inline-start: 50%;
+                inline-size: 0;
+                block-size: 0;
                 border-radius: 50%;
                 background: rgba(255, 255, 255, 0.2);
                 transform: translate(-50%, -50%);
                 transition: width 0.6s, height 0.6s;
             }
             .btn-primary:hover::before {
-                width: 300px;
-                height: 300px;
+                inline-size: 300px;
+                block-size: 300px;
             }
             .btn-primary:hover {
                 transform: translateY(-3px) scale(1.02);
@@ -470,9 +483,9 @@
             /* Progress Indicator */
             .scroll-progress {
                 position: fixed;
-                top: 0;
-                left: 0;
-                height: 4px;
+                inset-block-start: 0;
+                inset-inline-start: 0;
+                block-size: 4px;
                 background: linear-gradient(90deg, #D4AF37, #F4D03F, #7C3AED);
                 z-index: 9999;
                 transition: width 0.1s ease;
@@ -481,10 +494,10 @@
             /* Back to Top Button */
             .back-to-top {
                 position: fixed;
-                bottom: 100px;
-                right: 20px;
-                width: 50px;
-                height: 50px;
+                inset-block-end: 100px;
+                inset-inline-end: 20px;
+                inline-size: 50px;
+                block-size: 50px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
                 color: white;
@@ -517,8 +530,8 @@
             /* Ensure skip link is visible when focused */
             .sr-only-focusable:focus {
                 position: static;
-                width: auto;
-                height: auto;
+                inline-size: auto;
+                block-size: auto;
                 margin: 0.5rem;
                 padding: 0.5rem 1rem;
                 background: white;
@@ -529,13 +542,13 @@
             /* Chat Widget - Corporate Styling */
             .chat-widget {
                 position: fixed;
-                bottom: 20px;
-                right: 20px;
+                inset-block-end: 20px;
+                inset-inline-end: 20px;
                 z-index: 1000;
             }
             .chat-button {
-                width: 64px;
-                height: 64px;
+                inline-size: 64px;
+                block-size: 64px;
                 border-radius: 50%;
                 background: linear-gradient(135deg, var(--corporate-secondary), var(--corporate-accent));
                 color: white;
@@ -554,10 +567,10 @@
             }
             .chat-window {
                 position: fixed;
-                bottom: 100px;
-                right: 20px;
-                width: 380px;
-                height: 550px;
+                inset-block-end: 100px;
+                inset-inline-end: 20px;
+                inline-size: 380px;
+                block-size: 550px;
                 background: white;
                 border-radius: 16px;
                 box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
@@ -585,10 +598,10 @@
                 background: var(--corporate-light);
             }
             .chat-message {
-                margin-bottom: 16px;
+                margin-block-end: 16px;
                 padding: 12px 16px;
                 border-radius: 12px;
-                max-width: 85%;
+                max-inline-size: 85%;
                 word-wrap: break-word;
                 font-size: 14px;
                 line-height: 1.5;
@@ -596,22 +609,22 @@
             .chat-message.user {
                 background: var(--corporate-secondary);
                 color: white;
-                margin-left: auto;
-                text-align: right;
-                border-bottom-right-radius: 4px;
+                margin-inline-start: auto;
+                text-align: end;
+                border-end-end-radius: 4px;
             }
             .chat-message.bot {
                 background: white;
                 color: var(--corporate-text);
-                margin-right: auto;
+                margin-inline-end: auto;
                 box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
                 border: 1px solid var(--corporate-border);
-                border-bottom-left-radius: 4px;
+                border-end-start-radius: 4px;
             }
             .chat-input-container {
                 padding: 16px;
                 background: white;
-                border-top: 1px solid var(--corporate-border);
+                border-block-start: 1px solid var(--corporate-border);
                 display: flex;
                 gap: 10px;
             }
@@ -633,8 +646,8 @@
                 color: white;
                 border: none;
                 border-radius: 50%;
-                width: 44px;
-                height: 44px;
+                inline-size: 44px;
+                block-size: 44px;
                 cursor: pointer;
                 transition: all 0.3s;
                 display: flex;
@@ -644,28 +657,25 @@
                 font-weight: bold;
             }
             .chat-send-btn:hover {
-                background: var(--corporate-accent);
+                background: #6D28D9;
                 transform: scale(1.05);
             }
-            .chat-send-btn:hover {
-                background: #6D28D9;
-            }
-            @media (max-width: 640px) {
+            @media (max-inline-size: 640px) {
                 .chat-window {
-                    width: calc(100vw - 40px);
-                    height: calc(100vh - 120px);
-                    right: 20px;
-                    bottom: 90px;
+                    inline-size: calc(100vw - 40px);
+                    block-size: calc(100vh - 120px);
+                    inset-inline-end: 20px;
+                    inset-block-end: 90px;
                 }
             }
 
             /* Regulatory Notice Styles */
             .regulatory-notice {
                 position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                inset-block-start: 0;
+                inset-inline-start: 0;
+                inset-inline-end: 0;
+                inset-block-end: 0;
                 background: rgba(0, 0, 0, 0.85);
                 backdrop-filter: blur(10px);
                 z-index: 9999;
@@ -690,9 +700,9 @@
             .regulatory-notice-content {
                 background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
                 border-radius: 20px;
-                max-width: 900px;
-                width: 100%;
-                max-height: 95vh;
+                max-inline-size: 900px;
+                inline-size: 100%;
+                max-block-size: 95vh;
                 overflow-y: auto;
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
                 position: relative;
@@ -712,13 +722,13 @@
 
             .regulatory-close-btn {
                 position: absolute;
-                top: 1rem;
-                right: 1rem;
+                inset-block-start: 1rem;
+                inset-inline-end: 1rem;
                 background: rgba(239, 68, 68, 0.1);
                 border: 2px solid #EF4444;
                 color: #EF4444;
-                width: 40px;
-                height: 40px;
+                inline-size: 40px;
+                block-size: 40px;
                 border-radius: 50%;
                 font-size: 1.5rem;
                 cursor: pointer;
@@ -745,7 +755,7 @@
 
             .regulatory-icon {
                 font-size: 4rem;
-                margin-bottom: 1rem;
+                margin-block-end: 1rem;
                 animation: pulse 2s ease-in-out infinite;
             }
 
@@ -757,7 +767,7 @@
             .regulatory-header h2 {
                 font-size: 2rem;
                 font-weight: 800;
-                margin-bottom: 0.5rem;
+                margin-block-end: 0.5rem;
             }
 
             .regulatory-subtitle {
@@ -770,7 +780,7 @@
             }
 
             .regulatory-section {
-                margin-bottom: 2rem;
+                margin-block-end: 2rem;
                 padding: 1.5rem;
                 background: white;
                 border-radius: 12px;
@@ -781,7 +791,7 @@
                 font-size: 1.3rem;
                 font-weight: 700;
                 color: #1F2937;
-                margin-bottom: 1rem;
+                margin-block-end: 1rem;
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
@@ -803,7 +813,7 @@
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 1rem;
-                margin-top: 1rem;
+                margin-block-start: 1rem;
             }
 
             .benefit-card {
@@ -830,7 +840,7 @@
                 display: block;
                 color: #1F2937;
                 font-size: 1rem;
-                margin-bottom: 0.25rem;
+                margin-block-end: 0.25rem;
             }
 
             .benefit-card p {
@@ -847,7 +857,7 @@
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
                 gap: 1.5rem;
-                margin-top: 1rem;
+                margin-block-start: 1rem;
             }
 
             .stat-item {
@@ -861,7 +871,7 @@
                 font-size: 1.8rem;
                 font-weight: 800;
                 color: #6D28D9;
-                margin-bottom: 0.5rem;
+                margin-block-end: 0.5rem;
             }
 
             .stat-label {
@@ -879,12 +889,12 @@
 
             .regulatory-cta h3 {
                 font-size: 1.5rem;
-                margin-bottom: 0.5rem;
+                margin-block-end: 0.5rem;
                 color: white;
             }
 
             .regulatory-cta > p {
-                margin-bottom: 1.5rem;
+                margin-block-end: 1.5rem;
                 opacity: 0.9;
             }
 
@@ -892,7 +902,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 1rem;
-                max-width: 500px;
+                max-inline-size: 500px;
                 margin: 0 auto 1rem;
             }
 
@@ -940,11 +950,11 @@
             .trust-badge {
                 font-size: 0.85rem;
                 opacity: 0.8;
-                margin-top: 1rem;
+                margin-block-start: 1rem;
             }
 
             /* Mobile Responsive for Regulatory Notice */
-            @media (max-width: 768px) {
+            @media (max-inline-size: 768px) {
                 .regulatory-header h2 {
                     font-size: 1.5rem;
                 }
@@ -966,10 +976,10 @@
                 }
 
                 .regulatory-close-btn {
-                    top: 0.5rem;
-                    right: 0.5rem;
-                    width: 35px;
-                    height: 35px;
+                    inset-block-start: 0.5rem;
+                    inset-inline-end: 0.5rem;
+                    inline-size: 35px;
+                    block-size: 35px;
                 }
 
                 .cta-buttons button {
@@ -1038,6 +1048,20 @@
                 </button>
             </div>
             
+            <!-- Free Resources Teaser -->
+            <div class="bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 rounded-2xl p-6 max-w-md mx-auto mb-6 scale-in border-4 border-yellow-300 shadow-2xl pulse-glow">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-4xl">🎁</span>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">FREE Resources Available!</h3>
+                        <p class="text-white text-sm opacity-90">Start learning today at no cost</p>
+                    </div>
+                </div>
+                <button type="button" onclick="scrollToSection('free-hub')" class="w-full bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-yellow-50 transition shadow-lg text-base">
+                    ⚡ Explore Free Tools & Content
+                </button>
+            </div>
+
             <!-- Payment Section - Corporate -->
             <div class="bg-white bg-opacity-10 backdrop-blur-xl rounded-2xl p-8 max-w-md mx-auto scale-in border border-white border-opacity-20 shadow-2xl">
                 <h3 class="text-2xl font-bold mb-2 text-white">Get Premium Access</h3>
@@ -1235,6 +1259,290 @@
         </main>
     </section>
 
+    <!-- Free Resources Hub - Exhilarating Free Content -->
+    <section id="free-hub" aria-label="Free Resources Hub" class="py-20 px-4 bg-gradient-to-br from-orange-50 via-yellow-50 to-pink-50">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header with Badge -->
+            <div class="text-center mb-12 animate-on-scroll">
+                <div class="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-bold mb-4 text-sm uppercase tracking-wide shadow-lg">
+                    🎉 100% Free • No Credit Card Required
+                </div>
+                <h2 class="text-5xl font-bold mb-4 gradient-text">Free Resources Hub</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">Start your investment journey today with these powerful free tools and educational resources</p>
+            </div>
+
+            <!-- Free Interactive Calculators -->
+            <div class="mb-16 animate-on-scroll">
+                <h3 class="text-3xl font-bold mb-6 text-center text-purple-800">🧮 Free Interactive Calculators</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Compound Interest Calculator -->
+                    <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-green-200 hover:border-green-400 transition card-hover">
+                        <div class="text-4xl mb-3">💰</div>
+                        <h4 class="text-xl font-bold mb-3 text-green-700">Compound Interest Calculator</h4>
+                        <p class="text-gray-600 mb-4">See how your money grows over time with compound interest</p>
+                        <div class="space-y-3 mb-4">
+                            <input type="number" id="freeInitial" placeholder="Initial Amount (KES)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="freeMonthly" placeholder="Monthly Investment (KES)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="freeRate" placeholder="Annual Interest Rate (%)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value="8">
+                            <input type="number" id="freeYears" placeholder="Years" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value="10">
+                            <button onclick="calculateCompound()" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition">Calculate</button>
+                        </div>
+                        <div id="compoundResult" class="bg-green-50 rounded-lg p-3 text-center hidden">
+                            <p class="text-sm text-gray-600 mb-1">Future Value:</p>
+                            <p class="text-2xl font-bold text-green-700" id="compoundValue">-</p>
+                        </div>
+                    </div>
+
+                    <!-- ROI Calculator -->
+                    <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-blue-200 hover:border-blue-400 transition card-hover">
+                        <div class="text-4xl mb-3">📈</div>
+                        <h4 class="text-xl font-bold mb-3 text-blue-700">ROI Calculator</h4>
+                        <p class="text-gray-600 mb-4">Calculate return on investment for any asset</p>
+                        <div class="space-y-3 mb-4">
+                            <input type="number" id="roiCost" placeholder="Initial Investment (KES)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="roiReturn" placeholder="Current/Final Value (KES)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <button onclick="calculateROI()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Calculate ROI</button>
+                        </div>
+                        <div id="roiResult" class="bg-blue-50 rounded-lg p-3 text-center hidden">
+                            <p class="text-sm text-gray-600 mb-1">Return on Investment:</p>
+                            <p class="text-2xl font-bold text-blue-700" id="roiValue">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Savings Goal Calculator -->
+                    <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-purple-200 hover:border-purple-400 transition card-hover">
+                        <div class="text-4xl mb-3">🎯</div>
+                        <h4 class="text-xl font-bold mb-3 text-purple-700">Savings Goal Calculator</h4>
+                        <p class="text-gray-600 mb-4">Find out how much to save monthly to reach your goal</p>
+                        <div class="space-y-3 mb-4">
+                            <input type="number" id="goalAmount" placeholder="Target Amount (KES)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="goalMonths" placeholder="Timeframe (Months)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <button onclick="calculateGoal()" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Calculate</button>
+                        </div>
+                        <div id="goalResult" class="bg-purple-50 rounded-lg p-3 text-center hidden">
+                            <p class="text-sm text-gray-600 mb-1">Monthly Savings Needed:</p>
+                            <p class="text-2xl font-bold text-purple-700" id="goalValue">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <p class="text-sm text-gray-500">⭐ Premium members get access to 15+ advanced calculators including Tax, Portfolio, and Risk Analysis tools</p>
+                </div>
+            </div>
+
+            <!-- Weekly Free Tips -->
+            <div class="mb-16 animate-on-scroll">
+                <h3 class="text-3xl font-bold mb-6 text-center text-purple-800">📚 This Week's Free Investment Tips</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-6 text-white shadow-xl">
+                        <div class="flex items-start gap-4">
+                            <span class="text-4xl">💡</span>
+                            <div>
+                                <h4 class="text-xl font-bold mb-2">Tip #1: Start Small, Dream Big</h4>
+                                <p class="text-blue-100">You don't need thousands to start investing. Even KES 500/month can grow to over KES 100,000 in 10 years with 8% returns!</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-white shadow-xl">
+                        <div class="flex items-start gap-4">
+                            <span class="text-4xl">⚡</span>
+                            <div>
+                                <h4 class="text-xl font-bold mb-2">Tip #2: Diversification is Key</h4>
+                                <p class="text-green-100">Don't put all eggs in one basket. Spread investments across stocks, bonds, and real estate to minimize risk.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl p-6 text-white shadow-xl">
+                        <div class="flex items-start gap-4">
+                            <span class="text-4xl">🎯</span>
+                            <div>
+                                <h4 class="text-xl font-bold mb-2">Tip #3: Time Beats Timing</h4>
+                                <p class="text-purple-100">The best time to invest was yesterday. The second best time is today. Consistent investing beats trying to time the market.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-6 text-white shadow-xl">
+                        <div class="flex items-start gap-4">
+                            <span class="text-4xl">🔒</span>
+                            <div>
+                                <h4 class="text-xl font-bold mb-2">Tip #4: Emergency Fund First</h4>
+                                <p class="text-orange-100">Before investing, save 3-6 months of expenses in an accessible account. This protects you from selling investments during emergencies.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Free Mini Courses -->
+            <div class="mb-16 animate-on-scroll">
+                <h3 class="text-3xl font-bold mb-6 text-center text-purple-800">🎓 Free Mini-Courses (5 mins each)</h3>
+                <div class="grid md:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-lg p-4 shadow-md border-l-4 border-green-500">
+                        <h4 class="font-bold mb-2 text-green-700">✅ What is Investing?</h4>
+                        <p class="text-sm text-gray-600 mb-3">Learn the basics in 5 minutes</p>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">FREE</span>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md border-l-4 border-blue-500">
+                        <h4 class="font-bold mb-2 text-blue-700">✅ Risk vs Reward</h4>
+                        <p class="text-sm text-gray-600 mb-3">Understanding investment risk</p>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">FREE</span>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md border-l-4 border-purple-500">
+                        <h4 class="font-bold mb-2 text-purple-700">✅ Stocks 101</h4>
+                        <p class="text-sm text-gray-600 mb-3">Introduction to stock market</p>
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-semibold">FREE</span>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md border-l-4 border-orange-500">
+                        <h4 class="font-bold mb-2 text-orange-700">✅ Budget Basics</h4>
+                        <p class="text-sm text-gray-600 mb-3">How to budget for investing</p>
+                        <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold">FREE</span>
+                    </div>
+                </div>
+                <div class="text-center mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p class="text-sm font-semibold text-yellow-800">🔥 Want access to 40+ full courses? <a href="#signup" onclick="scrollToSection('signup')" class="text-purple-600 underline hover:text-purple-800">Upgrade to Premium</a></p>
+                </div>
+            </div>
+
+            <!-- Success Stories -->
+            <div class="mb-16 animate-on-scroll">
+                <h3 class="text-3xl font-bold mb-6 text-center text-purple-800">🌟 Real Success Stories from Our Community</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-xl font-bold">A</div>
+                            <div>
+                                <p class="font-bold text-gray-800">Amina K.</p>
+                                <p class="text-sm text-gray-500">Nairobi, Kenya</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-3">"Started with just KES 1,000/month using the free calculators. Now my portfolio is worth KES 250,000 after 3 years!"</p>
+                        <div class="flex gap-2">
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Free User → Premium</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold">D</div>
+                            <div>
+                                <p class="font-bold text-gray-800">David M.</p>
+                                <p class="text-sm text-gray-500">Lagos, Nigeria</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-3">"The free tips helped me understand investing. Upgraded to premium and learned strategies that doubled my returns!"</p>
+                        <div class="flex gap-2">
+                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Free User → Premium</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">S</div>
+                            <div>
+                                <p class="font-bold text-gray-800">Sarah O.</p>
+                                <p class="text-sm text-gray-500">Accra, Ghana</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-3">"Free resources gave me confidence to start. Premium tools helped me build a diversified portfolio worth $15,000!"</p>
+                        <div class="flex gap-2">
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Free User → Premium</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Free vs Premium Comparison -->
+            <div class="animate-on-scroll">
+                <h3 class="text-3xl font-bold mb-6 text-center text-purple-800">🆚 Free vs Premium: What You Get</h3>
+                <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gradient-to-r from-purple-600 to-purple-800 text-white">
+                                    <th class="px-6 py-4 text-left font-bold">Feature</th>
+                                    <th class="px-6 py-4 text-center font-bold">Free Access</th>
+                                    <th class="px-6 py-4 text-center font-bold bg-yellow-400 text-purple-900">⭐ Premium Access</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Interactive Calculators</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">3 Basic Tools</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">15+ Advanced Tools</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Investment Courses</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">4 Mini Courses</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">40+ Full Courses</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Weekly Tips & Insights</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">✓ Yes</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ + Daily Updates</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Portfolio Tracking</td>
+                                    <td class="px-6 py-4 text-center text-gray-400">✗ Not Available</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ Real-time Tracking</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Expert Support</td>
+                                    <td class="px-6 py-4 text-center text-gray-400">✗ Not Available</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ 24/7 Chat Support</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Investment Opportunities</td>
+                                    <td class="px-6 py-4 text-center text-gray-400">✗ Not Available</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ Exclusive Deals</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Community Access</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">Basic Forum</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">VIP Networking Events</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Market Analysis Reports</td>
+                                    <td class="px-6 py-4 text-center text-gray-400">✗ Not Available</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ Weekly Reports</td>
+                                </tr>
+                                <tr class="hover:bg-purple-50 transition">
+                                    <td class="px-6 py-4 font-semibold text-gray-800">Risk Assessment Tools</td>
+                                    <td class="px-6 py-4 text-center text-gray-400">✗ Not Available</td>
+                                    <td class="px-6 py-4 text-center bg-purple-50 font-semibold text-purple-700">✓ AI-Powered Analysis</td>
+                                </tr>
+                                <tr class="bg-gradient-to-r from-purple-50 to-pink-50">
+                                    <td class="px-6 py-4 font-bold text-gray-800">Monthly Cost</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="text-2xl font-bold text-green-600">FREE</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-center bg-gradient-to-r from-purple-100 to-purple-50">
+                                        <span class="text-3xl font-bold text-purple-700">KES 2,999</span>
+                                        <p class="text-xs text-gray-600 mt-1">Less than KES 100/day!</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Upgrade CTA -->
+                <div class="mt-8 text-center">
+                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl">
+                        <h4 class="text-3xl font-bold text-white mb-3">🚀 Ready to Level Up?</h4>
+                        <p class="text-purple-100 mb-6 text-lg">Join 10,000+ investors who upgraded to Premium and transformed their financial future</p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button onclick="scrollToSection('signup')" class="bg-yellow-400 text-purple-900 px-8 py-4 rounded-lg font-bold hover:bg-yellow-300 transition shadow-xl text-lg">
+                                ⭐ Get Premium Access Now
+                            </button>
+                            <button onclick="scrollToSection('contact')" class="bg-white bg-opacity-20 text-white border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-opacity-30 transition text-lg">
+                                💬 Ask Questions First
+                            </button>
+                        </div>
+                        <p class="text-purple-200 mt-4 text-sm">✓ 30-Day Money Back Guarantee • ✓ Cancel Anytime • ✓ Instant Access</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Academy Section -->
     <!-- Files / Marketplace Section -->
     <section id="files" aria-label="Files" class="py-20 px-4 bg-white">
@@ -1303,7 +1611,7 @@
     <section id="tools" aria-label="Tools" class="py-20 px-4 bg-white">
         <div class="max-w-7xl mx-auto">
             <h2 id="tools-heading" class="text-4xl font-bold mb-12 text-center gradient-text">Investment Tools</h2>
-            <div class="grid md:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
                 <div class="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
                     <h3 class="text-xl font-bold mb-3 text-purple-700">Portfolio Tracker</h3>
                     <p class="text-gray-700 mb-4">Monitor holdings & performance.</p>
@@ -1318,6 +1626,145 @@
                     <h3 class="text-xl font-bold mb-3 text-green-700">Savings Automator</h3>
                     <p class="text-gray-700 mb-4">Automate micro-savings into investments.</p>
                     <button type="button" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Launch Tool</button>
+                </div>
+            </div>
+
+            <!-- Premium Advanced Calculators Section -->
+            <div class="mt-16">
+                <div class="text-center mb-8">
+                    <div class="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-bold mb-4 text-sm uppercase tracking-wide shadow-lg">
+                        ⭐ Premium Advanced Calculators
+                    </div>
+                    <h3 class="text-3xl font-bold mb-3 text-purple-800">Professional Financial Planning Tools</h3>
+                    <p class="text-gray-600 max-w-3xl mx-auto">Real-world scenarios and advanced calculations for comprehensive financial planning. Premium members only.</p>
+                </div>
+
+                <!-- Premium Calculator Grid -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Insurance Calculator -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg border-2 border-blue-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">🛡️</div>
+                        <h4 class="text-xl font-bold mb-2 text-blue-800">Life Insurance Calculator</h4>
+                        <p class="text-sm text-gray-700 mb-4">Determine optimal coverage based on your dependents, debts, and future goals.</p>
+                        <div class="bg-blue-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Family of 4, mortgage KES 5M, children education needs, income replacement for 20 years.
+                        </div>
+                        <button onclick="openPremiumCalculator('insurance')" class="w-full bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-800 transition">Calculate Coverage</button>
+                    </div>
+
+                    <!-- Cash Flow Analysis -->
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 shadow-lg border-2 border-green-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">💸</div>
+                        <h4 class="text-xl font-bold mb-2 text-green-800">Cash Flow Analyzer</h4>
+                        <p class="text-sm text-gray-700 mb-4">Track income, expenses, savings, and investment allocations with projections.</p>
+                        <div class="bg-green-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Salary KES 150,000, rent KES 30,000, utilities KES 15,000, savings 20%, investments 15%.
+                        </div>
+                        <button onclick="openPremiumCalculator('cashflow')" class="w-full bg-green-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-800 transition">Analyze Cash Flow</button>
+                    </div>
+
+                    <!-- Emergency Fund Calculator -->
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 shadow-lg border-2 border-red-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">🚨</div>
+                        <h4 class="text-xl font-bold mb-2 text-red-800">Emergency & Calamity Fund</h4>
+                        <p class="text-sm text-gray-700 mb-4">Calculate reserves needed for job loss, medical emergencies, and disasters.</p>
+                        <div class="bg-red-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> 6 months living expenses, medical coverage gap, property damage reserves, job market recovery time.
+                        </div>
+                        <button onclick="openPremiumCalculator('emergency')" class="w-full bg-red-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-800 transition">Calculate Safety Net</button>
+                    </div>
+
+                    <!-- Risk Assessment Tool -->
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg border-2 border-purple-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">📊</div>
+                        <h4 class="text-xl font-bold mb-2 text-purple-800">Portfolio Risk Analyzer</h4>
+                        <p class="text-sm text-gray-700 mb-4">Calculate Sharpe ratio, standard deviation, beta, and maximum drawdown analysis.</p>
+                        <div class="bg-purple-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Portfolio of 60% stocks, 30% bonds, 10% alternatives. Historical volatility analysis and future risk projections.
+                        </div>
+                        <button onclick="openPremiumCalculator('risk')" class="w-full bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-800 transition">Analyze Risk</button>
+                    </div>
+
+                    <!-- Retirement Calculator -->
+                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 shadow-lg border-2 border-orange-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">🏖️</div>
+                        <h4 class="text-xl font-bold mb-2 text-orange-800">Retirement Planner</h4>
+                        <p class="text-sm text-gray-700 mb-4">Plan for retirement with inflation-adjusted projections and income replacement.</p>
+                        <div class="bg-orange-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Current age 35, retirement at 60, life expectancy 85, KES 100,000/month retirement income needed.
+                        </div>
+                        <button onclick="openPremiumCalculator('retirement')" class="w-full bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-orange-800 transition">Plan Retirement</button>
+                    </div>
+
+                    <!-- Tax Optimization -->
+                    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 shadow-lg border-2 border-yellow-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">💰</div>
+                        <h4 class="text-xl font-bold mb-2 text-yellow-800">Tax Optimization Calculator</h4>
+                        <p class="text-sm text-gray-700 mb-4">Minimize tax liability through strategic investment allocation and timing.</p>
+                        <div class="bg-yellow-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Annual income KES 2.4M, capital gains KES 500K, pension contributions, tax-efficient investment strategies.
+                        </div>
+                        <button onclick="openPremiumCalculator('tax')" class="w-full bg-yellow-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-800 transition">Optimize Taxes</button>
+                    </div>
+
+                    <!-- Debt Management -->
+                    <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-6 shadow-lg border-2 border-pink-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">💳</div>
+                        <h4 class="text-xl font-bold mb-2 text-pink-800">Debt Repayment Optimizer</h4>
+                        <p class="text-sm text-gray-700 mb-4">Compare snowball vs avalanche methods and calculate total interest savings.</p>
+                        <div class="bg-pink-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Credit card KES 200K@18%, car loan KES 1.5M@12%, mortgage KES 5M@9%, extra KES 20K/month to allocate.
+                        </div>
+                        <button onclick="openPremiumCalculator('debt')" class="w-full bg-pink-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-800 transition">Optimize Debt</button>
+                    </div>
+
+                    <!-- Property Investment -->
+                    <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl p-6 shadow-lg border-2 border-teal-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">🏠</div>
+                        <h4 class="text-xl font-bold mb-2 text-teal-800">Real Estate ROI Calculator</h4>
+                        <p class="text-sm text-gray-700 mb-4">Calculate rental yield, capital appreciation, and total return on property investments.</p>
+                        <div class="bg-teal-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> Property KES 8M, rental KES 60K/month, maintenance 10%, vacancy 5%, appreciation 5%/year.
+                        </div>
+                        <button onclick="openPremiumCalculator('property')" class="w-full bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-800 transition">Calculate ROI</button>
+                    </div>
+
+                    <!-- Education Fund -->
+                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 shadow-lg border-2 border-indigo-300 relative overflow-hidden">
+                        <div class="absolute top-2 right-2 bg-yellow-400 text-purple-900 px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+                        <div class="text-4xl mb-3">🎓</div>
+                        <h4 class="text-xl font-bold mb-2 text-indigo-800">Education Fund Planner</h4>
+                        <p class="text-sm text-gray-700 mb-4">Plan for children's education with inflation-adjusted costs and investment strategy.</p>
+                        <div class="bg-indigo-200 rounded-lg p-3 mb-4 text-xs">
+                            <strong>Real-life scenario:</strong> 2 children ages 5 and 8, university in 13 and 10 years, current cost KES 2M, education inflation 8%/year.
+                        </div>
+                        <button onclick="openPremiumCalculator('education')" class="w-full bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-800 transition">Plan Education</button>
+                    </div>
+
+                </div>
+
+                <!-- Premium Access CTA -->
+                <div class="mt-10 text-center bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8 border-2 border-purple-300">
+                    <h4 class="text-2xl font-bold text-purple-900 mb-3">🔒 Unlock All Premium Calculators</h4>
+                    <p class="text-gray-700 mb-6">Get instant access to all 9 advanced calculators plus expert guidance, real-time data, and personalized recommendations.</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button onclick="scrollToSection('signup')" class="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-8 py-4 rounded-lg font-bold hover:from-purple-700 hover:to-purple-900 transition shadow-xl">
+                            ⭐ Upgrade to Premium - KES 2,999/month
+                        </button>
+                        <button onclick="alert('Premium trial coming soon!')" class="bg-white text-purple-700 border-2 border-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition">
+                            🎁 Try Free for 7 Days
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-4">✓ All calculators with unlimited usage • ✓ Save and track your scenarios • ✓ Export detailed reports • ✓ Priority support</p>
                 </div>
             </div>
         </div>
@@ -1368,6 +1815,17 @@
                 </div>
                 <button type="submit" class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">Send Message</button>
             </form>
+            
+            <!-- My Messages Section (only for logged-in users) -->
+            <div id="myMessagesSection" class="mt-12 bg-white rounded-lg p-8 shadow-md" style="display: none;">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-purple-600">My Messages</h3>
+                    <button onclick="loadMyMessages()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition">🔄 Refresh</button>
+                </div>
+                <div id="userMessagesList" class="space-y-4">
+                    <p class="text-gray-600 text-center">Loading your messages...</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -1593,159 +2051,162 @@
         }
     }
 
-    async function handleMpesaPay() {
+    // Generic payment handler to reduce code duplication
+    async function processPayment(config) {
         if (loading) return;
         loading = true;
-        const btn = document.getElementById('mpesaBtn');
+        const btn = document.getElementById(config.buttonId);
         const msgDiv = document.getElementById('paymentMessage');
         btn.disabled = true;
         btn.textContent = 'Processing...';
         msgDiv.textContent = '';
 
-        // Show processing notification
         const processingToastId = showPaymentToast(
             'processing',
-            'Processing M-Pesa Payment',
-            'Please wait while we initiate your payment...',
-            { Method: 'M-Pesa', Amount: 'KES 1,000' }
+            config.processingTitle,
+            config.processingMessage,
+            config.processingDetails
         );
 
         try {
-            const phone = btn.dataset.phone || '254114383762';
-            const res = await fetch('/api/pay/mpesa', {
+            const requestBody = config.getRequestBody ? config.getRequestBody() : {};
+            const res = await fetch(config.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 1000, phone })
+                body: JSON.stringify(requestBody)
             });
             const data = await res.json();
             
-            // Remove processing notification
             removePaymentToast(processingToastId);
             
-            if (data.success) {
-                msgDiv.textContent = 'M-Pesa STK Push sent. Complete payment on your phone.';
-                msgDiv.className = 'mt-4 text-sm text-green-300';
+            if (config.checkSuccess ? config.checkSuccess(data) : data.success) {
+                if (config.onSuccess) {
+                    config.onSuccess(data, msgDiv);
+                } else {
+                    msgDiv.textContent = config.successMessage || 'Payment successful!';
+                    msgDiv.className = 'mt-4 text-sm text-green-300';
+                }
                 
-                // Show success notification
-                showPaymentToast(
-                    'success',
-                    'Payment Request Sent!',
-                    'Check your phone to complete the M-Pesa payment.',
-                    { 
-                        Phone: phone,
-                        Amount: 'KES 1,000',
-                        Action: 'Enter PIN on phone'
-                    }
-                );
+                if (config.successToast) {
+                    showPaymentToast(
+                        'success',
+                        config.successToast.title,
+                        config.successToast.message,
+                        config.successToast.details
+                    );
+                }
             } else {
-                msgDiv.textContent = 'M-Pesa payment failed.';
+                msgDiv.textContent = config.errorMessage || 'Payment failed.';
                 msgDiv.className = 'mt-4 text-sm text-red-300';
                 
-                // Show error notification
-                showPaymentToast(
-                    'error',
-                    'Payment Failed',
-                    data.message || 'Unable to process M-Pesa payment. Please try again.',
-                    { Method: 'M-Pesa' }
-                );
+                if (config.errorToast) {
+                    showPaymentToast(
+                        'error',
+                        config.errorToast.title,
+                        config.errorToast.message || data.message || 'Payment processing error.',
+                        config.errorToast.details
+                    );
+                }
             }
         } catch (error) {
             removePaymentToast(processingToastId);
             msgDiv.textContent = 'Network error. Please try again.';
             msgDiv.className = 'mt-4 text-sm text-red-300';
             
-            // Show error notification
-            showPaymentToast(
-                'error',
-                'Connection Error',
-                'Unable to connect to payment server. Please check your internet connection.',
-                { Error: 'Network timeout' }
-            );
+            if (config.networkErrorToast) {
+                showPaymentToast(
+                    'error',
+                    config.networkErrorToast.title,
+                    config.networkErrorToast.message,
+                    config.networkErrorToast.details
+                );
+            }
         } finally {
             loading = false;
             btn.disabled = false;
-            btn.textContent = 'Pay with M-Pesa';
+            btn.textContent = config.buttonText;
         }
+    }
+
+    async function handleMpesaPay() {
+        const btn = document.getElementById('mpesaBtn');
+        const phone = btn.dataset.phone || '254114383762';
+        
+        await processPayment({
+            buttonId: 'mpesaBtn',
+            buttonText: 'Pay with M-Pesa',
+            endpoint: '/api/pay/mpesa',
+            getRequestBody: () => ({ amount: 1000, phone }),
+            processingTitle: 'Processing M-Pesa Payment',
+            processingMessage: 'Please wait while we initiate your payment...',
+            processingDetails: { Method: 'M-Pesa', Amount: 'KES 1,000' },
+            successMessage: 'M-Pesa STK Push sent. Complete payment on your phone.',
+            errorMessage: 'M-Pesa payment failed.',
+            successToast: {
+                title: 'Payment Request Sent!',
+                message: 'Check your phone to complete the M-Pesa payment.',
+                details: { 
+                    Phone: phone,
+                    Amount: 'KES 1,000',
+                    Action: 'Enter PIN on phone'
+                }
+            },
+            errorToast: {
+                title: 'Payment Failed',
+                message: 'Unable to process M-Pesa payment. Please try again.',
+                details: { Method: 'M-Pesa' }
+            },
+            networkErrorToast: {
+                title: 'Connection Error',
+                message: 'Unable to connect to payment server. Please check your internet connection.',
+                details: { Error: 'Network timeout' }
+            }
+        });
     }
 
     async function handleBuyMpesa(fileId) {
-        if (loading) return;
-        loading = true;
         const btn = document.getElementById('mpesaBtn');
-        const msgDiv = document.getElementById('paymentMessage');
-        btn.disabled = true;
-        btn.textContent = 'Processing...';
-        msgDiv.textContent = '';
-
-        const processingToastId = showPaymentToast(
-            'processing',
-            'Processing File Purchase',
-            'Initiating M-Pesa payment for your file...',
-            { File: fileId, Amount: 'KES 1,000' }
-        );
-
-        try {
-            const phone = btn.dataset.phone || '254114383762';
-            const res = await fetch('/api/pay/mpesa', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 1000, phone, accountReference: fileId })
-            });
-            const data = await res.json();
-            
-            removePaymentToast(processingToastId);
-            
-            if (data.success) {
-                msgDiv.textContent = 'M-Pesa STK Push sent. Complete payment on your phone.';
-                msgDiv.className = 'mt-4 text-sm text-green-300';
-                showPaymentToast(
-                    'success',
-                    'Purchase Request Sent!',
-                    'Complete payment on your phone to download the file.',
-                    { File: fileId, Phone: phone, Amount: 'KES 1,000' }
-                );
-            } else {
-                msgDiv.textContent = 'M-Pesa payment failed.';
-                msgDiv.className = 'mt-4 text-sm text-red-300';
-                showPaymentToast('error', 'Purchase Failed', data.message || 'Payment processing error.', { File: fileId });
+        const phone = btn.dataset.phone || '254114383762';
+        
+        await processPayment({
+            buttonId: 'mpesaBtn',
+            buttonText: 'Pay with M-Pesa',
+            endpoint: '/api/pay/mpesa',
+            getRequestBody: () => ({ amount: 1000, phone, accountReference: fileId }),
+            processingTitle: 'Processing File Purchase',
+            processingMessage: 'Initiating M-Pesa payment for your file...',
+            processingDetails: { File: fileId, Amount: 'KES 1,000' },
+            successMessage: 'M-Pesa STK Push sent. Complete payment on your phone.',
+            errorMessage: 'M-Pesa payment failed.',
+            successToast: {
+                title: 'Purchase Request Sent!',
+                message: 'Complete payment on your phone to download the file.',
+                details: { File: fileId, Phone: phone, Amount: 'KES 1,000' }
+            },
+            errorToast: {
+                title: 'Purchase Failed',
+                message: 'Payment processing error.',
+                details: { File: fileId }
+            },
+            networkErrorToast: {
+                title: 'Connection Error',
+                message: 'Network error during purchase.',
+                details: { File: fileId }
             }
-        } catch (error) {
-            removePaymentToast(processingToastId);
-            msgDiv.textContent = 'Network error. Please try again.';
-            msgDiv.className = 'mt-4 text-sm text-red-300';
-            showPaymentToast('error', 'Connection Error', 'Network error during purchase.', { File: fileId });
-        } finally {
-            loading = false;
-            btn.disabled = false;
-            btn.textContent = 'Pay with M-Pesa';
-        }
+        });
     }
 
     async function handlePayPalPay() {
-        if (loading) return;
-        loading = true;
-        const btn = document.getElementById('paypalBtn');
-        const msgDiv = document.getElementById('paymentMessage');
-        btn.disabled = true;
-        btn.textContent = 'Processing...';
-        msgDiv.textContent = '';
-
-        const processingToastId = showPaymentToast(
-            'processing',
-            'Redirecting to PayPal',
-            'Creating secure payment session...',
-            { Method: 'PayPal', Amount: 'USD 10' }
-        );
-
-        try {
-            const res = await fetch('/api/pay/paypal/create-order', {
-                method: 'POST'
-            });
-            const data = await res.json();
-            
-            removePaymentToast(processingToastId);
-            
-            if (data?.approveUrl) {
+        await processPayment({
+            buttonId: 'paypalBtn',
+            buttonText: 'Pay with PayPal',
+            endpoint: '/api/pay/paypal/create-order',
+            getRequestBody: () => ({}),
+            processingTitle: 'Redirecting to PayPal',
+            processingMessage: 'Creating secure payment session...',
+            processingDetails: { Method: 'PayPal', Amount: 'USD 10' },
+            checkSuccess: (data) => data?.approveUrl,
+            onSuccess: (data, msgDiv) => {
                 showPaymentToast(
                     'success',
                     'Redirecting to PayPal',
@@ -1755,52 +2216,54 @@
                 setTimeout(() => {
                     window.location.href = data.approveUrl;
                 }, 1500);
-            } else {
-                msgDiv.textContent = 'PayPal order creation failed.';
-                msgDiv.className = 'mt-4 text-sm text-red-300';
-                showPaymentToast('error', 'PayPal Error', 'Unable to create payment order.', { Method: 'PayPal' });
+            },
+            errorMessage: 'PayPal order creation failed.',
+            errorToast: {
+                title: 'PayPal Error',
+                message: 'Unable to create payment order.',
+                details: { Method: 'PayPal' }
+            },
+            networkErrorToast: {
+                title: 'Connection Error',
+                message: 'Unable to connect to PayPal.',
+                details: { Error: 'Network' }
             }
-        } catch (error) {
-            removePaymentToast(processingToastId);
-            msgDiv.textContent = 'Network error. Please try again.';
-            msgDiv.className = 'mt-4 text-sm text-red-300';
-            showPaymentToast('error', 'Connection Error', 'Unable to connect to PayPal.', { Error: 'Network' });
-        } finally {
-            loading = false;
-            btn.disabled = false;
-            btn.textContent = 'Pay with PayPal';
-        }
+        });
     }
 
     async function handleBuyPaypal(fileId, amount) {
-        if (loading) return;
-        loading = true;
-        const btn = document.getElementById('paypalBtn');
-        const msgDiv = document.getElementById('paymentMessage');
-        btn.disabled = true;
-        btn.textContent = 'Processing...';
-        msgDiv.textContent = '';
-        try {
-            const res = await fetch('/api/pay/paypal/create-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: amount || 10, fileId })
-            });
-            const data = await res.json();
-            if (data?.approveUrl) {
-                window.location.href = data.approveUrl;
-            } else {
-                msgDiv.textContent = 'PayPal order creation failed.';
-                msgDiv.className = 'mt-4 text-sm text-red-300';
+        await processPayment({
+            buttonId: 'paypalBtn',
+            buttonText: 'Pay with PayPal',
+            endpoint: '/api/pay/paypal/create-order',
+            getRequestBody: () => ({ amount: amount || 10, fileId }),
+            processingTitle: 'Processing File Purchase',
+            processingMessage: 'Creating PayPal payment for your file...',
+            processingDetails: { File: fileId, Amount: `USD ${amount || 10}`, Method: 'PayPal' },
+            checkSuccess: (data) => data?.approveUrl,
+            onSuccess: (data, msgDiv) => {
+                showPaymentToast(
+                    'success',
+                    'Redirecting to PayPal',
+                    'Redirecting to complete your purchase...',
+                    { File: fileId, Amount: `USD ${amount || 10}` }
+                );
+                setTimeout(() => {
+                    window.location.href = data.approveUrl;
+                }, 1500);
+            },
+            errorMessage: 'PayPal order creation failed.',
+            errorToast: {
+                title: 'PayPal Error',
+                message: 'Unable to create payment order.',
+                details: { File: fileId, Method: 'PayPal' }
+            },
+            networkErrorToast: {
+                title: 'Connection Error',
+                message: 'Network error. Please try again.',
+                details: { File: fileId }
             }
-        } catch (error) {
-            msgDiv.textContent = 'Network error. Please try again.';
-            msgDiv.className = 'mt-4 text-sm text-red-300';
-        } finally {
-            loading = false;
-            btn.disabled = false;
-            btn.textContent = 'Pay with PayPal';
-        }
+        });
     }
 
     function toggleBankForm(show) {
@@ -1959,10 +2422,41 @@
         document.getElementById('bankReference').value = fileId;
     }
 
-    function handleContactSubmit(event) {
+    async function handleContactSubmit(event) {
         event.preventDefault();
-        alert('Thank you for your message! We will get back to you soon.');
-        event.target.reset();
+        const form = event.target;
+        const name = form.querySelector('input[placeholder="Your Name"]')?.value || 'Visitor';
+        const email = form.querySelector('input[placeholder="Your Email"]')?.value || '';
+        const message = form.querySelector('textarea')?.value || '';
+        
+        if (!message.trim()) {
+            alert('Please enter a message');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, message })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('✅ Thank you! Your message has been received. We will get back to you soon.');
+                form.reset();
+                
+                // If user is logged in, reload their messages
+                const userEmail = localStorage.getItem('si_user_email');
+                if (userEmail && userEmail.toLowerCase() === email.toLowerCase()) {
+                    loadMyMessages();
+                }
+            } else {
+                alert('❌ Failed to send message. Please try again.');
+            }
+        } catch (err) {
+            alert('❌ Network error. Please check your connection and try again.');
+        }
     }
 
     function demoLogin(event) {
@@ -2079,12 +2573,20 @@
         messagesContainer.appendChild(userMsg);
         input.value = '';
 
+        // Get user email from localStorage if logged in
+        let userEmail = '';
+        let userName = 'Visitor';
+        try {
+            userEmail = localStorage.getItem('si_user_email') || '';
+            if (userEmail) userName = userEmail.split('@')[0];
+        } catch (e) {}
+
         // Send to backend
         try {
             const res = await fetch('/api/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'Visitor', email: '', message })
+                body: JSON.stringify({ name: userName, email: userEmail, message })
             });
             const data = await res.json();
             
@@ -2111,6 +2613,76 @@
 
     // Load catalog on page ready
     try { window.addEventListener('load', fetchCatalog); } catch (e) {}
+    
+    // Load user's own messages if logged in
+    async function loadMyMessages() {
+        try {
+            const userEmail = localStorage.getItem('si_user_email');
+            if (!userEmail) {
+                document.getElementById('myMessagesSection').style.display = 'none';
+                return;
+            }
+            
+            // Show the messages section
+            document.getElementById('myMessagesSection').style.display = 'block';
+            
+            const res = await fetch(`/api/messages?email=${encodeURIComponent(userEmail)}`);
+            const data = await res.json();
+            
+            const container = document.getElementById('userMessagesList');
+            
+            if (!data.success || !data.messages || data.messages.length === 0) {
+                container.innerHTML = '<p class="text-gray-600 text-center">No messages yet. Use the contact form above to send a message.</p>';
+                return;
+            }
+            
+            // Display messages with replies
+            container.innerHTML = data.messages.map(msg => {
+                const repliesHtml = (msg.replies && msg.replies.length > 0) 
+                    ? msg.replies.map(reply => `
+                        <div class="mt-3 ml-6 p-3 bg-green-50 border-l-4 border-green-500 rounded">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-semibold text-green-700">✓ Admin Reply</span>
+                                <span class="text-xs text-gray-500">${new Date(reply.at).toLocaleString()}</span>
+                            </div>
+                            <p class="text-gray-700">${escapeHtml(reply.message)}</p>
+                        </div>
+                    `).join('')
+                    : '<p class="mt-3 ml-6 text-sm text-gray-500 italic">No reply yet. We will respond soon.</p>';
+                
+                return `
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-purple-600">You</span>
+                                    <span class="text-xs text-gray-500">${new Date(msg.createdAt).toLocaleString()}</span>
+                                </div>
+                                <p class="text-gray-800">${escapeHtml(msg.message)}</p>
+                            </div>
+                            <span class="text-xs px-2 py-1 rounded ${msg.replies && msg.replies.length > 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
+                                ${msg.replies && msg.replies.length > 0 ? 'Answered' : 'Pending'}
+                            </span>
+                        </div>
+                        ${repliesHtml}
+                    </div>
+                `;
+            }).join('');
+            
+        } catch (err) {
+            console.error('Error loading messages:', err);
+            const container = document.getElementById('userMessagesList');
+            container.innerHTML = '<p class="text-red-600 text-center">Error loading messages. Please try again.</p>';
+        }
+    }
+    
+    // Check if user is logged in and load their messages
+    window.addEventListener('load', () => {
+        const userEmail = localStorage.getItem('si_user_email');
+        if (userEmail) {
+            loadMyMessages();
+        }
+    });
 </script>
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
@@ -2298,6 +2870,1360 @@
             </div>
         </div>
     </div>
+
+    <script>
+    // Free Calculator Functions
+    function calculateCompound() {
+        const initial = parseFloat(document.getElementById('freeInitial').value) || 0;
+        const monthly = parseFloat(document.getElementById('freeMonthly').value) || 0;
+        const rate = parseFloat(document.getElementById('freeRate').value) / 100 || 0;
+        const years = parseFloat(document.getElementById('freeYears').value) || 0;
+        
+        if (initial === 0 && monthly === 0) {
+            alert('Please enter an initial amount or monthly investment');
+            return;
+        }
+        
+        const months = years * 12;
+        const monthlyRate = rate / 12;
+        
+        // Future value of initial investment
+        const futureInitial = initial * Math.pow(1 + monthlyRate, months);
+        
+        // Future value of monthly investments (annuity)
+        const futureMonthly = monthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+        
+        const total = futureInitial + futureMonthly;
+        
+        document.getElementById('compoundResult').classList.remove('hidden');
+        document.getElementById('compoundValue').textContent = 'KES ' + total.toLocaleString('en-KE', {maximumFractionDigits: 0});
+    }
+
+    function calculateROI() {
+        const cost = parseFloat(document.getElementById('roiCost').value) || 0;
+        const returnValue = parseFloat(document.getElementById('roiReturn').value) || 0;
+        
+        if (cost === 0) {
+            alert('Please enter the initial investment amount');
+            return;
+        }
+        
+        const roi = ((returnValue - cost) / cost) * 100;
+        const profit = returnValue - cost;
+        
+        document.getElementById('roiResult').classList.remove('hidden');
+        const sign = roi >= 0 ? '+' : '';
+        document.getElementById('roiValue').innerHTML = sign + roi.toFixed(2) + '%<br><span class="text-sm">(' + sign + 'KES ' + profit.toLocaleString('en-KE', {maximumFractionDigits: 0}) + ')</span>';
+        
+        // Color based on positive/negative
+        const valueEl = document.getElementById('roiValue');
+        if (roi >= 0) {
+            valueEl.classList.remove('text-red-700');
+            valueEl.classList.add('text-blue-700');
+        } else {
+            valueEl.classList.remove('text-blue-700');
+            valueEl.classList.add('text-red-700');
+        }
+    }
+
+    function calculateGoal() {
+        const target = parseFloat(document.getElementById('goalAmount').value) || 0;
+        const months = parseFloat(document.getElementById('goalMonths').value) || 0;
+        
+        if (target === 0 || months === 0) {
+            alert('Please enter both target amount and timeframe');
+            return;
+        }
+        
+        const monthlyNeeded = target / months;
+        
+        document.getElementById('goalResult').classList.remove('hidden');
+        document.getElementById('goalValue').textContent = 'KES ' + monthlyNeeded.toLocaleString('en-KE', {maximumFractionDigits: 0}) + '/month';
+    }
+
+    // Premium Calculator Access
+    function openPremiumCalculator(calcType) {
+        // Check if user is premium (you can integrate with your auth system)
+        const isPremium = localStorage.getItem('si_user_premium') === 'true';
+        
+        if (!isPremium) {
+            // Show upgrade modal
+            const message = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🔒</div>
+                    <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #7C3AED;">Premium Feature</h3>
+                    <p style="margin-bottom: 20px; color: #4B5563;">This advanced calculator is available exclusively to Premium members.</p>
+                    <p style="margin-bottom: 25px; color: #6B7280; font-size: 14px;">
+                        Unlock all 9 professional calculators with real-life scenarios, detailed reports, and personalized recommendations.
+                    </p>
+                    <button onclick="scrollToSection('signup'); closePaymentToast();" style="background: linear-gradient(135deg, #7C3AED 0%, #DB2777 100%); color: white; padding: 12px 30px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; margin-right: 10px;">
+                        ⭐ Upgrade to Premium
+                    </button>
+                    <button onclick="closePaymentToast();" style="background: #E5E7EB; color: #374151; padding: 12px 30px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;">
+                        Maybe Later
+                    </button>
+                </div>
+            `;
+            showPaymentToast(message, 'warning', 8000);
+            return;
+        }
+        
+        // If premium, open the specific calculator
+        openCalculatorModal(calcType);
+    }
+
+    function openCalculatorModal(calcType) {
+        const calculators = {
+            insurance: {
+                title: '🛡️ Life Insurance Coverage Calculator',
+                description: 'Calculate the optimal life insurance coverage based on your family needs, debts, and future goals.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Annual Income (KES)</label>
+                            <input type="number" id="ins_income" class="w-full border rounded p-2" placeholder="e.g., 1200000" value="1200000">
+                            <p class="text-xs text-gray-500 mt-1">Your current annual gross income</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Number of Dependents</label>
+                            <input type="number" id="ins_dependents" class="w-full border rounded p-2" value="3">
+                            <p class="text-xs text-gray-500 mt-1">Spouse, children, or others relying on your income</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Total Outstanding Debts (KES)</label>
+                            <input type="number" id="ins_debts" class="w-full border rounded p-2" placeholder="e.g., 5000000" value="5000000">
+                            <p class="text-xs text-gray-500 mt-1">Mortgage, car loans, credit cards, etc.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Years of Income Replacement</label>
+                            <input type="number" id="ins_years" class="w-full border rounded p-2" value="20">
+                            <p class="text-xs text-gray-500 mt-1">How many years should your family be covered?</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Future Goals Fund (KES)</label>
+                            <input type="number" id="ins_goals" class="w-full border rounded p-2" placeholder="e.g., 3000000" value="3000000">
+                            <p class="text-xs text-gray-500 mt-1">Children's education, major expenses, etc.</p>
+                        </div>
+                        <button onclick="calculateInsurance()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+                            Calculate Required Coverage
+                        </button>
+                        <div id="ins_result" class="hidden bg-blue-50 p-4 rounded-lg"></div>
+                    </div>
+                `
+            },
+            cashflow: {
+                title: '💸 Cash Flow Analysis Tool',
+                description: 'Analyze your income, expenses, and savings to optimize your financial health.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Monthly Income (KES)</label>
+                            <input type="number" id="cf_income" class="w-full border rounded p-2" placeholder="e.g., 150000" value="150000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Housing (Rent/Mortgage) (KES)</label>
+                            <input type="number" id="cf_housing" class="w-full border rounded p-2" value="30000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Utilities & Bills (KES)</label>
+                            <input type="number" id="cf_utilities" class="w-full border rounded p-2" value="15000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Food & Groceries (KES)</label>
+                            <input type="number" id="cf_food" class="w-full border rounded p-2" value="25000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Transportation (KES)</label>
+                            <input type="number" id="cf_transport" class="w-full border rounded p-2" value="10000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Other Expenses (KES)</label>
+                            <input type="number" id="cf_other" class="w-full border rounded p-2" value="20000">
+                        </div>
+                        <button onclick="calculateCashFlow()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">
+                            Analyze Cash Flow
+                        </button>
+                        <div id="cf_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            emergency: {
+                title: '🚨 Emergency & Calamity Fund Calculator',
+                description: 'Calculate how much you need in emergency reserves for unexpected events.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Monthly Living Expenses (KES)</label>
+                            <input type="number" id="em_expenses" class="w-full border rounded p-2" placeholder="e.g., 100000" value="100000">
+                            <p class="text-xs text-gray-500 mt-1">Your essential monthly costs</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Months of Coverage Needed</label>
+                            <input type="number" id="em_months" class="w-full border rounded p-2" value="6">
+                            <p class="text-xs text-gray-500 mt-1">Recommended: 3-6 months for employed, 6-12 for self-employed</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Medical Emergency Reserve (KES)</label>
+                            <input type="number" id="em_medical" class="w-full border rounded p-2" value="200000">
+                            <p class="text-xs text-gray-500 mt-1">Coverage gap not covered by insurance</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Property/Asset Reserve (KES)</label>
+                            <input type="number" id="em_property" class="w-full border rounded p-2" value="150000">
+                            <p class="text-xs text-gray-500 mt-1">For urgent repairs or replacements</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Job Search Duration (Months)</label>
+                            <input type="number" id="em_job" class="w-full border rounded p-2" value="3">
+                            <p class="text-xs text-gray-500 mt-1">Expected time to find new employment</p>
+                        </div>
+                        <button onclick="calculateEmergency()" class="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700">
+                            Calculate Emergency Fund
+                        </button>
+                        <div id="em_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            risk: {
+                title: '📊 Portfolio Risk Analysis',
+                description: 'Analyze your investment portfolio risk using professional metrics.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Portfolio Value (KES)</label>
+                            <input type="number" id="risk_value" class="w-full border rounded p-2" placeholder="e.g., 2000000" value="2000000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Stocks Allocation (%)</label>
+                            <input type="number" id="risk_stocks" class="w-full border rounded p-2" value="60" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Bonds Allocation (%)</label>
+                            <input type="number" id="risk_bonds" class="w-full border rounded p-2" value="30" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Alternatives (Real Estate, Crypto) (%)</label>
+                            <input type="number" id="risk_alt" class="w-full border rounded p-2" value="10" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Expected Annual Return (%)</label>
+                            <input type="number" id="risk_return" class="w-full border rounded p-2" value="12" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Risk-Free Rate (%) <span class="text-xs text-gray-500">e.g., Gov bonds</span></label>
+                            <input type="number" id="risk_free" class="w-full border rounded p-2" value="8" step="0.1">
+                        </div>
+                        <button onclick="calculateRisk()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
+                            Analyze Portfolio Risk
+                        </button>
+                        <div id="risk_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            retirement: {
+                title: '🏖️ Retirement Planning Calculator',
+                description: 'Plan your retirement with inflation-adjusted projections.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Current Age</label>
+                            <input type="number" id="ret_age" class="w-full border rounded p-2" value="35">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Retirement Age</label>
+                            <input type="number" id="ret_retire" class="w-full border rounded p-2" value="60">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Life Expectancy</label>
+                            <input type="number" id="ret_life" class="w-full border rounded p-2" value="85">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Desired Monthly Retirement Income (KES)</label>
+                            <input type="number" id="ret_income" class="w-full border rounded p-2" placeholder="e.g., 100000" value="100000">
+                            <p class="text-xs text-gray-500 mt-1">In today's money</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Current Retirement Savings (KES)</label>
+                            <input type="number" id="ret_current" class="w-full border rounded p-2" value="500000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Expected Investment Return (%)</label>
+                            <input type="number" id="ret_return" class="w-full border rounded p-2" value="10" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Inflation Rate (%)</label>
+                            <input type="number" id="ret_inflation" class="w-full border rounded p-2" value="5" step="0.1">
+                        </div>
+                        <button onclick="calculateRetirement()" class="w-full bg-orange-600 text-white py-3 rounded-lg font-bold hover:bg-orange-700">
+                            Calculate Retirement Needs
+                        </button>
+                        <div id="ret_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            tax: {
+                title: '💰 Tax Optimization Calculator',
+                description: 'Optimize your tax strategy through smart investment allocation.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Annual Gross Income (KES)</label>
+                            <input type="number" id="tax_income" class="w-full border rounded p-2" placeholder="e.g., 2400000" value="2400000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Capital Gains This Year (KES)</label>
+                            <input type="number" id="tax_gains" class="w-full border rounded p-2" value="500000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Pension Contributions (KES/month)</label>
+                            <input type="number" id="tax_pension" class="w-full border rounded p-2" value="20000">
+                            <p class="text-xs text-gray-500 mt-1">Tax-deductible up to certain limits</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Insurance Premiums (KES/year)</label>
+                            <input type="number" id="tax_insurance" class="w-full border rounded p-2" value="50000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Mortgage Interest (KES/year)</label>
+                            <input type="number" id="tax_mortgage" class="w-full border rounded p-2" value="300000">
+                        </div>
+                        <button onclick="calculateTax()" class="w-full bg-yellow-600 text-white py-3 rounded-lg font-bold hover:bg-yellow-700">
+                            Calculate Tax Optimization
+                        </button>
+                        <div id="tax_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            debt: {
+                title: '💳 Debt Repayment Optimizer',
+                description: 'Find the fastest and cheapest way to pay off your debts.',
+                html: `
+                    <div class="space-y-4">
+                        <p class="text-sm font-semibold text-gray-700">Enter your debts (up to 5):</p>
+                        <div class="border rounded p-3 bg-gray-50">
+                            <label class="block text-xs font-semibold mb-1">Debt 1 - Credit Card</label>
+                            <input type="number" id="debt1_balance" class="w-full border rounded p-2 mb-1 text-sm" placeholder="Balance (KES)" value="200000">
+                            <input type="number" id="debt1_rate" class="w-full border rounded p-2 text-sm" placeholder="Interest Rate (%)" value="18" step="0.1">
+                        </div>
+                        <div class="border rounded p-3 bg-gray-50">
+                            <label class="block text-xs font-semibold mb-1">Debt 2 - Car Loan</label>
+                            <input type="number" id="debt2_balance" class="w-full border rounded p-2 mb-1 text-sm" placeholder="Balance (KES)" value="1500000">
+                            <input type="number" id="debt2_rate" class="w-full border rounded p-2 text-sm" placeholder="Interest Rate (%)" value="12" step="0.1">
+                        </div>
+                        <div class="border rounded p-3 bg-gray-50">
+                            <label class="block text-xs font-semibold mb-1">Debt 3 - Mortgage</label>
+                            <input type="number" id="debt3_balance" class="w-full border rounded p-2 mb-1 text-sm" placeholder="Balance (KES)" value="5000000">
+                            <input type="number" id="debt3_rate" class="w-full border rounded p-2 text-sm" placeholder="Interest Rate (%)" value="9" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Extra Monthly Payment Available (KES)</label>
+                            <input type="number" id="debt_extra" class="w-full border rounded p-2" value="20000">
+                            <p class="text-xs text-gray-500 mt-1">Additional amount to allocate toward debt</p>
+                        </div>
+                        <button onclick="calculateDebt()" class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold hover:bg-pink-700">
+                            Optimize Debt Repayment
+                        </button>
+                        <div id="debt_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            property: {
+                title: '🏠 Real Estate Investment Calculator',
+                description: 'Calculate rental yield, appreciation, and total ROI on property investments.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Property Purchase Price (KES)</label>
+                            <input type="number" id="prop_price" class="w-full border rounded p-2" placeholder="e.g., 8000000" value="8000000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Monthly Rental Income (KES)</label>
+                            <input type="number" id="prop_rent" class="w-full border rounded p-2" value="60000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Annual Maintenance Cost (%)</label>
+                            <input type="number" id="prop_maint" class="w-full border rounded p-2" value="10" step="0.1">
+                            <p class="text-xs text-gray-500 mt-1">Percentage of rental income</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Vacancy Rate (%)</label>
+                            <input type="number" id="prop_vacancy" class="w-full border rounded p-2" value="5" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Expected Annual Appreciation (%)</label>
+                            <input type="number" id="prop_appr" class="w-full border rounded p-2" value="5" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Investment Period (Years)</label>
+                            <input type="number" id="prop_years" class="w-full border rounded p-2" value="10">
+                        </div>
+                        <button onclick="calculateProperty()" class="w-full bg-teal-600 text-white py-3 rounded-lg font-bold hover:bg-teal-700">
+                            Calculate Real Estate ROI
+                        </button>
+                        <div id="prop_result" class="hidden"></div>
+                    </div>
+                `
+            },
+            education: {
+                title: '🎓 Education Fund Planning Calculator',
+                description: 'Plan for children\\'s education with inflation-adjusted projections.',
+                html: `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Number of Children</label>
+                            <input type="number" id="edu_children" class="w-full border rounded p-2" value="2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Child 1 - Current Age</label>
+                            <input type="number" id="edu_age1" class="w-full border rounded p-2" value="5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Child 2 - Current Age</label>
+                            <input type="number" id="edu_age2" class="w-full border rounded p-2" value="8">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">University Entry Age</label>
+                            <input type="number" id="edu_entry" class="w-full border rounded p-2" value="18">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Current University Cost (KES/4 years)</label>
+                            <input type="number" id="edu_cost" class="w-full border rounded p-2" placeholder="e.g., 2000000" value="2000000">
+                            <p class="text-xs text-gray-500 mt-1">Total for 4-year degree at today's prices</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Education Inflation Rate (%)</label>
+                            <input type="number" id="edu_inflation" class="w-full border rounded p-2" value="8" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Expected Investment Return (%)</label>
+                            <input type="number" id="edu_return" class="w-full border rounded p-2" value="10" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Current Education Savings (KES)</label>
+                            <input type="number" id="edu_current" class="w-full border rounded p-2" value="0">
+                        </div>
+                        <button onclick="calculateEducation()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">
+                            Calculate Education Fund
+                        </button>
+                        <div id="edu_result" class="hidden"></div>
+                    </div>
+                `
+            }
+        };
+
+        const calc = calculators[calcType];
+        if (!calc) return;
+
+        // Create modal
+        const modalHTML = `
+            <div id="calcModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="if(event.target.id==='calcModal') closeCalcModal()">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                    <div class="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-800 text-white p-6 rounded-t-2xl">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-2xl font-bold mb-2">${calc.title}</h3>
+                                <p class="text-purple-100 text-sm">${calc.description}</p>
+                            </div>
+                            <button onclick="closeCalcModal()" class="text-white hover:bg-white hover:bg-opacity-20 w-10 h-10 rounded-full transition">✕</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        ${calc.html}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    function closeCalcModal() {
+        const modal = document.getElementById('calcModal');
+        if (modal) modal.remove();
+    }
+
+    // Calculator Implementations
+    function calculateInsurance() {
+        const income = parseFloat(document.getElementById('ins_income').value) || 0;
+        const dependents = parseFloat(document.getElementById('ins_dependents').value) || 0;
+        const debts = parseFloat(document.getElementById('ins_debts').value) || 0;
+        const years = parseFloat(document.getElementById('ins_years').value) || 0;
+        const goals = parseFloat(document.getElementById('ins_goals').value) || 0;
+
+        // ACTUARIAL METHOD 1: Human Life Value (Income Replacement Approach)
+        // HLV = Annual Income × Years × (1 - Tax Rate) × (1 - Savings Rate)
+        const taxRate = 0.30; // Assumed 30% tax rate in Kenya
+        const savingsRate = 0.15; // Assume 15% savings
+        const netIncome = income * (1 - taxRate) * (1 - savingsRate);
+        const hlv = netIncome * years;
+
+        // ACTUARIAL METHOD 2: Needs-Based Approach (already calculated)
+        const incomeReplacement = income * years;
+        const totalNeeded = incomeReplacement + debts + goals;
+
+        // ACTUARIAL METHOD 3: Present Value of Income Stream
+        // PV = Income × [(1 - (1 + r)^-n) / r] where r is discount rate
+        const discountRate = 0.06; // 6% discount rate
+        const r = discountRate;
+        const n = years;
+        let pvIncome = 0;
+        if (r !== 0) {
+            pvIncome = (income * ((1 - Math.pow(1 + r, -n)) / r));
+        } else {
+            pvIncome = income * n;
+        }
+
+        // ACTUARIAL METHOD 4: DINK Method (Double Income, No Kids)
+        // More conservative if spouse can replace some income
+        const dependentAdjustment = Math.max(1, dependents / 2); // Spouse might replace 50%
+        const adjustedCoverage = (totalNeeded / dependentAdjustment) * 0.9;
+
+        // ACTUARIAL METHOD 5: Simplified Life Insurance Premium Estimation
+        // Premium ≈ Coverage × (Mortality Rate × Expense Factor)
+        // Using age-adjusted mortality approximation
+        const ageAssumed = 40;
+        const baseRate = 0.005; // 0.5% base mortality rate at age 40
+        const ageAdjustment = Math.pow(1.04, ageAssumed - 25); // 4% increase per year from age 25
+        const estimatedMortality = baseRate * ageAdjustment;
+        const expenseFactor = 1.25; // Includes commissions, admin costs
+        const estimatedAnnualPremium = (totalNeeded * estimatedMortality * expenseFactor) / 1000;
+        const monthlyPremium = estimatedAnnualPremium / 12;
+
+        // ACTUARIAL METHOD 6: Underwriting Factor
+        // Health score affects premium (100 = perfect health, 60 = poor health)
+        const healthScore = 85; // Assumed
+        const healthFactor = 100 / healthScore;
+        const adjustedMonthlyPremium = monthlyPremium * healthFactor;
+
+        // ACTUARIAL METHOD 7: Inflation-adjusted coverage (10-year horizon)
+        const inflationRate = 0.05;
+        const inflationAdjustment = Math.pow(1 + inflationRate, 10);
+        const futureValueCoverage = totalNeeded * inflationAdjustment;
+
+        // ACTUARIAL METHOD 8: Coverage adequacy ratio
+        const adequacyRatio = (totalNeeded / (income * 5)); // Rule of thumb: 5-10x income
+        let adequacyStatus = '';
+        if (adequacyRatio < 5) adequacyStatus = '❌ Inadequate';
+        else if (adequacyRatio < 8) adequacyStatus = '✓ Reasonable';
+        else if (adequacyRatio < 10) adequacyStatus = '✓✓ Good';
+        else adequacyStatus = '✓✓✓ Excellent';
+
+        document.getElementById('ins_result').classList.remove('hidden');
+        document.getElementById('ins_result').innerHTML = `
+            <div class="bg-blue-50 p-3 rounded-lg text-xs">
+                <h4 class="font-bold text-sm mb-2 text-blue-800">🛡️ Actuarial Insurance Analysis</h4>
+                
+                <div class="bg-white p-2 rounded border border-blue-300 mb-2">
+                    <div class="font-semibold mb-1">COVERAGE ANALYSIS (Multiple Methods)</div>
+                    <div class="flex justify-between pb-0.5"><span>Human Life Value Method:</span><span class="font-semibold">KES ${hlv.toLocaleString()}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Needs-Based Approach:</span><span class="font-semibold">KES ${totalNeeded.toLocaleString()}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Present Value of Income:</span><span class="font-semibold">KES ${pvIncome.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>DINK-Adjusted Coverage:</span><span class="font-semibold">KES ${adjustedCoverage.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>RECOMMENDED COVERAGE:</span><span class="text-blue-700">KES ${totalNeeded.toLocaleString()}</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-blue-300 mb-2">
+                    <div class="font-semibold mb-1">PREMIUM ESTIMATION</div>
+                    <div class="flex justify-between pb-0.5"><span>Estimated Annual Premium:</span><span class="font-semibold">KES ${estimatedAnnualPremium.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Base Monthly Premium:</span><span class="font-semibold">KES ${monthlyPremium.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Health Factor Adjustment:</span><span class="font-semibold">${healthFactor.toFixed(2)}x</span></div>
+                    <div class="flex justify-between font-semibold pb-0.5"><span>Adjusted Monthly Premium:</span><span class="text-blue-700">KES ${adjustedMonthlyPremium.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Annual Cost:</span><span class="text-blue-700">KES ${(adjustedMonthlyPremium * 12).toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-blue-300 mb-2">
+                    <div class="font-semibold mb-1">ACTUARIAL METRICS</div>
+                    <div class="flex justify-between pb-0.5"><span>Coverage Adequacy Ratio:</span><span class="font-semibold">${adequacyRatio.toFixed(1)}x income ${adequacyStatus}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Estimated Mortality Rate:</span><span class="font-semibold">${(estimatedMortality * 100 * 1000).toFixed(3)}‰</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Premium as % of Income:</span><span class="font-semibold">${((adjustedMonthlyPremium * 12) / income * 100).toFixed(2)}%</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>10-Year Inflation-Adjusted Need:</span><span class="text-blue-700">KES ${futureValueCoverage.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                </div>
+
+                <div class="mt-2 p-2 bg-blue-100 rounded border border-blue-400">
+                    <p><strong>✓ Recommendation:</strong> ${adequacyRatio >= 8 ? 'Coverage is adequate. Consider review every 2 years.' : 'Increase coverage to recommended level for family protection.'}</p>
+                    <p class="text-xs mt-1"><strong>📊 Note:</strong> Actual premiums vary by age, health, occupation. Estimates use actuarial mortality tables and Kenya market factors.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateCashFlow() {
+        const income = parseFloat(document.getElementById('cf_income').value) || 0;
+        const housing = parseFloat(document.getElementById('cf_housing').value) || 0;
+        const utilities = parseFloat(document.getElementById('cf_utilities').value) || 0;
+        const food = parseFloat(document.getElementById('cf_food').value) || 0;
+        const transport = parseFloat(document.getElementById('cf_transport').value) || 0;
+        const other = parseFloat(document.getElementById('cf_other').value) || 0;
+
+        const totalExpenses = housing + utilities + food + transport + other;
+        const surplus = income - totalExpenses;
+        const savingsRate = (surplus / income) * 100;
+
+        const recommended = {
+            savings: income * 0.20,
+            investments: income * 0.15,
+            emergency: income * 0.10,
+            discretionary: income * 0.05
+        };
+
+        document.getElementById('cf_result').classList.remove('hidden');
+        document.getElementById('cf_result').innerHTML = `
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h4 class="font-bold text-lg mb-3 text-green-800">💸 Cash Flow Analysis</h4>
+                <div class="space-y-2 text-sm mb-4">
+                    <div class="flex justify-between">
+                        <span>Monthly Income:</span>
+                        <span class="font-semibold text-green-700">KES ${income.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Total Expenses:</span>
+                        <span class="font-semibold text-red-600">KES ${totalExpenses.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg pt-2 border-t">
+                        <span>Monthly Surplus:</span>
+                        <span class="${surplus >= 0 ? 'text-green-700' : 'text-red-700'}">KES ${surplus.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Savings Rate:</span>
+                        <span class="font-semibold">${savingsRate.toFixed(1)}%</span>
+                    </div>
+                </div>
+                <div class="border-t pt-3 mt-3">
+                    <p class="font-semibold mb-2 text-sm">📊 Recommended Allocation of Surplus:</p>
+                    <div class="space-y-1 text-xs">
+                        <div class="flex justify-between"><span>• Savings (20%):</span><span class="font-semibold">KES ${recommended.savings.toLocaleString()}</span></div>
+                        <div class="flex justify-between"><span>• Investments (15%):</span><span class="font-semibold">KES ${recommended.investments.toLocaleString()}</span></div>
+                        <div class="flex justify-between"><span>• Emergency Fund (10%):</span><span class="font-semibold">KES ${recommended.emergency.toLocaleString()}</span></div>
+                        <div class="flex justify-between"><span>• Discretionary (5%):</span><span class="font-semibold">KES ${recommended.discretionary.toLocaleString()}</span></div>
+                    </div>
+                </div>
+                <div class="mt-3 p-2 bg-green-200 rounded text-xs">
+                    <strong>💡 Insight:</strong> ${savingsRate >= 20 ? 'Excellent! You\\'re saving above the recommended 20%.' : savingsRate >= 10 ? 'Good start! Try to increase savings to 20% for optimal financial health.' : 'Consider reducing expenses to save at least 10-20% of income.'}
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateEmergency() {
+        const expenses = parseFloat(document.getElementById('em_expenses').value) || 0;
+        const months = parseFloat(document.getElementById('em_months').value) || 0;
+        const medical = parseFloat(document.getElementById('em_medical').value) || 0;
+        const property = parseFloat(document.getElementById('em_property').value) || 0;
+        const jobMonths = parseFloat(document.getElementById('em_job').value) || 0;
+
+        const basicFund = expenses * months;
+        const jobSearchFund = expenses * jobMonths;
+        const totalFund = basicFund + medical + property + jobSearchFund;
+
+        document.getElementById('em_result').classList.remove('hidden');
+        document.getElementById('em_result').innerHTML = `
+            <div class="bg-red-50 p-4 rounded-lg">
+                <h4 class="font-bold text-lg mb-3 text-red-800">🚨 Emergency Fund Breakdown</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Basic Living (${months} months):</span>
+                        <span class="font-semibold">KES ${basicFund.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Medical Emergency Reserve:</span>
+                        <span class="font-semibold">KES ${medical.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Property/Asset Reserve:</span>
+                        <span class="font-semibold">KES ${property.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Job Search Fund (${jobMonths} months):</span>
+                        <span class="font-semibold">KES ${jobSearchFund.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-xl mt-3 pt-3 border-t-2 border-red-400">
+                        <span>Total Emergency Fund:</span>
+                        <span class="text-red-700">KES ${totalFund.toLocaleString()}</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-red-200 rounded">
+                    <p class="text-xs"><strong>💡 Strategy:</strong> Save KES ${(totalFund / 12).toLocaleString()}/month to build this fund in 1 year, or KES ${(totalFund / 24).toLocaleString()}/month for 2 years.</p>
+                    <p class="text-xs mt-2"><strong>⚠️ Priority:</strong> Build emergency fund BEFORE aggressive investing to avoid selling investments during crises.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateRisk() {
+        const value = parseFloat(document.getElementById('risk_value').value) || 0;
+        const stocks = parseFloat(document.getElementById('risk_stocks').value) || 0;
+        const bonds = parseFloat(document.getElementById('risk_bonds').value) || 0;
+        const alt = parseFloat(document.getElementById('risk_alt').value) || 0;
+        const expectedReturn = parseFloat(document.getElementById('risk_return').value) || 0;
+        const riskFree = parseFloat(document.getElementById('risk_free').value) || 0;
+
+        const total = stocks + bonds + alt;
+        if (total !== 100) {
+            alert('Allocations must sum to 100%');
+            return;
+        }
+
+        // Asset class volatilities and correlations (historical estimates)
+        const assetClasses = {
+            stocks: { vol: 18, weight: stocks / 100, label: 'Stocks' },
+            bonds: { vol: 5, weight: bonds / 100, label: 'Bonds' },
+            alts: { vol: 25, weight: alt / 100, label: 'Alternatives' }
+        };
+
+        // Correlation matrix (simplified)
+        const correlations = {
+            'stocks-bonds': -0.2,   // Negative correlation
+            'stocks-alts': 0.4,     // Some correlation
+            'bonds-alts': 0.1       // Low correlation
+        };
+
+        // ACTUARIAL FORMULA 1: Portfolio Variance (Markowitz)
+        // σ²p = Σ(wi² × σi²) + 2×Σ(wi × wj × σi × σj × ρij)
+        let variance = 0;
+        const w_stocks = stocks / 100;
+        const w_bonds = bonds / 100;
+        const w_alts = alt / 100;
+        const σ_stocks = 18;
+        const σ_bonds = 5;
+        const σ_alts = 25;
+
+        variance += Math.pow(w_stocks * σ_stocks, 2);
+        variance += Math.pow(w_bonds * σ_bonds, 2);
+        variance += Math.pow(w_alts * σ_alts, 2);
+        variance += 2 * w_stocks * w_bonds * σ_stocks * σ_bonds * correlations['stocks-bonds'];
+        variance += 2 * w_stocks * w_alts * σ_stocks * σ_alts * correlations['stocks-alts'];
+        variance += 2 * w_bonds * w_alts * σ_bonds * σ_alts * correlations['bonds-alts'];
+
+        const portfolioVol = Math.sqrt(variance);
+
+        // ACTUARIAL FORMULA 2: Sharpe Ratio
+        // Sharpe = (Rp - Rf) / σp
+        const sharpeRatio = (expectedReturn - riskFree) / portfolioVol;
+
+        // ACTUARIAL FORMULA 3: Treynor Ratio (requires beta calculation)
+        // Using stocks as market proxy
+        const beta = w_stocks * 1.0 + w_bonds * 0.1 + w_alts * 1.2;
+        const treynorRatio = (expectedReturn - riskFree) / beta;
+
+        // ACTUARIAL FORMULA 4: Value at Risk (VaR) - 95% confidence
+        // VaR = Portfolio Value × (Expected Return - 1.645 × Volatility)
+        // Where 1.645 is Z-score for 95% confidence
+        const zScore95 = 1.645;
+        const var95Daily = (portfolioVol / Math.sqrt(252)) * zScore95 * value / 100;
+        const var95Annual = portfolioVol * zScore95 * value / 100;
+
+        // ACTUARIAL FORMULA 5: Conditional VaR / Expected Shortfall
+        // CVaR ≈ VaR × (1 + skewness adjustment)
+        const cvar95Annual = var95Annual * 1.25;
+
+        // ACTUARIAL FORMULA 6: Maximum Drawdown Estimate
+        // Using volatility and Gaussian approximation
+        const maxDrawdown = 2.33 * portfolioVol; // 99% confidence
+
+        // ACTUARIAL FORMULA 7: Duration (for bond component)
+        // Modified Duration ≈ 5-7 years for typical bonds
+        const duration = 6.5 * w_bonds;
+
+        // ACTUARIAL FORMULA 8: Convexity (bond convexity effect)
+        const convexity = 50 * w_bonds;
+
+        // ACTUARIAL FORMULA 9: Information Ratio (vs benchmark)
+        // IR = (Rp - Rb) / Tracking Error
+        const benchmarkReturn = 12;
+        const trackingError = Math.abs(expectedReturn - benchmarkReturn);
+        const informationRatio = (expectedReturn - benchmarkReturn) / Math.max(trackingError, 0.1);
+
+        // ACTUARIAL FORMULA 10: Sortino Ratio (downside risk only)
+        // Downside volatility = sqrt(average of negative returns squared)
+        const downvolat = portfolioVol * 0.6; // Approximation
+        const sortinoRatio = (expectedReturn - riskFree) / downvolat;
+
+        // Risk classification
+        let riskProfile = '';
+        if (portfolioVol < 8) riskProfile = 'Conservative';
+        else if (portfolioVol < 12) riskProfile = 'Moderate';
+        else if (portfolioVol < 16) riskProfile = 'Aggressive';
+        else riskProfile = 'Very Aggressive';
+
+        // Expected range (68% confidence - 1 sigma)
+        const lower68 = expectedReturn - portfolioVol;
+        const upper68 = expectedReturn + portfolioVol;
+        const lower95 = expectedReturn - (2 * portfolioVol);
+        const upper95 = expectedReturn + (2 * portfolioVol);
+
+        document.getElementById('risk_result').classList.remove('hidden');
+        document.getElementById('risk_result').innerHTML = `
+            <div class="bg-purple-50 p-3 rounded-lg text-xs">
+                <h4 class="font-bold text-sm mb-2 text-purple-800">📊 Advanced Actuarial Risk Analysis</h4>
+                
+                <div class="bg-white p-2 rounded border border-purple-300 mb-2">
+                    <div class="font-semibold mb-1">VOLATILITY & CORRELATION ANALYSIS</div>
+                    <div class="flex justify-between pb-0.5"><span>Portfolio Volatility (σ):</span><span class="font-semibold text-purple-700">${portfolioVol.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Beta (vs Market):</span><span class="font-semibold">${beta.toFixed(2)}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Estimated Max Drawdown:</span><span class="font-semibold text-red-600">-${maxDrawdown.toFixed(2)}%</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Diversification Benefit:</span><span class="text-green-600">${((portfolioVol / (w_stocks * σ_stocks + w_bonds * σ_bonds + w_alts * σ_alts)) * 100).toFixed(1)}%</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-purple-300 mb-2">
+                    <div class="font-semibold mb-1">RISK-ADJUSTED RETURN METRICS</div>
+                    <div class="flex justify-between pb-0.5"><span>Sharpe Ratio:</span><span class="font-semibold">${sharpeRatio.toFixed(3)}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Treynor Ratio:</span><span class="font-semibold">${treynorRatio.toFixed(3)}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Sortino Ratio:</span><span class="font-semibold">${sortinoRatio.toFixed(3)}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Information Ratio:</span><span class="font-semibold">${informationRatio.toFixed(3)}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Risk Profile:</span><span class="text-purple-700">${riskProfile}</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-purple-300 mb-2">
+                    <div class="font-semibold mb-1">VALUE AT RISK (VaR) - 95% CONFIDENCE</div>
+                    <div class="flex justify-between pb-0.5"><span>Daily VaR (95%):</span><span class="font-semibold text-red-600">-KES ${var95Daily.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Annual VaR (95%):</span><span class="font-semibold text-red-600">-KES ${var95Annual.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Conditional VaR (Expected Shortfall):</span><span class="font-semibold text-red-700">-KES ${cvar95Annual.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Interpretation:</span><span>95% chance losses ≤ ${(var95Annual/value*100).toFixed(2)}%</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-purple-300 mb-2">
+                    <div class="font-semibold mb-1">RETURN DISTRIBUTION ESTIMATES</div>
+                    <div class="flex justify-between pb-0.5"><span>68% Confidence Range:</span><span class="font-semibold">${lower68.toFixed(2)}% to ${upper68.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>95% Confidence Range:</span><span class="font-semibold">${lower95.toFixed(2)}% to ${upper95.toFixed(2)}%</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Expected Return:</span><span class="text-green-600">${expectedReturn.toFixed(2)}%</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-purple-300 mb-2">
+                    <div class="font-semibold mb-1">FIXED INCOME ANALYSIS</div>
+                    <div class="flex justify-between pb-0.5"><span>Effective Duration:</span><span class="font-semibold">${duration.toFixed(2)} years</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Bond Convexity:</span><span class="font-semibold">${convexity.toFixed(1)}</span></div>
+                    <div class="flex justify-between font-semibold"><span>Rate Sensitivity:</span><span class="text-blue-700">${(duration * 100).toFixed(2)}% price change per 1% rate move</span></div>
+                </div>
+
+                <div class="mt-2 p-2 bg-purple-100 rounded border border-purple-400 text-xs">
+                    <p><strong>🎓 Actuarial Interpretation:</strong></p>
+                    <p class="mt-1">• Sharpe/Treynor >1.0 = Excellent risk-adjusted returns</p>
+                    <p class="mt-1">• VaR 95% = Portfolio won't lose more than calculated 95% of time</p>
+                    <p class="mt-1">• CVaR = Average loss IF worst 5% scenarios occur</p>
+                    <p class="mt-1">• Duration shows interest rate risk; Convexity = non-linear effects</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateRetirement() {
+        const age = parseFloat(document.getElementById('ret_age').value) || 0;
+        const retireAge = parseFloat(document.getElementById('ret_retire').value) || 0;
+        const lifeExp = parseFloat(document.getElementById('ret_life').value) || 0;
+        const monthlyIncome = parseFloat(document.getElementById('ret_income').value) || 0;
+        const current = parseFloat(document.getElementById('ret_current').value) || 0;
+        const returnRate = parseFloat(document.getElementById('ret_return').value) / 100 || 0;
+        const inflation = parseFloat(document.getElementById('ret_inflation').value) / 100 || 0;
+
+        const yearsToRetire = retireAge - age;
+        const yearsInRetirement = lifeExp - retireAge;
+        const months = yearsToRetire * 12;
+        
+        // Inflation-adjusted income needed at retirement
+        const futureMonthly = monthlyIncome * Math.pow(1 + inflation, yearsToRetire);
+        const annualNeeded = futureMonthly * 12;
+        
+        // ACTUARIAL FORMULA: Present Value of Annuity Due
+        // PV = PMT × [(1 - (1 + r)^-n) / r] × (1 + r)
+        const rMonthly = returnRate / 12;
+        const inflationMonthly = inflation / 12;
+        
+        // Real rate (Fisher equation): (1 + nominal) / (1 + inflation) - 1
+        const realRate = ((1 + returnRate) / (1 + inflation)) - 1;
+        const rRealMonthly = realRate / 12;
+        
+        // Present Value of retirement annuity using real discount rate
+        const retirementMonths = yearsInRetirement * 12;
+        let annuityPV = 0;
+        if (rRealMonthly !== 0) {
+            annuityPV = monthlyIncome * ((1 - Math.pow(1 + rRealMonthly, -retirementMonths)) / rRealMonthly);
+        } else {
+            annuityPV = monthlyIncome * retirementMonths;
+        }
+        
+        // Discount back to today
+        const retirementCorpusNeeded = annuityPV * Math.pow(1 + returnRate, -yearsToRetire);
+        
+        // Future value of current savings
+        const futureCurrent = current * Math.pow(1 + returnRate, yearsToRetire);
+        
+        // Remaining gap
+        const gap = Math.max(0, retirementCorpusNeeded - futureCurrent);
+        
+        // ACTUARIAL FORMULA: Future Value of Annuity Due (monthly contributions)
+        // FV = PMT × [((1 + r)^n - 1) / r] × (1 + r)
+        let monthlySavings = 0;
+        if (rMonthly !== 0) {
+            const fvAnnuityDue = ((Math.pow(1 + rMonthly, months) - 1) / rMonthly) * (1 + rMonthly);
+            monthlySavings = gap / fvAnnuityDue;
+        } else {
+            monthlySavings = gap / months;
+        }
+
+        // ACTUARIAL FORMULAS: Additional Metrics
+        // 1. Replacement Ratio
+        const replacementRatio = (futureMonthly / monthlyIncome) * 100;
+        
+        // 2. Sustainability Index (how long corpus lasts)
+        const withdrawalRate = (monthlyIncome / retirementCorpusNeeded) * 100;
+        
+        // 3. Accumulation Phase Total Contributions
+        const totalContributions = monthlySavings * months;
+        
+        // 4. Investment Income (Growth on contributions)
+        const investmentIncome = gap - totalContributions;
+        
+        // 5. Decumulation Phase - Years sustainable
+        let yearsCorpusLasts = yearsInRetirement;
+        if (withdrawalRate > 5) {
+            yearsCorpusLasts = (retirementCorpusNeeded / (monthlyIncome * 12)) * (1 + returnRate);
+        }
+
+        // 6. Required Annual Return to sustain withdrawals (IRR approach)
+        const requiredReturn = (monthlyIncome * 12) / retirementCorpusNeeded;
+
+        document.getElementById('ret_result').classList.remove('hidden');
+        document.getElementById('ret_result').innerHTML = `
+            <div class="bg-orange-50 p-4 rounded-lg text-xs">
+                <h4 class="font-bold text-sm mb-3 text-orange-800">🏖️ Advanced Actuarial Retirement Analysis</h4>
+                
+                <div class="bg-white p-2 rounded border border-orange-300 mb-3">
+                    <div class="font-semibold mb-2">ACCUMULATION PHASE (${yearsToRetire} Years)</div>
+                    <div class="flex justify-between pb-1"><span>Current Retirement Savings:</span><span>KES ${current.toLocaleString()}</span></div>
+                    <div class="flex justify-between pb-1"><span>Monthly Contribution Required:</span><span class="font-semibold text-orange-700">KES ${monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-1"><span>Total Contributions (${months} months):</span><span>KES ${totalContributions.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-1"><span>Investment Growth:</span><span class="font-semibold text-green-600">KES ${(gap - totalContributions).toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-1"><span>Retirement Corpus at Age ${retireAge}:</span><span class="text-orange-700">KES ${(futureCurrent + gap).toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-orange-300 mb-3">
+                    <div class="font-semibold mb-2">DECUMULATION PHASE (${yearsInRetirement} Years)</div>
+                    <div class="flex justify-between pb-1"><span>Income Needed (Today's Money):</span><span>KES ${monthlyIncome.toLocaleString()}/month</span></div>
+                    <div class="flex justify-between pb-1"><span>Inflation-Adjusted Need:</span><span>KES ${futureMonthly.toLocaleString(undefined, {maximumFractionDigits: 0})}/month</span></div>
+                    <div class="flex justify-between pb-1"><span>Present Value of All Withdrawals:</span><span class="font-semibold">KES ${annuityPV.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-1"><span>Corpus Will Sustain For:</span><span class="text-orange-700">${yearsCorpusLasts.toFixed(1)} years (age ${(retireAge + yearsCorpusLasts).toFixed(0)})</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-orange-300 mb-3">
+                    <div class="font-semibold mb-2">ACTUARIAL METRICS & RATIOS</div>
+                    <div class="flex justify-between pb-1"><span>Income Replacement Ratio:</span><span class="font-semibold">${replacementRatio.toFixed(1)}%</span></div>
+                    <div class="flex justify-between pb-1"><span>Annual Withdrawal Rate:</span><span class="font-semibold">${withdrawalRate.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-1"><span>Required Return on Corpus:</span><span class="font-semibold">${(requiredReturn * 100).toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-1"><span>Real Rate of Return:</span><span class="font-semibold">${(realRate * 100).toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-1"><span>Accumulation Phase ROI:</span><span class="font-semibold">${((investmentIncome / totalContributions) * 100).toFixed(1)}%</span></div>
+                </div>
+
+                <div class="mt-2 p-2 bg-orange-100 rounded border border-orange-400">
+                    <p><strong>✓ Advice:</strong> Withdrawal rate of ${withdrawalRate.toFixed(2)}% is ${withdrawalRate <= 4 ? 'conservative and sustainable' : withdrawalRate <= 5 ? 'reasonable with discipline' : 'aggressive - consider extending work years'}.</p>
+                    <p class="mt-1"><strong>📊 Actuarial Note:</strong> Calculations use annuity due formulas with Fisher inflation adjustment. Assumes consistent withdrawals and returns.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateTax() {
+        const income = parseFloat(document.getElementById('tax_income').value) || 0;
+        const gains = parseFloat(document.getElementById('tax_gains').value) || 0;
+        const pension = parseFloat(document.getElementById('tax_pension').value) * 12 || 0;
+        const insurance = parseFloat(document.getElementById('tax_insurance').value) || 0;
+        const mortgage = parseFloat(document.getElementById('tax_mortgage').value) || 0;
+
+        // Simplified Kenya tax calculation
+        const pensionRelief = Math.min(pension, 240000); // Max 20K/month
+        const insuranceRelief = Math.min(insurance * 0.15, 60000);
+        const mortgageRelief = Math.min(mortgage * 0.25, 300000);
+
+        const taxableIncome = Math.max(0, income - pensionRelief);
+        
+        // Progressive tax (simplified)
+        let incomeTax = 0;
+        if (taxableIncome > 800000) incomeTax += (taxableIncome - 800000) * 0.30;
+        if (taxableIncome > 500000) incomeTax += Math.min(taxableIncome - 500000, 300000) * 0.25;
+        if (taxableIncome > 300000) incomeTax += Math.min(taxableIncome - 300000, 200000) * 0.20;
+        if (taxableIncome > 150000) incomeTax += Math.min(taxableIncome - 150000, 150000) * 0.10;
+        
+        const capitalGainsTax = gains * 0.05; // 5% CGT
+        const totalTax = incomeTax + capitalGainsTax - insuranceRelief - mortgageRelief;
+        const effectiveRate = (totalTax / income) * 100;
+        const totalDeductions = pensionRelief + insuranceRelief + mortgageRelief;
+
+        document.getElementById('tax_result').classList.remove('hidden');
+        document.getElementById('tax_result').innerHTML = `
+            <div class="bg-yellow-50 p-4 rounded-lg">
+                <h4 class="font-bold text-lg mb-3 text-yellow-800">💰 Tax Optimization Analysis</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="bg-white p-2 rounded border border-yellow-300 mb-2">
+                        <div class="font-semibold mb-1 text-xs">Deductions & Reliefs:</div>
+                        <div class="flex justify-between text-xs"><span>• Pension Relief:</span><span>KES ${pensionRelief.toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs"><span>• Insurance Relief:</span><span>KES ${insuranceRelief.toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs"><span>• Mortgage Interest Relief:</span><span>KES ${mortgageRelief.toLocaleString()}</span></div>
+                        <div class="flex justify-between font-semibold text-xs border-t mt-1 pt-1"><span>Total Deductions:</span><span>KES ${totalDeductions.toLocaleString()}</span></div>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Income Tax:</span>
+                        <span class="font-semibold">KES ${incomeTax.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Capital Gains Tax (5%):</span>
+                        <span class="font-semibold">KES ${capitalGainsTax.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg mt-2 pt-2 border-t-2 border-yellow-400">
+                        <span>Total Tax Liability:</span>
+                        <span class="text-yellow-700">KES ${totalTax.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Effective Tax Rate:</span>
+                        <span class="font-semibold">${effectiveRate.toFixed(2)}%</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-200 rounded text-xs">
+                    <p><strong>💡 Optimization Tips:</strong></p>
+                    <p class="mt-1">• Max pension contribution: KES ${(240000/12).toLocaleString()}/month for full tax relief</p>
+                    <p class="mt-1">• You're saving KES ${totalDeductions.toLocaleString()} in taxes through strategic deductions</p>
+                    <p class="mt-1">• Consider: Education policies, NSSF voluntary contributions for additional relief</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateDebt() {
+        const debts = [
+            { balance: parseFloat(document.getElementById('debt1_balance').value) || 0, rate: parseFloat(document.getElementById('debt1_rate').value) || 0, name: 'Credit Card' },
+            { balance: parseFloat(document.getElementById('debt2_balance').value) || 0, rate: parseFloat(document.getElementById('debt2_rate').value) || 0, name: 'Car Loan' },
+            { balance: parseFloat(document.getElementById('debt3_balance').value) || 0, rate: parseFloat(document.getElementById('debt3_rate').value) || 0, name: 'Mortgage' }
+        ].filter(d => d.balance > 0);
+
+        const extra = parseFloat(document.getElementById('debt_extra').value) || 0;
+
+        // ACTUARIAL FORMULA 1: Loan Amortization Schedule
+        // Monthly Payment = P × [r(1+r)^n] / [(1+r)^n - 1]
+        function calculateMonthlyPayment(principal, annualRate, months) {
+            const monthlyRate = annualRate / 100 / 12;
+            if (monthlyRate === 0) return principal / months;
+            return principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+        }
+
+        // ACTUARIAL FORMULA 2: Total Interest Paid
+        function calculateTotalInterest(principal, annualRate, months) {
+            const monthlyPayment = calculateMonthlyPayment(principal, annualRate, months);
+            return (monthlyPayment * months) - principal;
+        }
+
+        // Standard loan terms (estimated)
+        const cardMonths = 60; // 5 years average
+        const carMonths = 60;  // 5 years
+        const mortgageMonths = 360; // 30 years
+
+        // Calculate current minimum payments
+        const minimumPayments = [];
+        let totalMinimum = 0;
+        debts.forEach(debt => {
+            let months = cardMonths;
+            if (debt.name === 'Car Loan') months = carMonths;
+            if (debt.name === 'Mortgage') months = mortgageMonths;
+            
+            const payment = calculateMonthlyPayment(debt.balance, debt.rate, months);
+            minimumPayments.push(payment);
+            totalMinimum += payment;
+        });
+
+        // ACTUARIAL FORMULA 3: Avalanche Method (Highest Interest First)
+        const avalanche = [...debts].sort((a, b) => b.rate - a.rate);
+        
+        // Calculate payoff time with avalanche + extra payment
+        let avalancheTime = 0;
+        let avalancheInterest = 0;
+        let remainingDebts = avalanche.map(d => ({ ...d }));
+        
+        while (remainingDebts.some(d => d.balance > 0.01) && avalancheTime < 360) {
+            avalancheTime++;
+            // Pay minimums on all, extra on highest rate
+            remainingDebts.forEach((debt, i) => {
+                const months = debt.name === 'Mortgage' ? mortgageMonths : (debt.name === 'Car Loan' ? carMonths : cardMonths);
+                const minPayment = calculateMonthlyPayment(debt.balance, debt.rate, months);
+                const monthlyRate = debt.rate / 100 / 12;
+                const interest = debt.balance * monthlyRate;
+                avalancheInterest += interest;
+                
+                let payment = minPayment;
+                if (i === 0 && avalancheTime <= 120) { // Extra to highest rate
+                    payment += extra;
+                }
+                debt.balance = Math.max(0, debt.balance - payment + interest);
+            });
+        }
+
+        // ACTUARIAL FORMULA 4: Snowball Method (Smallest Balance First)
+        const snowball = [...debts].sort((a, b) => a.balance - b.balance);
+        
+        let snowballTime = 0;
+        let snowballInterest = 0;
+        remainingDebts = snowball.map(d => ({ ...d }));
+        
+        while (remainingDebts.some(d => d.balance > 0.01) && snowballTime < 360) {
+            snowballTime++;
+            remainingDebts.forEach((debt, i) => {
+                const months = debt.name === 'Mortgage' ? mortgageMonths : (debt.name === 'Car Loan' ? carMonths : cardMonths);
+                const minPayment = calculateMonthlyPayment(debt.balance, debt.rate, months);
+                const monthlyRate = debt.rate / 100 / 12;
+                const interest = debt.balance * monthlyRate;
+                snowballInterest += interest;
+                
+                let payment = minPayment;
+                if (i === 0 && snowballTime <= 120) { // Extra to smallest balance
+                    payment += extra;
+                }
+                debt.balance = Math.max(0, debt.balance - payment + interest);
+            });
+        }
+
+        // ACTUARIAL FORMULA 5: Interest Saved Comparison
+        const interestSaved = Math.abs(avalancheInterest - snowballInterest);
+
+        // ACTUARIAL FORMULA 6: Debt Service Ratio
+        const totalBalance = debts.reduce((sum, d) => sum + d.balance, 0);
+        const assumedIncome = 150000; // For illustration
+        const dsr = (totalMinimum / assumedIncome) * 100;
+
+        // ACTUARIAL FORMULA 7: Weighted Average Interest Rate (APR)
+        const weightedAPR = debts.reduce((sum, d) => sum + (d.rate * d.balance), 0) / totalBalance;
+
+        // ACTUARIAL FORMULA 8: Break-even Analysis
+        const extraWithoutExtra = debts.reduce((sum, d) => sum + calculateMonthlyPayment(d.balance, d.rate, cardMonths), 0);
+        const breakEvenMonths = (totalBalance * 0.05) / (extra + 1); // Approximation
+
+        document.getElementById('debt_result').classList.remove('hidden');
+        document.getElementById('debt_result').innerHTML = `
+            <div class="bg-pink-50 p-3 rounded-lg text-xs">
+                <h4 class="font-bold text-sm mb-2 text-pink-800">💳 Actuarial Debt Optimization Analysis</h4>
+                
+                <div class="bg-white p-2 rounded border border-pink-300 mb-2">
+                    <div class="font-semibold mb-1">CURRENT DEBT POSITION</div>
+                    <div class="flex justify-between pb-0.5"><span>Total Outstanding Debt:</span><span class="font-semibold">KES ${totalBalance.toLocaleString()}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Weighted Average APR:</span><span class="font-semibold">${weightedAPR.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Total Monthly Minimum:</span><span class="font-semibold">KES ${totalMinimum.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Debt Service Ratio:</span><span class="text-pink-700">${dsr.toFixed(1)}% of income</span></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="bg-white p-2 rounded border border-pink-300">
+                        <div class="font-semibold mb-1">📉 AVALANCHE METHOD</div>
+                        <div class="text-xs">
+                            <div class="flex justify-between pb-0.5"><span>Payoff Time:</span><span class="font-semibold">${avalancheTime} months</span></div>
+                            <div class="flex justify-between pb-0.5"><span>Total Interest:</span><span class="font-semibold text-red-600">KES ${avalancheInterest.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                            <div class="flex justify-between font-semibold"><span>Status:</span><span class="text-green-600">✓ Mathematically optimal</span></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-2 rounded border border-pink-300">
+                        <div class="font-semibold mb-1">⛄ SNOWBALL METHOD</div>
+                        <div class="text-xs">
+                            <div class="flex justify-between pb-0.5"><span>Payoff Time:</span><span class="font-semibold">${snowballTime} months</span></div>
+                            <div class="flex justify-between pb-0.5"><span>Total Interest:</span><span class="font-semibold text-red-600">KES ${snowballInterest.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                            <div class="flex justify-between font-semibold"><span>Status:</span><span class="text-blue-600">✓ Psychological wins</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-pink-300 mb-2">
+                    <div class="font-semibold mb-1">SAVINGS ANALYSIS</div>
+                    <div class="flex justify-between pb-0.5"><span>Interest Saved (Avalanche vs Snowball):</span><span class="font-semibold text-green-600">KES ${interestSaved.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Time Difference:</span><span class="font-semibold">${Math.abs(snowballTime - avalancheTime)} months</span></div>
+                    <div class="flex justify-between font-semibold"><span>Recommendation:</span><span class="text-pink-700">Use Avalanche for ${(interestSaved / 1000).toFixed(0)}K savings</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-pink-300 mb-2">
+                    <div class="font-semibold mb-1">REPAYMENT STRATEGY</div>
+                    <ol class="space-y-1">
+                        ${avalanche.map((d, i) => `<li>${i+1}. <strong>${d.name}</strong> - KES ${d.balance.toLocaleString()} @ ${d.rate}% (Priority: Highest Interest)</li>`).join('')}
+                    </ol>
+                    <div class="mt-1 border-t pt-1">
+                        <div class="text-xs">Pay minimum on all debts, then put KES ${extra.toLocaleString()}/month extra toward item #1 until cleared, then cascade to #2</div>
+                    </div>
+                </div>
+
+                <div class="mt-2 p-2 bg-pink-100 rounded border border-pink-400">
+                    <p><strong>🎯 Action Plan:</strong> Avalanche saves KES ${interestSaved.toLocaleString(undefined, {maximumFractionDigits: 0})} vs Snowball in ${avalancheTime} months</p>
+                    <p class="text-xs mt-1"><strong>📊 Metrics:</strong> DSR=${dsr.toFixed(1)}%, Weighted APR=${weightedAPR.toFixed(2)}%, Extra Payment Impact=${(extra/(totalMinimum/10)).toFixed(0)}% acceleration</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateProperty() {
+        const price = parseFloat(document.getElementById('prop_price').value) || 0;
+        const rent = parseFloat(document.getElementById('prop_rent').value) || 0;
+        const maint = parseFloat(document.getElementById('prop_maint').value) / 100 || 0;
+        const vacancy = parseFloat(document.getElementById('prop_vacancy').value) / 100 || 0;
+        const appr = parseFloat(document.getElementById('prop_appr').value) / 100 || 0;
+        const years = parseFloat(document.getElementById('prop_years').value) || 0;
+
+        const annualRent = rent * 12;
+        const mainCost = annualRent * maint;
+        const vacancyCost = annualRent * vacancy;
+        const netRent = annualRent - mainCost - vacancyCost;
+        
+        // ACTUARIAL FORMULA 1: Gross Rental Yield
+        const grossYield = (annualRent / price) * 100;
+        
+        // ACTUARIAL FORMULA 2: Net Rental Yield
+        const netYield = (netRent / price) * 100;
+        
+        // ACTUARIAL FORMULA 3: Capitalization Rate (Cap Rate)
+        const capRate = (netRent / price) * 100;
+        
+        // ACTUARIAL FORMULA 4: Cash-on-Cash Return (assuming down payment)
+        const downPaymentPercent = 0.20;
+        const downPayment = price * downPaymentPercent;
+        const cashOnCash = (netRent / downPayment) * 100;
+        
+        // ACTUARIAL FORMULA 5: Price-to-Rent Ratio
+        const priceToRent = price / annualRent;
+        
+        // ACTUARIAL FORMULA 6: Breakeven Rental Period
+        const breakEvenYears = price / netRent;
+        
+        // ACTUARIAL FORMULA 7: Future value of property
+        const futureValue = price * Math.pow(1 + appr, years);
+        
+        // ACTUARIAL FORMULA 8: Total rental income over period
+        const totalRentIncome = netRent * years;
+        
+        // ACTUARIAL FORMULA 9: IRR Approximation
+        const totalCashflow = totalRentIncome + (futureValue - price);
+        const irrApprox = (Math.pow(totalCashflow / price + 1, 1/years) - 1) * 100;
+        
+        // ACTUARIAL FORMULA 10: Loan-to-Value Ratio (LTV)
+        const ltv = ((price - downPayment) / price) * 100;
+        
+        // ACTUARIAL FORMULA 11: Total Return
+        const totalReturn = futureValue + totalRentIncome - price;
+        
+        // ACTUARIAL FORMULA 12: Annualized Total Return
+        const annualizedReturn = (Math.pow((futureValue + totalRentIncome) / price, 1/years) - 1) * 100;
+
+        // ACTUARIAL FORMULA 13: Risk Metrics
+        const volatilityEstimate = appr * 0.3;
+        const sharpeRatioProperty = (annualizedReturn - 8) / Math.max(volatilityEstimate, 0.1);
+
+        // ACTUARIAL FORMULA 14: Operating Expense Ratio
+        const operatingExpenseRatio = ((mainCost + vacancyCost) / annualRent) * 100;
+
+        // ACTUARIAL FORMULA 15: Debt Service Coverage Ratio
+        const mortgagePaymentEstimate = (price - downPayment) * 0.10;
+        const dscr = netRent / Math.max(mortgagePaymentEstimate, 1);
+
+        document.getElementById('prop_result').classList.remove('hidden');
+        document.getElementById('prop_result').innerHTML = `
+            <div class="bg-teal-50 p-3 rounded-lg text-xs">
+                <h4 class="font-bold text-sm mb-2 text-teal-800">🏠 Advanced Real Estate Actuarial Analysis</h4>
+                
+                <div class="bg-white p-2 rounded border border-teal-300 mb-2">
+                    <div class="font-semibold mb-1">RENTAL YIELD METRICS</div>
+                    <div class="flex justify-between pb-0.5"><span>Gross Rental Yield:</span><span class="font-semibold">${grossYield.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Net Rental Yield:</span><span class="font-semibold text-teal-700">${netYield.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Capitalization Rate (Cap Rate):</span><span class="font-semibold">${capRate.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Price-to-Rent Ratio:</span><span class="font-semibold">${priceToRent.toFixed(1)}x</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Operating Expense Ratio:</span><span class="text-teal-700">${operatingExpenseRatio.toFixed(1)}%</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-teal-300 mb-2">
+                    <div class="font-semibold mb-1">RETURN ANALYSIS (${years} Years)</div>
+                    <div class="flex justify-between pb-0.5"><span>Total Rental Income:</span><span class="font-semibold">KES ${totalRentIncome.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Property Appreciation:</span><span class="font-semibold text-green-600">KES ${(futureValue - price).toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Total Profit:</span><span class="font-semibold text-teal-700">KES ${totalReturn.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>Annualized Return:</span><span class="text-teal-700">${annualizedReturn.toFixed(2)}%</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-teal-300 mb-2">
+                    <div class="font-semibold mb-1">INVESTMENT METRICS</div>
+                    <div class="flex justify-between pb-0.5"><span>Internal Rate of Return (IRR):</span><span class="font-semibold text-green-600">${irrApprox.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Cash-on-Cash Return (20% down):</span><span class="font-semibold">${cashOnCash.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Break-even Period:</span><span class="font-semibold">${breakEvenYears.toFixed(1)} years</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Loan-to-Value Ratio:</span><span class="font-semibold">${ltv.toFixed(1)}%</span></div>
+                    <div class="flex justify-between font-semibold border-t pt-0.5"><span>DSCR (Debt Service):</span><span class="text-teal-700">${dscr.toFixed(2)}x</span></div>
+                </div>
+
+                <div class="bg-white p-2 rounded border border-teal-300 mb-2">
+                    <div class="font-semibold mb-1">RISK-ADJUSTED ANALYSIS</div>
+                    <div class="flex justify-between pb-0.5"><span>Estimated Volatility:</span><span class="font-semibold">${volatilityEstimate.toFixed(2)}%</span></div>
+                    <div class="flex justify-between pb-0.5"><span>Sharpe Ratio (Property):</span><span class="font-semibold">${sharpeRatioProperty.toFixed(3)}</span></div>
+                    <div class="flex justify-between font-semibold"><span>Property Value at Year ${years}:</span><span class="text-teal-700">KES ${futureValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                </div>
+
+                <div class="mt-2 p-2 bg-teal-100 rounded border border-teal-400">
+                    <p><strong>✓ Investment Grade:</strong> ${netYield >= 8 ? 'Excellent - High yield property' : netYield >= 5 ? 'Good - Solid rental investment' : 'Fair - Below market average yield'}</p>
+                    <p class="text-xs mt-1"><strong>📊 Rating:</strong> Cap Rate ${capRate.toFixed(2)}% ${capRate > 8 ? '(Undervalued)' : capRate > 5 ? '(Fair)' : '(Potentially overvalued)'} • P/R Ratio ${priceToRent.toFixed(1)}x ${priceToRent < 15 ? '(Attractive)' : priceToRent < 20 ? '(Fair)' : '(Expensive)'}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function calculateEducation() {
+        const children = parseFloat(document.getElementById('edu_children').value) || 0;
+        const age1 = parseFloat(document.getElementById('edu_age1').value) || 0;
+        const age2 = parseFloat(document.getElementById('edu_age2').value) || 0;
+        const entry = parseFloat(document.getElementById('edu_entry').value) || 0;
+        const cost = parseFloat(document.getElementById('edu_cost').value) || 0;
+        const eduInflation = parseFloat(document.getElementById('edu_inflation').value) / 100 || 0;
+        const returnRate = parseFloat(document.getElementById('edu_return').value) / 100 || 0;
+        const current = parseFloat(document.getElementById('edu_current').value) || 0;
+
+        const years1 = entry - age1;
+        const years2 = entry - age2;
+
+        const futureCost1 = cost * Math.pow(1 + eduInflation, years1);
+        const futureCost2 = children >= 2 ? cost * Math.pow(1 + eduInflation, years2) : 0;
+        const totalNeeded = futureCost1 + futureCost2;
+
+        const futureSavings = current * Math.pow(1 + returnRate, Math.min(years1, years2));
+        const gap = totalNeeded - futureSavings;
+
+        // Calculate monthly savings needed for first child
+        const monthsToSave = years1 * 12;
+        const monthlySavings = gap > 0 ? (gap * (returnRate / 12)) / (Math.pow(1 + returnRate / 12, monthsToSave) - 1) : 0;
+
+        document.getElementById('edu_result').classList.remove('hidden');
+        document.getElementById('edu_result').innerHTML = `
+            <div class="bg-indigo-50 p-4 rounded-lg">
+                <h4 class="font-bold text-lg mb-3 text-indigo-800">🎓 Education Fund Plan</h4>
+                <div class="space-y-2 text-sm">
+                    ${children >= 1 ? `
+                    <div class="bg-white p-2 rounded border border-indigo-300">
+                        <div class="font-semibold text-xs mb-1">Child 1 (Age ${age1}):</div>
+                        <div class="flex justify-between text-xs"><span>Years to University:</span><span>${years1} years</span></div>
+                        <div class="flex justify-between text-xs"><span>Current Cost:</span><span>KES ${cost.toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs font-semibold"><span>Future Cost @ ${(eduInflation*100).toFixed(0)}% inflation:</span><span class="text-indigo-700">KES ${futureCost1.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    </div>
+                    ` : ''}
+                    ${children >= 2 ? `
+                    <div class="bg-white p-2 rounded border border-indigo-300">
+                        <div class="font-semibold text-xs mb-1">Child 2 (Age ${age2}):</div>
+                        <div class="flex justify-between text-xs"><span>Years to University:</span><span>${years2} years</span></div>
+                        <div class="flex justify-between text-xs font-semibold"><span>Future Cost @ ${(eduInflation*100).toFixed(0)}% inflation:</span><span class="text-indigo-700">KES ${futureCost2.toLocaleString(undefined, {maximumFractionDigits: 0})}</span></div>
+                    </div>
+                    ` : ''}
+                    <div class="flex justify-between border-t pt-2 mt-2 font-bold">
+                        <span>Total Education Fund Needed:</span>
+                        <span class="text-indigo-700">KES ${totalNeeded.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1">
+                        <span>Future Value of Current Savings:</span>
+                        <span class="font-semibold">KES ${futureSavings.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg mt-2 pt-2 border-t-2 border-indigo-400">
+                        <span>Monthly Savings Required:</span>
+                        <span class="text-indigo-700">KES ${monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-indigo-200 rounded text-xs">
+                    <p><strong>💡 Strategy:</strong> Start saving KES ${monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})}/month at ${(returnRate*100).toFixed(1)}% return to fully fund ${children} child${children > 1 ? 'ren' : ''}'s education.</p>
+                    <p class="mt-2"><strong>📚 Reality Check:</strong> Today's KES ${cost.toLocaleString()} degree will cost KES ${futureCost1.toLocaleString(undefined, {maximumFractionDigits: 0})} in ${years1} years due to ${(eduInflation*100).toFixed(0)}% education inflation!</p>
+                    <p class="mt-2"><strong>🎯 Tip:</strong> Consider education insurance policies or 529-equivalent plans for tax benefits and guaranteed funding.</p>
+                </div>
+            </div>
+        `;
+    }
+    </script>
 
 </body>
 </html>

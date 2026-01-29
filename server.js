@@ -4,16 +4,30 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const contentAPI = require('./api/content-management');
+const subManager = require('./api/subscription-manager');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+// SECURITY FIX #4: Add request size limits to prevent DOS
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 // Basic auth for admin routes if ADMIN_USER is set
+// SECURITY FIX #1: Enforce admin authentication always
 function adminAuth(req, res, next) {
   const adminUser = process.env.ADMIN_USER;
-  if (!adminUser) return next(); // no auth configured
+  const adminPass = process.env.ADMIN_PASS;
+  
+  // SECURITY: If admin credentials not configured, BLOCK access (don't bypass)
+  if (!adminUser || !adminPass) {
+    console.error('[SECURITY] Admin access attempt without credentials configured!');
+    return res.status(500).json({ 
+      error: 'Admin authentication not configured. Please set ADMIN_USER and ADMIN_PASS environment variables.' 
+    });
+  }
+  
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
@@ -21,7 +35,16 @@ function adminAuth(req, res, next) {
   }
   const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
   const [user, pass] = creds.split(':');
-  if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) return next();
+  if (user === adminUser && pass === adminPass) {
+    // Log successful admin authentication (only outside production to avoid exposing auth events in general logs)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH] Admin login successful from IP: ${req.ip}`);
+    }
+    return next();
+  }
+  
+  // Log failed authentication attempt
+  console.warn(`[SECURITY] Failed admin login attempt from IP: ${req.ip}`);
   res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
   return res.status(401).end('Unauthorized');
 }
@@ -258,7 +281,7 @@ function writeUsers(users) {
 
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { email, password, acceptTerms } = req.body;
+    const { email, password, acceptTerms, mobileNumber, paymentMethod, taxInfo, country, fullName } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
 
@@ -268,7 +291,43 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
-    const user = { email: email.toLowerCase(), passwordHash: hash, createdAt: new Date().toISOString() };
+    const userId = uuidv4();
+    
+    // Capture IP address and user agent for security tracking
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    const user = { 
+      id: userId,
+      email: email.toLowerCase(), 
+      passwordHash: hash,
+      fullName: fullName || '',
+      mobileNumber: mobileNumber || '',
+      country: country || '',
+      paymentMethod: paymentMethod || '',
+      taxInfo: {
+        taxId: (taxInfo && taxInfo.taxId) || '',
+        taxCountry: (taxInfo && taxInfo.taxCountry) || country || '',
+        taxType: (taxInfo && taxInfo.taxType) || 'individual',
+        vatNumber: (taxInfo && taxInfo.vatNumber) || '',
+        businessRegistration: (taxInfo && taxInfo.businessRegistration) || '',
+        verified: false
+      },
+      amount: 0,
+      isPremium: false,
+      premiumGrantedAt: null,
+      premiumGrantedBy: null,
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      registrationIp: ipAddress,
+      registrationUserAgent: userAgent,
+      loginHistory: []
+    };
     users.push(user);
     writeUsers(users);
     
@@ -283,7 +342,7 @@ app.post('/api/auth/signup', async (req, res) => {
       console.log('analytics tracking skipped');
     }
     
-    return res.json({ success: true, message: 'signup successful' });
+    return res.json({ success: true, message: 'signup successful', userId });
   } catch (err) {
     console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
@@ -300,6 +359,36 @@ app.post('/api/auth/login', async (req, res) => {
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     
+    // Capture login details
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const loginTime = new Date().toISOString();
+    
+    // Update last login timestamp and add to login history
+    user.lastLoginAt = loginTime;
+    user.lastLoginIp = ipAddress;
+    
+    // Initialize loginHistory if it doesn't exist
+    if (!user.loginHistory) user.loginHistory = [];
+    
+    // Add current login to history (keep last 50 logins)
+    user.loginHistory.push({
+      timestamp: loginTime,
+      ipAddress: ipAddress,
+      userAgent: userAgent
+    });
+    
+    // Keep only last 50 login records to prevent file bloat
+    if (user.loginHistory.length > 50) {
+      user.loginHistory = user.loginHistory.slice(-50);
+    }
+    
+    writeUsers(users);
+    
     // Track login in analytics
     try {
       await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/login', {
@@ -312,9 +401,171 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     // For demo: return a simple success message. In production return a session or JWT.
-    return res.json({ success: true, message: 'login successful' });
+    return res.json({ success: true, message: 'login successful', isPremium: user.isPremium || false, isAdmin: user.isAdmin || false });
   } catch (err) {
     console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all registered users (with sensitive data visible only to admin)
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    // Return user data without password hashes
+    const safeUsers = users.map(u => {
+      const { passwordHash, ...safeData } = u;
+      return safeData;
+    });
+    return res.json({ success: true, users: safeUsers });
+  } catch (err) {
+    console.error('admin users list error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Grant premium access to a user
+app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { requirements } = req.body;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met (you can customize this logic)
+    const requirementsMet = requirements && requirements.verified === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the required terms for premium access' });
+    }
+    
+    // Grant premium access
+    users[userIndex].isPremium = true;
+    users[userIndex].premiumGrantedAt = new Date().toISOString();
+    users[userIndex].premiumGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Notify user
+    sendNotificationMail({
+      to: users[userIndex].email,
+      subject: 'Premium Access Granted - SmartInvest Africa',
+      text: `Congratulations! You have been granted premium access to SmartInvest Africa.`,
+      html: `<p>Congratulations!</p><p>You have been granted <strong>premium access</strong> to SmartInvest Africa.</p><p>You now have access to all premium features, courses, and tools.</p>`
+    });
+    
+    return res.json({ success: true, message: 'Premium access granted', user: { id: users[userIndex].id, email: users[userIndex].email, isPremium: true } });
+  } catch (err) {
+    console.error('grant premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Revoke premium access from a user
+app.post('/api/admin/users/:userId/revoke-premium', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    users[userIndex].isPremium = false;
+    users[userIndex].premiumRevokedAt = new Date().toISOString();
+    users[userIndex].premiumRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Premium access revoked' });
+  } catch (err) {
+    console.error('revoke premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Add another admin (with requirements check)
+app.post('/api/admin/add-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId, requirements } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met for admin access
+    const requirementsMet = requirements && requirements.verified === true && requirements.adminApproved === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the requirements to become an admin' });
+    }
+    
+    // Grant admin access
+    users[userIndex].isAdmin = true;
+    users[userIndex].adminGrantedAt = new Date().toISOString();
+    users[userIndex].adminGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Notify new admin
+    sendNotificationMail({
+      to: users[userIndex].email,
+      subject: 'Admin Access Granted - SmartInvest Africa',
+      text: `You have been granted administrator access to SmartInvest Africa.`,
+      html: `<p>Congratulations!</p><p>You have been granted <strong>administrator access</strong> to SmartInvest Africa.</p><p>You can now access the admin dashboard and manage the platform.</p>`
+    });
+    
+    return res.json({ success: true, message: 'Admin access granted', admin: { id: users[userIndex].id, email: users[userIndex].email, isAdmin: true } });
+  } catch (err) {
+    console.error('add admin error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Remove admin access
+app.post('/api/admin/remove-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent removing the primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot remove primary admin access' });
+    }
+    
+    users[userIndex].isAdmin = false;
+    users[userIndex].adminRevokedAt = new Date().toISOString();
+    users[userIndex].adminRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Admin access removed' });
+  } catch (err) {
+    console.error('remove admin error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -619,14 +870,15 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
 // Multer setup (already defined earlier)
 
 // Scenarios endpoints: store/load/delete simple calculator scenarios
-app.get('/api/scenarios', (req, res) => {
+// SECURITY FIX #2: Protect scenario endpoints from abuse
+app.get('/api/scenarios', adminAuth, (req, res) => {
   try {
     const list = readScenarios();
     return res.json({ success: true, scenarios: list });
   } catch (e) { console.error('scenarios list error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/scenarios/:id', (req, res) => {
+app.get('/api/scenarios/:id', adminAuth, (req, res) => {
   try {
     const id = req.params.id;
     const list = readScenarios();
@@ -636,7 +888,7 @@ app.get('/api/scenarios/:id', (req, res) => {
   } catch (e) { console.error('get scenario error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/scenarios', express.json(), (req, res) => {
+app.post('/api/scenarios', adminAuth, express.json(), (req, res) => {
   try {
     const body = req.body || {};
     const name = body.name || ('scenario-' + Date.now());
@@ -737,8 +989,23 @@ if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, JSON.stringif
 function readMessages(){ try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeMessages(d){ fs.writeFileSync(MESSAGES_FILE, JSON.stringify(d, null, 2)); }
 
+// SECURITY FIX #3: Add rate limiting to message endpoint
+// Limit: 10 messages per 15 minutes per IP address
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 messages per window
+  message: 'Too many messages from this IP address. Please try again later.',
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  skip: (req) => {
+    // Don't rate limit admin users
+    return req.headers.authorization && req.headers.authorization.startsWith('Basic ');
+  }
+});
+
 // Public: post a message (name optional, email optional)
-app.post('/api/messages', express.json(), (req, res) => {
+// SECURITY FIX #3: Applied rate limiting to prevent spam
+app.post('/api/messages', messageLimiter, express.json(), (req, res) => {
   try {
     const { name, email, message } = req.body || {};
     if (!message || !String(message).trim()) return res.status(400).json({ error: 'message required' });
@@ -753,11 +1020,20 @@ app.post('/api/messages', express.json(), (req, res) => {
   } catch (e) { console.error('post message error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-// Public: list messages (visible to everyone)
+// User: list only their own messages (requires email)
 app.get('/api/messages', (req, res) => {
   try {
+    const userEmail = req.query.email || req.headers['x-user-email'];
+    
+    if (!userEmail) {
+      return res.status(400).json({ error: 'email required to view messages' });
+    }
+    
     const msgs = readMessages();
-    return res.json({ success: true, messages: msgs });
+    // Only return messages from this specific user
+    const userMessages = msgs.filter(m => m.email && m.email.toLowerCase() === userEmail.toLowerCase());
+    
+    return res.json({ success: true, messages: userMessages });
   } catch (e) { console.error('list messages error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
@@ -859,6 +1135,178 @@ app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
   }
 });
 
+// Admin: Get comprehensive statistics
+app.get('/api/admin/stats', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const purchases = readPurchases();
+    const files = readFilesMeta();
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    const messagesFile = './data/messages.json';
+    const messages = fs.existsSync(messagesFile) ? JSON.parse(fs.readFileSync(messagesFile)) : [];
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : {};
+
+    const stats = {
+      totalUsers: users.length,
+      premiumUsers: users.filter(u => u.isPremium).length,
+      adminUsers: users.filter(u => u.isAdmin).length,
+      freeUsers: users.filter(u => !u.isPremium).length,
+      totalFiles: files.length,
+      publishedFiles: files.filter(f => f.published).length,
+      draftFiles: files.filter(f => !f.published).length,
+      totalPurchases: purchases.length,
+      totalMessages: messages.length,
+      unreadMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
+      totalTransactions: transactions.length,
+      pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+      completedTransactions: transactions.filter(t => t.status === 'paid' || t.status === 'completed').length,
+      totalVisitors: (analytics.visitors || []).length,
+      totalSignups: (analytics.signups || []).length,
+      totalLogins: (analytics.logins || []).length,
+      recentLogins: users.filter(u => u.lastLoginAt && new Date(u.lastLoginAt) > new Date(Date.now() - 7*24*60*60*1000)).length,
+      pendingVerifications: transactions.filter(t => t.provider === 'kcb_manual' && t.status === 'pending').length
+    };
+
+    return res.json({ success: true, stats });
+  } catch (err) {
+    console.error('stats error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get analytics data
+app.get('/api/admin/analytics', adminAuth, (req, res) => {
+  try {
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : { visitors: [], signups: [], logins: [] };
+    
+    return res.json({ success: true, analytics });
+  } catch (err) {
+    console.error('analytics error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all transactions
+app.get('/api/admin/transactions', adminAuth, (req, res) => {
+  try {
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    
+    return res.json({ success: true, transactions });
+  } catch (err) {
+    console.error('transactions error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all purchases
+app.get('/api/admin/purchases', adminAuth, (req, res) => {
+  try {
+    const purchases = readPurchases();
+    return res.json({ success: true, purchases });
+  } catch (err) {
+    console.error('purchases error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Export all users to CSV
+app.get('/api/admin/users-export', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const header = ['id', 'email', 'fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'isPremium', 'isAdmin', 'createdAt', 'lastLoginAt'];
+    const csv = [header.join(',')].concat(users.map(u => {
+      return [
+        u.id,
+        u.email,
+        u.fullName || '',
+        u.mobileNumber || '',
+        u.country || '',
+        u.paymentMethod || '',
+        u.amount || 0,
+        u.isPremium ? 'Yes' : 'No',
+        u.isAdmin ? 'Yes' : 'No',
+        u.createdAt || '',
+        u.lastLoginAt || ''
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    })).join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="users-export.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error('user export error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: Delete user
+app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent deleting primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot delete primary admin account' });
+    }
+    
+    const deletedUser = users.splice(userIndex, 1)[0];
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'User deleted', user: { id: deletedUser.id, email: deletedUser.email } });
+  } catch (err) {
+    console.error('delete user error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Update user information
+app.patch('/api/admin/users/:userId', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const updates = req.body;
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent modifying admin status of primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER && updates.isAdmin === false) {
+      return res.status(403).json({ error: 'Cannot modify primary admin status' });
+    }
+    
+    // Update allowed fields
+    const allowedFields = ['fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'taxInfo'];
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        users[userIndex][field] = updates[field];
+      }
+    });
+    
+    users[userIndex].updatedAt = new Date().toISOString();
+    users[userIndex].updatedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    const { passwordHash, ...safeUser } = users[userIndex];
+    return res.json({ success: true, message: 'User updated', user: safeUser });
+  } catch (err) {
+    console.error('update user error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Reconcile bank entries: accepts JSON { entries: [...] }
 app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
   try {
@@ -893,6 +1341,286 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
   } catch (e) {
     console.error('reconcile error', e.message);
     return res.status(500).json({ error: e.message });
+  }
+});
+
+// Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// ========== SUBSCRIPTION & ACCESS CONTROL ENDPOINTS ==========
+
+// User Login/Registration - Create or retrieve user
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, userId } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email required' });
+    }
+
+    // Try to find existing user
+    let user = subManager.getUserByEmail(email);
+    
+    if (!user) {
+      // Create new user
+      user = subManager.createUser({
+        email,
+        name: email.split('@')[0],
+        phone: '',
+        location: '',
+        taxId: ''
+      });
+      
+      if (user.error) {
+        return res.status(400).json(user);
+      }
+      
+      console.log(`[AUTH] New user created: ${user.id} (${email})`);
+    } else {
+      // Update last login
+      user.lastLogin = new Date().toISOString();
+      subManager.updateUser(user.id, { updatedAt: new Date().toISOString() });
+      console.log(`[AUTH] User logged in: ${user.id} (${email})`);
+    }
+
+    // Add subscription details
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription
+    };
+
+    subManager.logAccess(user.id, 'LOGIN', 'dashboard', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[AUTH] Login error:', err.message);
+    return res.status(500).json({ error: 'Login failed', message: err.message });
+  }
+});
+
+// Get user data
+app.get('/api/users/:userId', (req, res) => {
+  try {
+    const user = subManager.getUser(req.params.userId);
+    
+    if (!user) {
+      subManager.logAccess(req.params.userId, 'GET_USER', 'user-data', 'not-found', req.ip);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription,
+      isPremium: subManager.isPremiumUser(user.id)
+    };
+
+    subManager.logAccess(user.id, 'GET_USER', 'user-data', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[USERS] Get user error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve user', message: err.message });
+  }
+});
+
+// Check calculator access (CRITICAL: NO BYPASSES)
+app.post('/api/calculators/:calcType/access', (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { calcType } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    const user = subManager.getUser(userId);
+    if (!user) {
+      subManager.logAccess(userId, 'ACCESS_CHECK', calcType, 'user-not-found', req.ip);
+      return res.status(401).json({ access: false, reason: 'User not found' });
+    }
+
+    // Free calculators: Investment, Amortization, Insurance
+    const freeCalcs = ['investment', 'amortization', 'insurance'];
+    if (freeCalcs.includes(calcType)) {
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'free-calc', req.ip);
+      return res.json({ access: true, type: 'free', reason: 'Free calculator' });
+    }
+
+    // Premium calculators: Bonds, Pension, Actuarial, Risk, Business, Audit
+    const premiumCalcs = ['bonds', 'pension', 'actuarial', 'risk', 'business', 'audit'];
+    if (premiumCalcs.includes(calcType)) {
+      // AUTHORITATIVE CHECK: isPremiumUser does full validation
+      const isPremium = subManager.isPremiumUser(userId);
+      
+      if (!isPremium) {
+        subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'not-premium', req.ip);
+        return res.status(403).json({ 
+          access: false, 
+          type: 'premium', 
+          reason: 'Premium subscription required' 
+        });
+      }
+
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'premium-calc', req.ip);
+      return res.json({ access: true, type: 'premium', reason: 'Premium subscriber' });
+    }
+
+    subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'unknown-calc', req.ip);
+    return res.status(400).json({ access: false, reason: 'Unknown calculator' });
+  } catch (err) {
+    console.error('[CALCULATORS] Access check error:', err.message);
+    return res.status(500).json({ error: 'Access check failed', message: err.message });
+  }
+});
+
+// ========== ADMIN SUBSCRIPTION MANAGEMENT ==========
+
+// Create subscription for user (ADMIN ONLY)
+app.post('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const { userId, amount, paymentMethod, paymentReference, validFrom, validUntil, reason, notes } = req.body;
+
+    const subscription = subManager.createSubscription({
+      userId,
+      amount,
+      paymentMethod,
+      paymentReference,
+      validFrom,
+      validUntil,
+      reason,
+      notes,
+      grantedBy: 'admin'
+    });
+
+    if (subscription.error) {
+      return res.status(400).json(subscription);
+    }
+
+    console.log(`[ADMIN] Subscription created for user ${userId}`);
+    subManager.logAccess(userId, 'SUBSCRIPTION_CREATED', 'admin', 'success', req.ip);
+
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[ADMIN] Create subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to create subscription', message: err.message });
+  }
+});
+
+// Get all subscriptions (ADMIN ONLY)
+app.get('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const filters = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.userId) filters.userId = req.query.userId;
+
+    const subscriptions = subManager.getAllSubscriptions(filters);
+    return res.json({ success: true, subscriptions });
+  } catch (err) {
+    console.error('[ADMIN] Get subscriptions error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve subscriptions' });
+  }
+});
+
+// Extend subscription (ADMIN ONLY)
+app.put('/api/admin/subscriptions/:subId/extend', adminAuth, (req, res) => {
+  try {
+    const { days } = req.body;
+    if (!days || days < 0) {
+      return res.status(400).json({ error: 'Valid days value required' });
+    }
+
+    const result = subManager.extendSubscription(req.params.subId, days);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} extended by ${days} days`);
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Extend subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to extend subscription' });
+  }
+});
+
+// Revoke subscription (ADMIN ONLY)
+app.post('/api/admin/subscriptions/:subId/revoke', adminAuth, (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    // Get subscription to find user
+    const subscriptions = subManager.getAllSubscriptions();
+    const sub = subscriptions.find(s => s.id === req.params.subId);
+    
+    if (!sub) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    const result = subManager.revokeSubscription(req.params.subId, reason);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} revoked. Reason: ${reason}`);
+    subManager.logAccess(sub.userId, 'SUBSCRIPTION_REVOKED', 'admin', 'revoked', req.ip);
+
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Revoke subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to revoke subscription' });
+  }
+});
+
+// Get all users (ADMIN ONLY)
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const filters = {};
+    if (req.query.isPremium !== undefined) {
+      filters.isPremium = req.query.isPremium === 'true';
+    }
+
+    const users = subManager.getAllUsers(filters);
+    return res.json({ success: true, users });
+  } catch (err) {
+    console.error('[ADMIN] Get users error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve users' });
+  }
+});
+
+// Update user (ADMIN ONLY)
+app.put('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const { name, phone, location, taxId } = req.body;
+    
+    const result = subManager.updateUser(req.params.userId, {
+      name, phone, location, taxId
+    });
+
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ success: true, user: result });
+  } catch (err) {
+    console.error('[ADMIN] Update user error:', err.message);
+    return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user (ADMIN ONLY) - Soft delete
+app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const result = subManager.deleteUser(req.params.userId, reason);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] User ${req.params.userId} deleted. Reason: ${reason}`);
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Delete user error:', err.message);
+    return res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 

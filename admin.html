@@ -26,10 +26,10 @@
     .stat-card::before {
       content: '';
       position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
+      inset-block-start: -50%;
+      inset-inline-end: -50%;
+      inline-size: 200%;
+      block-size: 200%;
       background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
       transform: rotate(45deg);
       transition: all 0.5s ease;
@@ -47,17 +47,17 @@
     .nav-tab {
       padding: 0.75rem 1.5rem;
       cursor: pointer;
-      border-bottom: 3px solid transparent;
+      border-block-end: 3px solid transparent;
       transition: all 0.3s ease;
       position: relative;
     }
     .nav-tab::before {
       content: '';
       position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 0;
-      height: 3px;
+      inset-block-end: 0;
+      inset-inline-start: 0;
+      inline-size: 0;
+      block-size: 3px;
       background: linear-gradient(90deg, #7C3AED, #EC4899);
       transition: width 0.3s ease;
     }
@@ -65,14 +65,14 @@
       background: linear-gradient(to bottom, #F3F4F6, transparent);
     }
     .nav-tab:hover::before {
-      width: 100%;
+      inline-size: 100%;
     }
     .nav-tab.active {
       color: #7C3AED;
       font-weight: 600;
     }
     .nav-tab.active::before {
-      width: 100%;
+      inline-size: 100%;
     }
     .tab-content {
       display: none;
@@ -146,6 +146,16 @@
         <div class="nav-tab active" onclick="switchTab('overview')">
           <span class="text-xl">📊</span> Overview
         </div>
+        <div class="nav-tab" onclick="switchTab('users')">
+          <span class="text-xl">👥</span> Users
+          <span class="notification-badge" id="usersBadge" style="display:none;">0</span>
+        </div>
+        <div class="nav-tab" onclick="switchTab('analytics')">
+          <span class="text-xl">📈</span> Analytics
+        </div>
+        <div class="nav-tab" onclick="switchTab('transactions')">
+          <span class="text-xl">💳</span> Transactions
+        </div>
         <div class="nav-tab" onclick="switchTab('messages')">
           <span class="text-xl">💬</span> Messages
           <span class="notification-badge" id="messagesBadge" style="display:none;">0</span>
@@ -166,46 +176,123 @@
 
     <!-- Overview Tab -->
     <div id="overview" class="tab-content active">
-      <div class="grid md:grid-cols-3 gap-6 mb-6">
+      <div class="grid md:grid-cols-4 gap-6 mb-6">
         <div class="stat-card animate-on-scroll slide-in-left">
+          <div class="text-sm opacity-90">Total Users</div>
+          <div class="text-3xl font-bold mt-2" id="statTotalUsers">0</div>
+          <div class="text-xs opacity-75 mt-1">Registered accounts</div>
+        </div>
+        <div class="stat-card animate-on-scroll scale-in" style="animation-delay: 0.05s;">
+          <div class="text-sm opacity-90">Premium Users</div>
+          <div class="text-3xl font-bold mt-2" id="statPremiumUsers">0</div>
+          <div class="text-xs opacity-75 mt-1">Active premium</div>
+        </div>
+        <div class="stat-card animate-on-scroll slide-in-left" style="animation-delay: 0.1s;">
           <div class="text-sm opacity-90">Total Messages</div>
           <div class="text-3xl font-bold mt-2" id="statMessages">0</div>
           <div class="text-xs opacity-75 mt-1">All time</div>
         </div>
-        <div class="stat-card animate-on-scroll scale-in" style="animation-delay: 0.1s;">
+        <div class="stat-card animate-on-scroll scale-in" style="animation-delay: 0.15s;">
           <div class="text-sm opacity-90">Pending Transfers</div>
           <div class="text-3xl font-bold mt-2" id="statTransfers">0</div>
           <div class="text-xs opacity-75 mt-1">Awaiting confirmation</div>
         </div>
-        <div class="stat-card animate-on-scroll slide-in-right" style="animation-delay: 0.2s;">
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mb-6">
+        <div class="stat-card animate-on-scroll slide-in-right" style="animation-delay: 0.2s; background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);">
           <div class="text-sm opacity-90">Total Files</div>
           <div class="text-3xl font-bold mt-2" id="statFiles">0</div>
           <div class="text-xs opacity-75 mt-1">In marketplace</div>
+        </div>
+        <div class="stat-card animate-on-scroll slide-in-right" style="animation-delay: 0.25s; background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);">
+          <div class="text-sm opacity-90">Total Transactions</div>
+          <div class="text-3xl font-bold mt-2" id="statTotalTransactions">0</div>
+          <div class="text-xs opacity-75 mt-1">All payments</div>
+        </div>
+        <div class="stat-card animate-on-scroll slide-in-right" style="animation-delay: 0.3s; background: linear-gradient(135deg, #43E97B 0%, #38F9D7 100%);">
+          <div class="text-sm opacity-90">Total Visitors</div>
+          <div class="text-3xl font-bold mt-2" id="statVisitors">0</div>
+          <div class="text-xs opacity-75 mt-1">Site visits</div>
         </div>
       </div>
 
       <div class="bg-white rounded-lg shadow-lg p-6 dashboard-card animate-on-scroll">
         <h2 class="text-xl font-bold mb-4 gradient-text">⚡ Quick Actions</h2>
-        <div class="grid md:grid-cols-2 gap-4">
-          <button onclick="switchTab('messages')" class="action-button bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition">
+        <div class="grid md:grid-cols-3 gap-4">
+          <button onclick="switchTab('users')" class="action-button bg-purple-100 hover:bg-purple-200 p-4 rounded-lg text-left transition">
             <div class="font-semibold text-purple-700 flex items-center gap-2">
-              <span class="text-2xl">💬</span> View Messages
+              <span class="text-2xl">👥</span> Manage Users
             </div>
-            <div class="text-sm text-gray-600 mt-1">Respond to visitor inquiries</div>
+            <div class="text-sm text-gray-600 mt-1">Grant/revoke access</div>
           </button>
-          <button onclick="switchTab('transfers')" class="bg-blue-100 hover:bg-blue-200 p-4 rounded-lg text-left transition">
-            <div class="font-semibold text-blue-700">💰 Review Transfers</div>
-            <div class="text-sm text-gray-600 mt-1">Mark payments as received</div>
+          <button onclick="switchTab('analytics')" class="action-button bg-blue-100 hover:bg-blue-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-blue-700 flex items-center gap-2">
+              <span class="text-2xl">📈</span> View Analytics
+            </div>
+            <div class="text-sm text-gray-600 mt-1">Traffic & engagement</div>
           </button>
-          <button onclick="switchTab('files')" class="bg-green-100 hover:bg-green-200 p-4 rounded-lg text-left transition">
-            <div class="font-semibold text-green-700">📁 Manage Files</div>
-            <div class="text-sm text-gray-600 mt-1">Upload and organize resources</div>
+          <button onclick="switchTab('transactions')" class="action-button bg-green-100 hover:bg-green-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-green-700 flex items-center gap-2">
+              <span class="text-2xl">💳</span> View Transactions
+            </div>
+            <div class="text-sm text-gray-600 mt-1">Payment history</div>
           </button>
-          <button onclick="downloadReport()" class="bg-yellow-100 hover:bg-yellow-200 p-4 rounded-lg text-left transition">
-            <div class="font-semibold text-yellow-700">📊 Download Report</div>
-            <div class="text-sm text-gray-600 mt-1">Export all data as CSV</div>
+          <button onclick="switchTab('messages')" class="bg-indigo-100 hover:bg-indigo-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-indigo-700">💬 Review Messages</div>
+            <div class="text-sm text-gray-600 mt-1">Respond to visitors</div>
+          </button>
+          <button onclick="switchTab('transfers')" class="bg-orange-100 hover:bg-orange-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-orange-700">💰 Review Transfers</div>
+            <div class="text-sm text-gray-600 mt-1">Mark payments received</div>
+          </button>
+          <button onclick="switchTab('files')" class="bg-pink-100 hover:bg-pink-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-pink-700">📁 Manage Files</div>
+            <div class="text-sm text-gray-600 mt-1">Upload resources</div>
+          </button>
+          <button onclick="exportAllData()" class="bg-yellow-100 hover:bg-yellow-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-yellow-700">📊 Export All Data</div>
+            <div class="text-sm text-gray-600 mt-1">Download reports</div>
+          </button>
+          <button onclick="exportUsers()" class="bg-teal-100 hover:bg-teal-200 p-4 rounded-lg text-left transition">
+            <div class="font-semibold text-teal-700">👥 Export Users</div>
+            <div class="text-sm text-gray-600 mt-1">User CSV export</div>
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="users" class="tab-content">
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Registered Users</h2>
+        <div class="flex gap-2 mb-4">
+          <button onclick="loadUsers()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
+          <button onclick="exportUsers()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">📥 Export CSV</button>
+        </div>
+        <div id="usersList">Loading users…</div>
+      </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div id="analytics" class="tab-content">
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Platform Analytics</h2>
+        <div class="flex gap-2 mb-4">
+          <button onclick="loadAnalytics()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
+        </div>
+        <div id="analyticsContent">Loading analytics…</div>
+      </div>
+    </div>
+
+    <!-- Transactions Tab -->
+    <div id="transactions" class="tab-content">
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">All Transactions</h2>
+        <div class="flex gap-2 mb-4">
+          <button onclick="loadTransactions()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
+        </div>
+        <div id="transactionsList">Loading transactions…</div>
       </div>
     </div>
 
@@ -268,6 +355,27 @@
       </div>
     </div>
 
+    <!-- Files Tab -->
+    <div id="files" class="tab-content">
+  <!-- File Marketplace Section -->
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">File Marketplace (Admin)</h2>
+        <form id="uploadForm" class="mb-6 bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300" onsubmit="event.preventDefault(); uploadFileMarketplace();">
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Title</label><input id="fileTitle" name="title" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="Enter file title"/></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Price (USD)</label><input id="filePrice" name="price" type="number" step="0.01" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="0.00"/></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">Description</label><textarea id="fileDescription" name="description" rows="3" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="Describe the file..."></textarea></div>
+          <div class="mb-3"><label class="block text-sm font-semibold mb-1">File (PDF or any)</label><input type="file" id="fileInput" name="file" class="w-full border rounded-lg p-2 bg-white"/></div>
+          <div class="mb-3"><label class="flex items-center text-sm"><input type="checkbox" id="filePublished" name="published" class="mr-2 w-4 h-4"/> <span class="font-medium">Publish immediately</span></label></div>
+          <div class="flex gap-2">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">📤 Upload File</button>
+            <button type="button" onclick="loadFiles()" class="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-medium transition">🔄 Refresh</button>
+          </div>
+          <div id="uploadStatus" class="text-sm mt-3"></div>
+        </form>
+        <div id="filesList">Loading files…</div>
+      </div>
+    </div>
+
   </div>
 
 <script>
@@ -285,35 +393,214 @@ function switchTab(tabName) {
   document.getElementById(tabName).classList.add('active');
   
   // Add active to clicked nav
-  event.target.classList.add('active');
+  const clickedTab = Array.from(navTabs).find(tab => tab.textContent.toLowerCase().includes(tabName.toLowerCase()));
+  if (clickedTab) clickedTab.classList.add('active');
 }
 
 // Refresh All Data
 async function refreshAllData() {
-  await Promise.all([loadFiles(), load(), loadAdminMessages(), updateStats()]);
+  await Promise.all([loadFiles(), load(), loadAdminMessages(), loadUsers(), loadAnalytics(), loadTransactions(), updateStats()]);
   alert('✅ All data refreshed!');
 }
 
 // Update Dashboard Stats
 async function updateStats() {
   try {
-    // Get messages count
-    const msgRes = await fetch('/api/admin/messages');
-    const msgData = await msgRes.json();
-    document.getElementById('statMessages').textContent = msgData.success ? msgData.messages.length : '0';
+    const res = await fetch('/api/admin/stats');
+    const data = await res.json();
     
-    // Get transfers count
-    const transRes = await fetch('/api/admin/kcb-transfers');
-    const transData = await transRes.json();
-    const pending = transData.success ? transData.transfers.filter(t => t.status === 'pending').length : 0;
-    document.getElementById('statTransfers').textContent = pending;
-    
-    // Get files count
-    const filesRes = await fetch('/api/admin/files');
-    const filesData = await filesRes.json();
-    document.getElementById('statFiles').textContent = filesData.success ? filesData.files.length : '0';
+    if (data.success) {
+      const stats = data.stats;
+      document.getElementById('statTotalUsers').textContent = stats.totalUsers || 0;
+      document.getElementById('statPremiumUsers').textContent = stats.premiumUsers || 0;
+      document.getElementById('statMessages').textContent = stats.totalMessages || 0;
+      document.getElementById('statTransfers').textContent = stats.pendingTransactions || 0;
+      document.getElementById('statFiles').textContent = stats.totalFiles || 0;
+      document.getElementById('statTotalTransactions').textContent = stats.totalTransactions || 0;
+      document.getElementById('statVisitors').textContent = stats.totalVisitors || 0;
+    }
   } catch (e) {
     console.error('Failed to update stats', e);
+  }
+}
+
+// Analytics Functions
+async function loadAnalytics() {
+  try {
+    const res = await fetch('/api/admin/analytics');
+    const data = await res.json();
+    const out = document.getElementById('analyticsContent');
+    
+    if (!data.success) {
+      out.textContent = 'Failed to load analytics';
+      return;
+    }
+    
+    const analytics = data.analytics;
+    const visitors = analytics.visitors || [];
+    const signups = analytics.signups || [];
+    const logins = analytics.logins || [];
+    
+    out.innerHTML = `
+      <div class="grid md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow">
+          <div class="text-sm opacity-90">Total Visitors</div>
+          <div class="text-4xl font-bold mt-2">${visitors.length}</div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow">
+          <div class="text-sm opacity-90">Total Signups</div>
+          <div class="text-4xl font-bold mt-2">${signups.length}</div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow">
+          <div class="text-sm opacity-90">Total Logins</div>
+          <div class="text-4xl font-bold mt-2">${logins.length}</div>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-3">Recent Visitors (Last 10)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm border">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-3 py-2 text-left">Timestamp</th>
+                <th class="px-3 py-2 text-left">Source</th>
+                <th class="px-3 py-2 text-left">Referrer</th>
+                <th class="px-3 py-2 text-left">User Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${visitors.slice(-10).reverse().map(v => `
+                <tr class="border-b">
+                  <td class="px-3 py-2">${new Date(v.timestamp).toLocaleString()}</td>
+                  <td class="px-3 py-2">${v.source || 'N/A'}</td>
+                  <td class="px-3 py-2">${v.referrer || 'Direct'}</td>
+                  <td class="px-3 py-2 text-xs">${v.userAgent ? v.userAgent.substring(0, 50) + '...' : 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div>
+        <h3 class="text-lg font-semibold mb-3">Recent Signups (Last 10)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm border">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-3 py-2 text-left">Email</th>
+                <th class="px-3 py-2 text-left">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${signups.slice(-10).reverse().map(s => `
+                <tr class="border-b">
+                  <td class="px-3 py-2">${s.email}</td>
+                  <td class="px-3 py-2">${new Date(s.timestamp).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    console.error('loadAnalytics error', e);
+    document.getElementById('analyticsContent').textContent = 'Error loading analytics';
+  }
+}
+
+// Transactions Functions
+async function loadTransactions() {
+  try {
+    const res = await fetch('/api/admin/transactions');
+    const data = await res.json();
+    const out = document.getElementById('transactionsList');
+    
+    if (!data.success) {
+      out.textContent = 'Failed to load transactions';
+      return;
+    }
+    
+    const transactions = data.transactions || [];
+    
+    if (transactions.length === 0) {
+      out.innerHTML = '<div class="text-gray-600">No transactions found.</div>';
+      return;
+    }
+    
+    const rows = transactions.map(t => {
+      const statusBadge = t.status === 'paid' || t.status === 'completed' 
+        ? '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">Completed</span>'
+        : '<span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">Pending</span>';
+      
+      return `<tr class="border-b hover:bg-gray-50">
+        <td class="px-3 py-3 text-xs">${t.timestamp || 'N/A'}</td>
+        <td class="px-3 py-3">
+          <div class="font-medium">${t.provider || 'N/A'}</div>
+          <div class="text-xs text-gray-500">${t.reference || ''}</div>
+        </td>
+        <td class="px-3 py-3">
+          <div>${t.email || 'N/A'}</div>
+          <div class="text-xs text-gray-500">${t.name || ''}</div>
+        </td>
+        <td class="px-3 py-3 font-semibold">${t.amount || 0}</td>
+        <td class="px-3 py-3">${statusBadge}</td>
+        <td class="px-3 py-3 text-xs">${t.paidAt ? new Date(t.paidAt).toLocaleString() : 'Not paid'}</td>
+      </tr>`;
+    }).join('');
+    
+    out.innerHTML = `<div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr class="text-left">
+            <th class="px-3 py-3">Timestamp</th>
+            <th class="px-3 py-3">Provider/Reference</th>
+            <th class="px-3 py-3">User</th>
+            <th class="px-3 py-3">Amount</th>
+            <th class="px-3 py-3">Status</th>
+            <th class="px-3 py-3">Paid At</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  } catch (e) {
+    console.error('loadTransactions error', e);
+    document.getElementById('transactionsList').textContent = 'Error loading transactions';
+  }
+}
+
+// Export Functions
+async function exportUsers() {
+  try {
+    const res = await fetch('/api/admin/users-export');
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    alert('✅ Users exported successfully!');
+  } catch (e) {
+    alert('❌ Failed to export users: ' + e.message);
+  }
+}
+
+async function exportAllData() {
+  if (!confirm('Export all platform data? This will download multiple files.')) return;
+  
+  try {
+    await exportUsers();
+    await downloadReport();
+    alert('✅ All data exported!');
+  } catch (e) {
+    alert('❌ Failed to export all data');
   }
 }
 
@@ -325,7 +612,7 @@ async function downloadReport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `smartinvest-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `transfers-report-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -473,6 +760,175 @@ function initScrollAnimations() {
   elements.forEach(el => observer.observe(el));
 }
 
+// Users Management Functions
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/admin/users');
+    const d = await res.json();
+    const out = document.getElementById('usersList');
+    if (!d.success) return out.textContent = 'Failed to load users';
+    if (!d.users.length) return out.innerHTML = '<div class="text-gray-600">No registered users.</div>';
+    
+    const rows = d.users.map(u => {
+      const premiumBadge = u.isPremium ? '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">Premium</span>' : '<span class="bg-gray-400 text-white px-2 py-1 rounded text-xs">Free</span>';
+      const adminBadge = u.isAdmin ? '<span class="bg-purple-500 text-white px-2 py-1 rounded text-xs ml-1">Admin</span>' : '';
+      
+      return `<tr class="border-b hover:bg-gray-50">
+        <td class="px-3 py-3">
+          <div class="font-medium">${u.email}</div>
+          <div class="text-xs text-gray-500">ID: ${u.id}</div>
+          <div class="text-xs text-gray-500">Created: ${new Date(u.createdAt).toLocaleString()}</div>
+        </td>
+        <td class="px-3 py-3">
+          <div>${u.mobileNumber || 'N/A'}</div>
+        </td>
+        <td class="px-3 py-3">
+          <div>${u.paymentMethod || 'N/A'}</div>
+          <div class="text-xs text-gray-500">Amount: ${u.amount || 0}</div>
+        </td>
+        <td class="px-3 py-3">
+          ${premiumBadge}${adminBadge}
+        </td>
+        <td class="px-3 py-3">
+          ${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
+        </td>
+        <td class="px-3 py-3">
+          <div class="flex flex-col gap-1">
+            ${!u.isPremium ? `<button onclick="grantPremium('${u.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700">Grant Premium</button>` : `<button onclick="revokePremium('${u.id}')" class="bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700">Revoke Premium</button>`}
+            ${!u.isAdmin ? `<button onclick="makeAdmin('${u.id}')" class="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700">Make Admin</button>` : `<button onclick="removeAdmin('${u.id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700">Remove Admin</button>`}
+            <button onclick="viewUserDetails('${u.id}')" class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700">View Details</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    
+    out.innerHTML = `<div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr class="text-left text-gray-700">
+            <th class="px-3 py-3 font-semibold">User Info</th>
+            <th class="px-3 py-3 font-semibold">Mobile</th>
+            <th class="px-3 py-3 font-semibold">Payment Info</th>
+            <th class="px-3 py-3 font-semibold">Status</th>
+            <th class="px-3 py-3 font-semibold">Last Login</th>
+            <th class="px-3 py-3 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+    
+    // Update stats
+    document.getElementById('statUsers')?.setAttribute('data-count', d.users.length);
+  } catch (e) {
+    console.error('loadUsers error', e);
+    document.getElementById('usersList').textContent = 'Error loading users';
+  }
+}
+
+async function grantPremium(userId) {
+  if (!confirm('Grant premium access to this user?')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/users/${userId}/grant-premium`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirements: { verified: true } })
+    });
+    const d = await res.json();
+    
+    if (d.success) {
+      alert('✅ Premium access granted successfully!');
+      loadUsers();
+    } else {
+      alert('Failed to grant premium: ' + (d.error || ''));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function revokePremium(userId) {
+  if (!confirm('Revoke premium access from this user?')) return;
+  
+  try {
+    const res = await fetch(`/api/admin/users/${userId}/revoke-premium`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const d = await res.json();
+    
+    if (d.success) {
+      alert('✅ Premium access revoked successfully!');
+      loadUsers();
+    } else {
+      alert('Failed to revoke premium: ' + (d.error || ''));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function makeAdmin(userId) {
+  if (!confirm('Grant admin access to this user? This gives them full control of the platform.')) return;
+  
+  try {
+    const res = await fetch('/api/admin/add-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, requirements: { verified: true, adminApproved: true } })
+    });
+    const d = await res.json();
+    
+    if (d.success) {
+      alert('✅ Admin access granted successfully!');
+      loadUsers();
+    } else {
+      alert('Failed to grant admin access: ' + (d.error || ''));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function removeAdmin(userId) {
+  if (!confirm('Remove admin access from this user?')) return;
+  
+  try {
+    const res = await fetch('/api/admin/remove-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    const d = await res.json();
+    
+    if (d.success) {
+      alert('✅ Admin access removed successfully!');
+      loadUsers();
+    } else {
+      alert('Failed to remove admin access: ' + (d.error || ''));
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function viewUserDetails(userId) {
+  // Fetch and display detailed user information
+  fetch(`/api/admin/users`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        const user = d.users.find(u => u.id === userId);
+        if (user) {
+          const taxInfo = user.taxInfo && typeof user.taxInfo === 'object' ? JSON.stringify(user.taxInfo, null, 2) : 'N/A';
+          alert(`User Details:\n\nID: ${user.id}\nEmail: ${user.email}\nMobile: ${user.mobileNumber || 'N/A'}\nPayment Method: ${user.paymentMethod || 'N/A'}\nAmount: ${user.amount || 0}\nTax Info: ${taxInfo}\nPremium: ${user.isPremium ? 'Yes' : 'No'}\nAdmin: ${user.isAdmin ? 'Yes' : 'No'}\nCreated: ${new Date(user.createdAt).toLocaleString()}\nLast Login: ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}`);
+        }
+      }
+    })
+    .catch(e => alert('Error loading user details'));
+}
+
 // Initialize on page load
 window.addEventListener('load', () => {
   initScrollAnimations();
@@ -481,6 +937,9 @@ window.addEventListener('load', () => {
 load();
 loadFiles();
 loadAdminMessages();
+loadUsers();
+loadAnalytics();
+loadTransactions();
 updateStats();
 </script>
 </body>

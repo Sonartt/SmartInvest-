@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator Dashboard - SmartInvest</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .loader { display: inline-block; width: 20px; height: 20px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .premium-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .free-badge { background: #4b5563; }
+    .locked-calc { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen">
+  <div id="loading-screen" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div class="text-center">
+      <div class="loader mx-auto mb-4"></div>
+      <p class="text-lg">Loading your dashboard...</p>
+    </div>
+  </div>
+
+  <div id="main-content" class="hidden">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold">SmartInvest Calculator</h1>
+        <div class="flex gap-4 items-center">
+          <div id="user-info" class="text-right">
+            <p id="user-name" class="font-semibold">User</p>
+            <p id="user-status" class="text-sm text-gray-400">Free User</p>
+          </div>
+          <button id="logout-btn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <!-- Welcome Section -->
+      <div class="bg-gray-700 rounded-lg p-6 mb-8">
+        <h2 class="text-3xl font-bold mb-2">Welcome, <span id="welcome-name">User</span>!</h2>
+        <p class="text-gray-300 mb-4" id="welcome-message">Explore our financial calculators</p>
+        
+        <!-- Premium Status -->
+        <div id="premium-section" class="hidden">
+          <div class="bg-green-900 border-l-4 border-green-500 p-4 mb-4">
+            <p class="font-semibold text-green-300">✓ Premium Member</p>
+            <p class="text-sm text-gray-300">Subscription valid until: <span id="sub-valid-until" class="font-mono">--</span></p>
+            <p class="text-sm text-gray-300">Days remaining: <span id="days-remaining" class="font-mono">--</span></p>
+          </div>
+        </div>
+
+        <div id="free-section" class="hidden">
+          <div class="bg-blue-900 border-l-4 border-blue-500 p-4 mb-4">
+            <p class="font-semibold text-blue-300">Free Account - Limited Features</p>
+            <p class="text-sm text-gray-300">Upgrade to Premium to unlock advanced calculators:</p>
+            <ul class="text-sm text-gray-300 mt-2 ml-4 list-disc">
+              <li>Bond Analysis & Valuation</li>
+              <li>Pension & Retirement Planning</li>
+              <li>Actuarial Science Tools</li>
+              <li>Advanced Risk Analysis</li>
+              <li>Business Finance & NPV/IRR</li>
+              <li>Audit & Compliance Tools</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculator Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Free Calculators -->
+        <div class="bg-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition transform hover:scale-105">
+          <div class="free-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Investment Calculator</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded">FREE</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Compound interest with monthly contributions</p>
+            <button class="calc-link w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition" data-type="free" data-calc="investment">Open Calculator</button>
+          </div>
+        </div>
+
+        <div class="bg-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition transform hover:scale-105">
+          <div class="free-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Amortization</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded">FREE</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Loan payment schedules and amortization tables</p>
+            <button class="calc-link w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition" data-type="free" data-calc="amortization">Open Calculator</button>
+          </div>
+        </div>
+
+        <div class="bg-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition transform hover:scale-105">
+          <div class="free-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Insurance Premium</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded">FREE</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Life insurance premium calculations</p>
+            <button class="calc-link w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition" data-type="free" data-calc="insurance">Open Calculator</button>
+          </div>
+        </div>
+
+        <!-- Premium Calculators (hidden for free users) -->
+        <div id="bond-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Bond Valuation</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Bond pricing, duration, convexity analysis</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="bonds">Open Calculator</button>
+          </div>
+        </div>
+
+        <div id="pension-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Pension Planning</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Retirement & pension benefit planning</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="pension">Open Calculator</button>
+          </div>
+        </div>
+
+        <div id="actuarial-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Actuarial Science</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Annuity & mortality analysis tools</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="actuarial">Open Calculator</button>
+          </div>
+        </div>
+
+        <div id="risk-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Risk Analysis</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">VaR, Sharpe ratio, scenario analysis</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="risk">Open Calculator</button>
+          </div>
+        </div>
+
+        <div id="business-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Business Finance</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">NPV, IRR, break-even analysis</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="business">Open Calculator</button>
+          </div>
+        </div>
+
+        <div id="audit-calc" class="bg-gray-700 rounded-lg overflow-hidden hidden">
+          <div class="premium-badge p-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold">Audit Tools</h3>
+              <span class="text-xs bg-white text-gray-900 px-2 py-1 rounded premium-badge">PREMIUM</span>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-300 mb-4">Materiality, sample size, fraud detection</p>
+            <button class="calc-link w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition" data-type="premium" data-calc="audit">Open Calculator</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access Logs -->
+      <div class="mt-12 bg-gray-700 rounded-lg p-6">
+        <h3 class="text-xl font-bold mb-4">Your Access Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gray-800 p-4 rounded">
+            <p class="text-gray-400 text-sm">User ID</p>
+            <p id="display-user-id" class="font-mono text-lg">--</p>
+          </div>
+          <div class="bg-gray-800 p-4 rounded">
+            <p class="text-gray-400 text-sm">Account Type</p>
+            <p id="display-account-type" class="text-lg font-semibold">Free</p>
+          </div>
+          <div class="bg-gray-800 p-4 rounded">
+            <p class="text-gray-400 text-sm">Member Since</p>
+            <p id="display-member-since" class="font-mono text-lg">--</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login/Auth Modal -->
+  <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div class="bg-gray-800 rounded-lg p-8 w-96 shadow-2xl">
+      <h2 class="text-2xl font-bold mb-6">Login to SmartInvest</h2>
+      <form id="login-form">
+        <div class="mb-4">
+          <label class="block text-sm mb-2">Email</label>
+          <input id="login-email" type="email" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-500" placeholder="your@email.com" required>
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm mb-2">User ID (or leave blank to create account)</label>
+          <input id="login-userid" type="text" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-500" placeholder="Optional: your user ID">
+        </div>
+        <div id="login-error" class="text-red-500 text-sm mb-4 hidden"></div>
+        <button id="login-btn" type="submit" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold transition">Login / Register</button>
+      </form>
+      <p class="text-gray-400 text-xs mt-4 text-center">Demo: Use any email, system will auto-create or find account</p>
+    </div>
+  </div>
+
+  <script>
+    // ===== STATE MANAGEMENT =====
+    let currentUser = null;
+
+    // ===== INITIALIZATION =====
+    async function initDashboard() {
+      try {
+        // Check if already authenticated
+        const storedUserId = localStorage.getItem('smartinvest_user_id');
+        if (storedUserId) {
+          await loadUserData(storedUserId);
+        } else {
+          showAuthModal();
+        }
+      } catch (err) {
+        console.error('Init error:', err);
+        showAuthModal();
+      }
+    }
+
+    // ===== AUTH FUNCTIONS =====
+    function showAuthModal() {
+      document.getElementById('auth-modal').style.display = 'flex';
+      document.getElementById('main-content').classList.add('hidden');
+      document.getElementById('loading-screen').classList.add('hidden');
+    }
+
+    function hideAuthModal() {
+      document.getElementById('auth-modal').style.display = 'none';
+      document.getElementById('main-content').classList.remove('hidden');
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const userId = document.getElementById('login-userid').value;
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, userId })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          localStorage.setItem('smartinvest_user_id', data.user.id);
+          currentUser = data.user;
+          hideAuthModal();
+          updateDashboard();
+        } else {
+          document.getElementById('login-error').textContent = data.error || 'Login failed';
+          document.getElementById('login-error').classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        document.getElementById('login-error').textContent = 'Connection error';
+        document.getElementById('login-error').classList.remove('hidden');
+      }
+    });
+
+    // ===== DATA LOADING =====
+    async function loadUserData(userId) {
+      try {
+        const response = await fetch(`/api/users/${userId}`);
+        
+        if (!response.ok) {
+          localStorage.removeItem('smartinvest_user_id');
+          showAuthModal();
+          return;
+        }
+
+        const data = await response.json();
+        currentUser = data.user;
+        hideAuthModal();
+        updateDashboard();
+      } catch (err) {
+        console.error('Load user error:', err);
+        showAuthModal();
+      }
+    }
+
+    // ===== UI UPDATES =====
+    function updateDashboard() {
+      if (!currentUser) return;
+
+      const isPremium = currentUser.isPremium;
+
+      // Update user info
+      document.getElementById('user-name').textContent = currentUser.name || currentUser.email;
+      document.getElementById('welcome-name').textContent = currentUser.name || 'User';
+      document.getElementById('display-user-id').textContent = currentUser.id;
+      document.getElementById('display-account-type').textContent = isPremium ? 'Premium' : 'Free';
+      document.getElementById('display-member-since').textContent = new Date(currentUser.createdAt).toLocaleDateString();
+
+      if (isPremium) {
+        document.getElementById('premium-section').classList.remove('hidden');
+        document.getElementById('free-section').classList.add('hidden');
+        document.getElementById('user-status').textContent = '✓ Premium Member';
+        document.getElementById('user-status').classList.add('text-green-400');
+
+        // Show premium calculators
+        ['bond-calc', 'pension-calc', 'actuarial-calc', 'risk-calc', 'business-calc', 'audit-calc'].forEach(id => {
+          document.getElementById(id).classList.remove('hidden');
+        });
+
+        // Set subscription dates
+        if (currentUser.subscriptionDetails) {
+          const until = new Date(currentUser.subscriptionDetails.validUntil);
+          const now = new Date();
+          const daysLeft = Math.ceil((until - now) / (1000 * 60 * 60 * 24));
+          
+          document.getElementById('sub-valid-until').textContent = until.toLocaleDateString();
+          document.getElementById('days-remaining').textContent = daysLeft;
+        }
+      } else {
+        document.getElementById('free-section').classList.remove('hidden');
+        document.getElementById('premium-section').classList.add('hidden');
+        document.getElementById('user-status').textContent = 'Free Account';
+      }
+
+      document.getElementById('loading-screen').classList.add('hidden');
+    }
+
+    // ===== CALCULATOR NAVIGATION =====
+    document.querySelectorAll('.calc-link').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = e.target.dataset.type;
+        const calc = e.target.dataset.calc;
+
+        // Check premium access
+        if (type === 'premium' && !currentUser.isPremium) {
+          alert('This calculator requires a Premium subscription. Please upgrade to access.');
+          return;
+        }
+
+        // Route to appropriate calculator
+        const calcUrls = {
+          investment: '/tools/investment_calculator.html',
+          amortization: '/tools/investment_calculator.html#amort',
+          insurance: '/tools/investment_calculator.html#insurance',
+          bonds: '/tools/investment_calculator_premium.html',
+          pension: '/tools/investment_calculator_premium.html#pension',
+          actuarial: '/tools/investment_calculator_premium.html#actuarial',
+          risk: '/tools/investment_calculator_premium.html#risk',
+          business: '/tools/investment_calculator_premium.html#business',
+          audit: '/tools/investment_calculator_premium.html#audit'
+        };
+
+        if (calcUrls[calc]) {
+          // Pass user context via localStorage
+          localStorage.setItem('smartinvest_current_calculator', calc);
+          window.location.href = calcUrls[calc];
+        }
+      });
+    });
+
+    // ===== LOGOUT =====
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('smartinvest_user_id');
+      currentUser = null;
+      showAuthModal();
+    });
+
+    // ===== START =====
+    window.addEventListener('load', initDashboard);
+  </script>
+</body>
+</html>

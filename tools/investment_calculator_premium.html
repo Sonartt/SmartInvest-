@@ -899,7 +899,479 @@ $qs('#ins_save').addEventListener('click', async ()=>{
   setLoading(btn, false);
 });
 
-// Scenarios list
+// ========== BOND CALCULATIONS ==========
+function calculateBond(faceValue, couponRate, years, marketYield, paymentsPerYear){
+  const n = years * paymentsPerYear;
+  const couponPayment = (faceValue * couponRate / 100) / paymentsPerYear;
+  const yieldPerPeriod = marketYield / 100 / paymentsPerYear;
+  let pvCoupons = 0;
+  if (yieldPerPeriod > 0) {
+    pvCoupons = couponPayment * (1 - Math.pow(1 + yieldPerPeriod, -n)) / yieldPerPeriod;
+  } else {
+    pvCoupons = couponPayment * n;
+  }
+  const pvFace = faceValue * Math.pow(1 + yieldPerPeriod, -n);
+  const bondPrice = pvCoupons + pvFace;
+  let duration = 0;
+  for (let t = 1; t <= n; t++) {
+    const cfPV = couponPayment * Math.pow(1 + yieldPerPeriod, -t);
+    duration += t * cfPV;
+  }
+  duration += n * pvFace;
+  duration = duration / bondPrice / paymentsPerYear;
+  const modDuration = duration / (1 + yieldPerPeriod);
+  let convexity = 0;
+  for (let t = 1; t <= n; t++) {
+    const cfPV = couponPayment * Math.pow(1 + yieldPerPeriod, -t);
+    convexity += t * (t + 1) * cfPV;
+  }
+  convexity += n * (n + 1) * pvFace;
+  convexity = convexity / (bondPrice * Math.pow(1 + yieldPerPeriod, 2)) / Math.pow(paymentsPerYear, 2);
+  const currentYield = (faceValue * couponRate / 100) / bondPrice * 100;
+  return { price: bondPrice, duration, modDuration, convexity, currentYield, ytm: marketYield, totalCouponPayments: couponPayment * n, premium: bondPrice > faceValue, discount: bondPrice < faceValue };
+}
+
+$qs('#bond_calc').addEventListener('click', () => {
+  const face = Number($qs('#bond_face').value) || 1000;
+  const coupon = Number($qs('#bond_coupon').value) || 5;
+  const years = Number($qs('#bond_years').value) || 10;
+  const yield_ = Number($qs('#bond_yield').value) || 6;
+  const freq = Number($qs('#bond_freq').value) || 2;
+  const res = calculateBond(face, coupon, years, yield_, freq);
+  const formula = String.raw`P = \sum_{t=1}^{n} \frac{C}{(1+y)^t} + \frac{F}{(1+y)^n}`;
+  let html = `<div class="formula" id="bond_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Bond Valuation Results</h4>
+    <p>Bond Price: <strong class="text-lg text-blue-700">$${fmt(res.price)}</strong> ${res.premium ? '(Premium)' : res.discount ? '(Discount)' : '(At Par)'}</p>
+    <p>Current Yield: <strong>${res.currentYield.toFixed(3)}%</strong></p>
+    <p>Yield to Maturity: <strong>${res.ytm.toFixed(3)}%</strong></p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Duration & Convexity</h5>
+      <p class="text-sm">Macaulay Duration: <strong>${res.duration.toFixed(4)} years</strong></p>
+      <p class="text-sm">Modified Duration: <strong>${res.modDuration.toFixed(4)}</strong></p>
+      <p class="text-sm">Convexity: <strong>${res.convexity.toFixed(4)}</strong></p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Cash Flow Info</h5>
+      <p class="text-sm">Face Value: $${fmt(face)}</p>
+      <p class="text-sm">Total Coupon Payments: $${fmt(res.totalCouponPayments)}</p>
+      <p class="text-sm">Total Return: $${fmt(face + res.totalCouponPayments)}</p></div></div>`;
+  html += `<div class="info-box mt-3"><h4 class="font-semibold mb-2">Understanding Bond Metrics:</h4>
+    <ul class="text-sm space-y-1">
+      <li><strong>Duration:</strong> Measures price sensitivity to interest rate changes. A 1% rate increase causes ~${res.modDuration.toFixed(2)}% price decrease.</li>
+      <li><strong>Convexity:</strong> Measures the curvature of price-yield relationship. Higher convexity means less price volatility.</li></ul></div>`;
+  $qs('#bond_result').innerHTML = html;
+  renderLatex($qs('#bond_formula_tex'), formula);
+  window._bond_res = res;
+});
+
+$qs('#bond_csv').addEventListener('click', () => {
+  const r = window._bond_res;
+  if (!r) return alert('Calculate bond first');
+  const csv = `metric,value\nBond Price,${r.price}\nCurrent Yield,${r.currentYield}\nYTM,${r.ytm}\nDuration,${r.duration}\nModified Duration,${r.modDuration}\nConvexity,${r.convexity}`;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bond_analysis.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// ========== PENSION/RETIREMENT CALCULATIONS ==========
+function calculateRetirement(currentAge, retireAge, currentSavings, monthlyContrib, annualReturn, employerMatch, inflation, lifeExpectancy){
+  const yearsToRetirement = retireAge - currentAge;
+  const yearsInRetirement = lifeExpectancy - retireAge;
+  const monthlyRate = Math.pow(1 + annualReturn / 100, 1 / 12) - 1;
+  let balance = currentSavings;
+  const totalContrib = monthlyContrib * (1 + employerMatch / 100);
+  const months = yearsToRetirement * 12;
+  for (let m = 1; m <= months; m++) {
+    balance = balance * (1 + monthlyRate) + totalContrib;
+  }
+  const retirementBalance = balance;
+  const realBalance = retirementBalance / Math.pow(1 + inflation / 100, yearsToRetirement);
+  const safeWithdrawalRate = 0.04;
+  const annualWithdrawal = retirementBalance * safeWithdrawalRate;
+  const monthlyIncome = annualWithdrawal / 12;
+  let retBalance = retirementBalance;
+  const retMonthlyRate = Math.pow(1 + (annualReturn - inflation) / 100, 1 / 12) - 1;
+  let lastingYears = 0;
+  for (let y = 0; y < yearsInRetirement; y++) {
+    for (let m = 0; m < 12; m++) {
+      retBalance = retBalance * (1 + retMonthlyRate) - monthlyIncome;
+      if (retBalance <= 0) break;
+    }
+    if (retBalance <= 0) break;
+    lastingYears++;
+  }
+  const sufficient = lastingYears >= yearsInRetirement;
+  return { retirementBalance, realBalance, annualWithdrawal, monthlyIncome, totalContributions: currentSavings + totalContrib * months, investmentGains: retirementBalance - (currentSavings + totalContrib * months), lastingYears: lastingYears > yearsInRetirement ? yearsInRetirement : lastingYears, sufficient };
+}
+
+$qs('#ret_calc').addEventListener('click', () => {
+  const age = Number($qs('#ret_age').value) || 30;
+  const retAge = Number($qs('#ret_retire_age').value) || 65;
+  const current = Number($qs('#ret_current').value) || 0;
+  const monthly = Number($qs('#ret_monthly').value) || 0;
+  const return_ = Number($qs('#ret_return').value) || 7;
+  const match = Number($qs('#ret_match').value) || 0;
+  const inflation = Number($qs('#ret_inflation').value) || 2.5;
+  const life = Number($qs('#ret_life').value) || 85;
+  const res = calculateRetirement(age, retAge, current, monthly, return_, match, inflation, life);
+  const formula = String.raw`FV = PV(1+r)^n + PMT \cdot \frac{(1+r)^n - 1}{r}`;
+  let html = `<div class="formula" id="ret_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Retirement Projection</h4>
+    <p>Estimated Balance at Retirement (age ${retAge}): <strong class="text-lg text-green-700">$${fmt(res.retirementBalance)}</strong></p>
+    <p>In Today's Dollars: <strong>$${fmt(res.realBalance)}</strong></p>
+    <p class="mt-2">Sustainable Monthly Income: <strong class="text-blue-600">$${fmt(res.monthlyIncome)}</strong></p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Accumulation Phase</h5>
+      <p class="text-sm">Years to Retirement: ${retAge - age}</p>
+      <p class="text-sm">Total Contributions: $${fmt(res.totalContributions)}</p>
+      <p class="text-sm">Investment Gains: $${fmt(res.investmentGains)}</p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Distribution Phase</h5>
+      <p class="text-sm">Years in Retirement: ${life - retAge}</p>
+      <p class="text-sm">Savings Last: ${res.lastingYears} years</p>
+      <p class="text-sm ${res.sufficient ? 'text-green-600' : 'text-red-600'}">${res.sufficient ? '✓ Sufficient' : '✗ Insufficient'}</p></div></div>`;
+  if (!res.sufficient) {
+    html += `<div class="warning-box mt-3"><p class="text-sm"><strong>Warning:</strong> Retirement savings may not last. Consider increasing contributions.</p></div>`;
+  }
+  $qs('#ret_result').innerHTML = html;
+  renderLatex($qs('#ret_formula_tex'), formula);
+  window._ret_res = res;
+});
+
+$qs('#ret_csv').addEventListener('click', () => {
+  const r = window._ret_res;
+  if (!r) return alert('Calculate retirement plan first');
+  const csv = `metric,value\nRetirement Balance,${r.retirementBalance}\nReal Balance,${r.realBalance}\nMonthly Income,${r.monthlyIncome}\nAnnual Withdrawal,${r.annualWithdrawal}`;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'retirement_plan.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// ========== ACTUARIAL SCIENCE ==========
+function calculateAnnuity(type, payment, rate, periods, age, deferral){
+  const r = rate / 100;
+  let pv = 0;
+  function survivalProb(x, t) {
+    const mortality = 0.0005 * Math.exp(0.08 * (x - 20));
+    return Math.exp(-mortality * t);
+  }
+  if (type === 'immediate') {
+    pv = payment * (1 - Math.pow(1 + r, -periods)) / r;
+  } else if (type === 'deferred') {
+    const ordinaryPV = payment * (1 - Math.pow(1 + r, -periods)) / r;
+    pv = ordinaryPV * Math.pow(1 + r, -deferral);
+  } else if (type === 'life') {
+    for (let t = 1; t <= periods; t++) {
+      const survival = survivalProb(age, t);
+      pv += payment * survival * Math.pow(1 + r, -t);
+    }
+  } else if (type === 'certain') {
+    pv = payment * (1 - Math.pow(1 + r, -periods)) / r;
+  }
+  const totalPayments = payment * periods;
+  const discountEffect = totalPayments - pv;
+  return { presentValue: pv, totalPayments, discountEffect, effectiveReturn: rate };
+}
+
+$qs('#act_calc').addEventListener('click', () => {
+  const type = $qs('#act_type').value;
+  const payment = Number($qs('#act_payment').value) || 1000;
+  const rate = Number($qs('#act_rate').value) || 4;
+  const periods = Number($qs('#act_periods').value) || 20;
+  const age = Number($qs('#act_age').value) || 65;
+  const defer = Number($qs('#act_defer').value) || 0;
+  const res = calculateAnnuity(type, payment, rate, periods, age, defer);
+  const formulas = {
+    immediate: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r}`,
+    deferred: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r} \cdot (1+r)^{-d}`,
+    life: String.raw`PV = \sum_{t=1}^{n} PMT \cdot {}_tp_x \cdot (1+r)^{-t}`,
+    certain: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r}`
+  };
+  let html = `<div class="formula" id="act_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Actuarial Present Value</h4>
+    <p>Present Value: <strong class="text-lg text-blue-700">$${fmt(res.presentValue)}</strong></p>
+    <p>Total Future Payments: <strong>$${fmt(res.totalPayments)}</strong></p>
+    <p>Discount Effect: <strong>$${fmt(res.discountEffect)}</strong></p></div>`;
+  $qs('#act_result').innerHTML = html;
+  renderLatex($qs('#act_formula_tex'), formulas[type] || formulas.immediate);
+  window._act_res = res;
+});
+
+$qs('#act_mortality').addEventListener('click', () => {
+  const age = Number($qs('#act_age').value) || 65;
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Mortality Analysis (Age: ${age})</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr>
+    <th class="border px-2 py-1">Age</th><th class="border px-2 py-1">Mortality Rate</th><th class="border px-2 py-1">Survival Prob</th><th class="border px-2 py-1">Life Expectancy</th></tr></thead><tbody>`;
+  for (let a = age; a <= age + 30; a += 5) {
+    const mortality = 0.0005 * Math.exp(0.08 * (a - 20));
+    const survival = Math.exp(-mortality * (a - age));
+    const lifeExp = 85 - a;
+    html += `<tr><td class="border px-2 py-1 text-center">${a}</td><td class="border px-2 py-1 text-center">${(mortality * 100).toFixed(4)}%</td>
+      <td class="border px-2 py-1 text-center">${(survival * 100).toFixed(2)}%</td><td class="border px-2 py-1 text-center">${lifeExp} years</td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  $qs('#act_result').innerHTML = html;
+});
+
+// ========== RISK ANALYSIS ==========
+function calculateRisk(value, expectedReturn, stdDev, rfRate, confidence, days, beta, marketReturn){
+  const zScores = { 90: 1.282, 95: 1.645, 99: 2.326 };
+  const z = zScores[confidence] || 1.645;
+  const dailyReturn = expectedReturn / 100 / 252;
+  const dailyStd = stdDev / 100 / Math.sqrt(252);
+  const varAbsolute = value * z * dailyStd * Math.sqrt(days);
+  const varPercent = z * dailyStd * Math.sqrt(days) * 100;
+  const sharpeRatio = (expectedReturn - rfRate) / stdDev;
+  const treynorRatio = (expectedReturn - rfRate) / beta;
+  const alpha = expectedReturn - (rfRate + beta * (marketReturn - rfRate));
+  const cvar = value * dailyStd * Math.sqrt(days) * Math.exp(-0.5 * z * z) / ((1 - confidence / 100) * Math.sqrt(2 * Math.PI));
+  return { var: varAbsolute, varPercent, cvar, sharpe: sharpeRatio, treynor: treynorRatio, alpha, beta, annualizedVol: stdDev };
+}
+
+$qs('#risk_calc').addEventListener('click', () => {
+  const value = Number($qs('#risk_value').value) || 100000;
+  const return_ = Number($qs('#risk_return').value) || 8;
+  const std = Number($qs('#risk_std').value) || 15;
+  const rf = Number($qs('#risk_rf').value) || 3;
+  const conf = Number($qs('#risk_conf').value) || 95;
+  const days = Number($qs('#risk_days').value) || 1;
+  const beta = Number($qs('#risk_beta').value) || 1.2;
+  const market = Number($qs('#risk_market').value) || 10;
+  const res = calculateRisk(value, return_, std, rf, conf, days, beta, market);
+  const formula = String.raw`VaR = Z_\alpha \cdot \sigma \cdot \sqrt{t} \cdot V`;
+  let html = `<div class="formula" id="risk_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Risk Metrics Summary</h4>
+    <p>Value at Risk (${conf}% conf, ${days} day${days > 1 ? 's' : ''}): <strong class="text-lg text-red-600">$${fmt(res.var)}</strong> (${res.varPercent.toFixed(2)}%)</p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Risk-Adjusted Performance</h5>
+      <p class="text-sm">Sharpe Ratio: <strong>${res.sharpe.toFixed(3)}</strong></p>
+      <p class="text-sm">Treynor Ratio: <strong>${res.treynor.toFixed(3)}</strong></p>
+      <p class="text-sm">Jensen's Alpha: <strong>${res.alpha.toFixed(2)}%</strong></p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Risk Measures</h5>
+      <p class="text-sm">CVaR: $${fmt(res.cvar)}</p>
+      <p class="text-sm">Beta: <strong>${res.beta.toFixed(2)}</strong></p>
+      <p class="text-sm">Volatility: <strong>${res.annualizedVol}%</strong></p></div></div>`;
+  $qs('#risk_result').innerHTML = html;
+  renderLatex($qs('#risk_formula_tex'), formula);
+  window._risk_res = res;
+});
+
+$qs('#risk_scenario').addEventListener('click', () => {
+  const value = Number($qs('#risk_value').value) || 100000;
+  const return_ = Number($qs('#risk_return').value) || 8;
+  const std = Number($qs('#risk_std').value) || 15;
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Scenario Analysis - Portfolio Outcomes</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100">
+    <tr><th class="border px-2 py-1">Scenario</th><th class="border px-2 py-1">Return</th><th class="border px-2 py-1">End Value</th><th class="border px-2 py-1">Gain/Loss</th></tr></thead><tbody>`;
+  const scenarios = [
+    { name: 'Best Case (+2σ)', return: return_ + 2 * std },
+    { name: 'Good (+1σ)', return: return_ + std },
+    { name: 'Expected', return: return_ },
+    { name: 'Poor (-1σ)', return: return_ - std },
+    { name: 'Worst Case (-2σ)', return: return_ - 2 * std }
+  ];
+  scenarios.forEach(s => {
+    const endValue = value * (1 + s.return / 100);
+    const gainLoss = endValue - value;
+    const color = gainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+    html += `<tr><td class="border px-2 py-1">${s.name}</td><td class="border px-2 py-1 text-center">${s.return.toFixed(2)}%</td>
+      <td class="border px-2 py-1 text-right">$${fmt(endValue)}</td><td class="border px-2 py-1 text-right ${color}">${gainLoss >= 0 ? '+' : ''}$${fmt(gainLoss)}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  $qs('#risk_result').innerHTML = html;
+});
+
+// ========== BUSINESS FINANCE ==========
+function calculateNPVIRR(initial, cashflows, rate){
+  let npv = -initial;
+  cashflows.forEach((cf, i) => {
+    npv += cf / Math.pow(1 + rate / 100, i + 1);
+  });
+  function npvAtRate(r) {
+    let val = -initial;
+    cashflows.forEach((cf, i) => {
+      val += cf / Math.pow(1 + r, i + 1);
+    });
+    return val;
+  }
+  function npvDerivative(r) {
+    let val = 0;
+    cashflows.forEach((cf, i) => {
+      val -= (i + 1) * cf / Math.pow(1 + r, i + 2);
+    });
+    return val;
+  }
+  let irr = 0.1;
+  for (let iter = 0; iter < 100; iter++) {
+    const f = npvAtRate(irr);
+    const df = npvDerivative(irr);
+    if (Math.abs(f) < 0.0001) break;
+    irr = irr - f / df;
+    if (irr < -0.99) irr = -0.99;
+  }
+  let cumulative = -initial;
+  let payback = 0;
+  for (let i = 0; i < cashflows.length; i++) {
+    cumulative += cashflows[i];
+    if (cumulative >= 0) {
+      payback = i + 1 - (cumulative - cashflows[i]) / cashflows[i];
+      break;
+    }
+  }
+  if (cumulative < 0) payback = cashflows.length;
+  let pvInflows = 0;
+  cashflows.forEach((cf, i) => {
+    pvInflows += cf / Math.pow(1 + rate / 100, i + 1);
+  });
+  const pi = pvInflows / initial;
+  return { npv, irr: irr * 100, payback, pi, totalCashflow: cashflows.reduce((a, b) => a + b, 0) };
+}
+
+function calculateRatios(currAssets, currLiab, totAssets, totLiab, revenue, netIncome){
+  return {
+    currentRatio: currAssets / currLiab,
+    quickRatio: (currAssets * 0.7) / currLiab,
+    debtToEquity: totLiab / (totAssets - totLiab),
+    debtToAssets: totLiab / totAssets,
+    roe: netIncome / (totAssets - totLiab) * 100,
+    roa: netIncome / totAssets * 100,
+    profitMargin: netIncome / revenue * 100,
+    workingCapital: currAssets - currLiab
+  };
+}
+
+$qs('#bus_calc').addEventListener('click', () => {
+  const initial = Number($qs('#bus_initial').value) || 0;
+  const rate = Number($qs('#bus_rate').value) || 10;
+  const cfString = $qs('#bus_cashflows').value || '';
+  const cashflows = cfString.split(',').map(s => Number(s.trim()) || 0);
+  const currAssets = Number($qs('#bus_curr_assets').value) || 0;
+  const currLiab = Number($qs('#bus_curr_liab').value) || 0;
+  const totAssets = Number($qs('#bus_tot_assets').value) || 0;
+  const totLiab = Number($qs('#bus_tot_liab').value) || 0;
+  const revenue = Number($qs('#bus_revenue').value) || 0;
+  const netIncome = Number($qs('#bus_netincome').value) || 0;
+  const npvData = calculateNPVIRR(initial, cashflows, rate);
+  const ratios = calculateRatios(currAssets, currLiab, totAssets, totLiab, revenue, netIncome);
+  const formula = String.raw`NPV = \sum_{t=0}^{n} \frac{CF_t}{(1+r)^t}`;
+  let html = `<div class="formula" id="bus_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Project Valuation</h4>
+    <p>NPV: <strong class="text-lg ${npvData.npv >= 0 ? 'text-green-600' : 'text-red-600'}">$${fmt(npvData.npv)}</strong></p>
+    <p>IRR: <strong>${npvData.irr.toFixed(2)}%</strong></p>
+    <p>Payback Period: <strong>${npvData.payback.toFixed(2)} years</strong></p>
+    <p>Profitability Index: <strong>${npvData.pi.toFixed(3)}</strong></p></div>`;
+  html += `<div class="mt-3"><h4 class="font-semibold mb-2">Financial Ratios</h4><div class="grid grid-cols-2 gap-3">`;
+  const ratioData = [
+    { label: 'Current Ratio', value: ratios.currentRatio.toFixed(2), color: ratios.currentRatio >= 1.5 ? 'text-green-600' : 'text-orange-600' },
+    { label: 'Quick Ratio', value: ratios.quickRatio.toFixed(2) },
+    { label: 'Debt-to-Equity', value: ratios.debtToEquity.toFixed(2), color: ratios.debtToEquity < 1 ? 'text-green-600' : 'text-orange-600' },
+    { label: 'Debt-to-Assets', value: (ratios.debtToAssets * 100).toFixed(1) + '%' },
+    { label: 'ROE', value: ratios.roe.toFixed(2) + '%', color: 'text-blue-600' },
+    { label: 'ROA', value: ratios.roa.toFixed(2) + '%' },
+    { label: 'Profit Margin', value: ratios.profitMargin.toFixed(2) + '%', color: 'text-green-600' },
+    { label: 'Working Capital', value: '$' + fmt(ratios.workingCapital) }
+  ];
+  ratioData.forEach(r => {
+    html += `<div class="border p-2 rounded"><p class="text-xs text-gray-600">${r.label}</p><p class="font-semibold ${r.color || ''}">${r.value}</p></div>`;
+  });
+  html += `</div></div>`;
+  $qs('#bus_result').innerHTML = html;
+  renderLatex($qs('#bus_formula_tex'), formula);
+  window._bus_res = { npvData, ratios };
+});
+
+$qs('#bus_breakeven').addEventListener('click', () => {
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Break-Even Analysis</h4>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="block text-xs">Fixed Costs ($/month)</label>
+        <input id="be_fixed" type="number" class="w-full border rounded p-1 text-sm" value="10000"></div>
+      <div><label class="block text-xs">Variable Cost per Unit</label>
+        <input id="be_var" type="number" class="w-full border rounded p-1 text-sm" value="25"></div>
+      <div><label class="block text-xs">Price per Unit</label>
+        <input id="be_price" type="number" class="w-full border rounded p-1 text-sm" value="50"></div>
+      <div class="flex items-end"><button id="be_compute" class="bg-blue-600 text-white px-3 py-1 rounded text-sm w-full">Compute</button></div>
+    </div><div id="be_output" class="mt-3"></div></div>`;
+  $qs('#bus_result').innerHTML = html;
+  $qs('#be_compute').addEventListener('click', () => {
+    const fixed = Number($qs('#be_fixed').value) || 0;
+    const varCost = Number($qs('#be_var').value) || 0;
+    const price = Number($qs('#be_price').value) || 0;
+    const contributionMargin = price - varCost;
+    const breakEvenUnits = fixed / contributionMargin;
+    const breakEvenRevenue = breakEvenUnits * price;
+    const contributionMarginRatio = contributionMargin / price * 100;
+    let output = `<div class="result-card mt-3"><h5 class="font-semibold">Break-Even Point</h5>
+      <p>Units to Sell: <strong class="text-lg text-blue-600">${Math.ceil(breakEvenUnits)} units</strong></p>
+      <p>Revenue Needed: <strong>$${fmt(breakEvenRevenue)}</strong></p>
+      <p class="text-sm mt-2">Contribution Margin: $${fmt(contributionMargin)} per unit (${contributionMarginRatio.toFixed(1)}%)</p></div>`;
+    $qs('#be_output').innerHTML = output;
+  });
+});
+
+// ========== AUDITING TOOLS ==========
+function calculateAudit(assets, revenue, income, matPct, popSize, confLevel, margin, errorRate){
+  const assetMateriality = assets * (matPct / 100);
+  const revenueMateriality = revenue * (matPct / 100);
+  const incomeMateriality = income * (matPct / 100);
+  const materiality = Math.min(assetMateriality, revenueMateriality, incomeMateriality);
+  const performanceMateriality = materiality * 0.75;
+  const trivialThreshold = materiality * 0.05;
+  const zScores = { 90: 1.645, 95: 1.96, 99: 2.576 };
+  const z = zScores[confLevel] || 1.96;
+  const p = errorRate / 100;
+  const e = margin / 100;
+  let sampleSize = (z * z * p * (1 - p)) / (e * e);
+  if (popSize > 0) {
+    sampleSize = sampleSize / (1 + ((sampleSize - 1) / popSize));
+  }
+  sampleSize = Math.ceil(sampleSize);
+  return { materiality, performanceMateriality, trivialThreshold, sampleSize, samplingRate: (sampleSize / popSize * 100) };
+}
+
+$qs('#aud_calc').addEventListener('click', () => {
+  const assets = Number($qs('#aud_assets').value) || 0;
+  const revenue = Number($qs('#aud_revenue').value) || 0;
+  const income = Number($qs('#aud_income').value) || 0;
+  const matPct = Number($qs('#aud_mat_pct').value) || 5;
+  const pop = Number($qs('#aud_pop').value) || 10000;
+  const conf = Number($qs('#aud_conf').value) || 95;
+  const margin = Number($qs('#aud_margin').value) || 5;
+  const error = Number($qs('#aud_error').value) || 2;
+  const res = calculateAudit(assets, revenue, income, matPct, pop, conf, margin, error);
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Materiality Assessment</h4>
+    <p>Overall Materiality: <strong class="text-lg text-blue-600">$${fmt(res.materiality)}</strong></p>
+    <p>Performance Materiality: <strong>$${fmt(res.performanceMateriality)}</strong></p>
+    <p>Trivial Threshold: <strong>$${fmt(res.trivialThreshold)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Sample Size Determination</h4>
+    <p>Required Sample Size: <strong class="text-lg text-green-600">${res.sampleSize} items</strong></p>
+    <p>Sampling Rate: <strong>${res.samplingRate.toFixed(2)}%</strong> of population</p></div>`;
+  $qs('#aud_result').innerHTML = html;
+  window._aud_res = res;
+});
+
+$qs('#aud_ratios').addEventListener('click', () => {
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">🔍 Fraud Detection Indicators</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100">
+    <tr><th class="border px-2 py-1">Indicator</th><th class="border px-2 py-1">Red Flag</th></tr></thead><tbody>
+    <tr><td class="border px-2 py-1"><strong>Days Sales Outstanding</strong></td><td class="border px-2 py-1">Increasing with flat sales</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Gross Margin</strong></td><td class="border px-2 py-1">Unexplained sudden increases</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Asset Turnover</strong></td><td class="border px-2 py-1">Declining despite revenue growth</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Cash Flow vs Income</strong></td><td class="border px-2 py-1">Large persistent divergence</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Related Party Transactions</strong></td><td class="border px-2 py-1">Non-arms-length terms</td></tr>
+    </tbody></table></div>`;
+  $qs('#aud_result').innerHTML = html;
+});
+
+// ========== SCENARIOS ==========
 async function loadScenarios(){
   const refreshBtn = $qs('#load_scenarios'); setLoading(refreshBtn, true);
   try{
@@ -931,8 +1403,8 @@ async function loadScenarios(){
     }));
     $qa('.del').forEach(b=>b.addEventListener('click', async e=>{
       const id = e.currentTarget.dataset.id; const ok = confirm('Delete scenario? (admin auth required)'); if(!ok) return;
-        const creds = await showAdminModal(); if(!creds) return;
-        const auth = 'Basic '+btoa((creds.user||'')+':'+(creds.pass||''));
+      const creds = await showAdminModal(); if(!creds) return;
+      const auth = 'Basic '+btoa((creds.user||'')+':'+(creds.pass||''));
       const delBtn = e.currentTarget; setLoading(delBtn, true);
       try{
         const r = await fetch('/api/scenarios/'+id,{method:'DELETE',headers:{Authorization:auth}});
