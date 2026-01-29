@@ -46,6 +46,18 @@
         <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="risk">Risk Analysis</button>
         <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="business">Business Finance</button>
         <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="audit">Auditing Tools</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="realestate">Real Estate</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="tax">Tax</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="portfolio">Portfolio Optimizer</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="dcf">DCF Valuation</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="options">Options Suite</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="credit">Credit Analysis</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="lifetables">Life Tables</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="leasebuy">Lease vs Buy</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="crypto">Crypto</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="green">Green Finance</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="estate">Estate Planning</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="forecast">Forecasting</button>
         <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="scenarios">Scenarios</button>
       </nav>
     </div>
@@ -447,6 +459,550 @@
           <button id="aud_ratios" class="bg-orange-600 text-white px-4 py-2 rounded">Fraud Detection Ratios</button>
         </div>
         <div id="aud_result" class="mt-4"></div>
+      </section>
+
+      <!-- Real Estate -->
+      <section id="realestate" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏠 Real Estate Calculator</h3>
+          <p class="text-sm">Mortgage payment, affordability (DTI), and rental analysis.</p>
+        </div>
+        <h3 class="font-semibold mb-2">Mortgage & Affordability</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Home Price</label>
+            <input id="re_price" type="number" class="w-full border rounded p-2" value="350000">
+          </div>
+          <div>
+            <label class="block text-sm">Down Payment</label>
+            <input id="re_down" type="number" class="w-full border rounded p-2" value="70000">
+          </div>
+          <div>
+            <label class="block text-sm">Interest Rate (%)</label>
+            <input id="re_rate" type="number" class="w-full border rounded p-2" value="6.5" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Term (Years)</label>
+            <input id="re_years" type="number" class="w-full border rounded p-2" value="30">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Property Tax</label>
+            <input id="re_tax" type="number" class="w-full border rounded p-2" value="4200">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Insurance</label>
+            <input id="re_ins" type="number" class="w-full border rounded p-2" value="1200">
+          </div>
+          <div>
+            <label class="block text-sm">PMI Rate (% of loan)</label>
+            <input id="re_pmi" type="number" class="w-full border rounded p-2" value="0.8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">HOA (Monthly)</label>
+            <input id="re_hoa" type="number" class="w-full border rounded p-2" value="0">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Income</label>
+            <input id="re_income" type="number" class="w-full border rounded p-2" value="8000">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Debt Payments</label>
+            <input id="re_debts" type="number" class="w-full border rounded p-2" value="600">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="re_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Mortgage</button>
+        </div>
+        <div id="re_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Rental Analysis</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Monthly Rent</label>
+            <input id="re_rent" type="number" class="w-full border rounded p-2" value="2500">
+          </div>
+          <div>
+            <label class="block text-sm">Vacancy Rate (%)</label>
+            <input id="re_vacancy" type="number" class="w-full border rounded p-2" value="5" step="0.5">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Operating Expenses</label>
+            <input id="re_expenses" type="number" class="w-full border rounded p-2" value="600">
+          </div>
+          <div>
+            <label class="block text-sm">Closing Costs</label>
+            <input id="re_closing" type="number" class="w-full border rounded p-2" value="8000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="re_rental_calc" class="bg-green-600 text-white px-4 py-2 rounded">Analyze Rental</button>
+        </div>
+        <div id="re_rental_result" class="mt-4"></div>
+      </section>
+
+      <!-- Tax -->
+      <section id="tax" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🧾 Complete Tax Calculator</h3>
+          <p class="text-sm">Federal, state, capital gains, and effective tax rate.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Filing Status</label>
+            <select id="tax_status" class="w-full border rounded p-2">
+              <option value="single">Single</option>
+              <option value="married">Married Filing Jointly</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Annual Income</label>
+            <input id="tax_income" type="number" class="w-full border rounded p-2" value="120000">
+          </div>
+          <div>
+            <label class="block text-sm">Deductions</label>
+            <input id="tax_deductions" type="number" class="w-full border rounded p-2" value="14000">
+          </div>
+          <div>
+            <label class="block text-sm">State Tax Rate (%)</label>
+            <input id="tax_state" type="number" class="w-full border rounded p-2" value="5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Short-Term Capital Gains</label>
+            <input id="tax_stcg" type="number" class="w-full border rounded p-2" value="3000">
+          </div>
+          <div>
+            <label class="block text-sm">Long-Term Capital Gains</label>
+            <input id="tax_ltcg" type="number" class="w-full border rounded p-2" value="6000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="tax_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Taxes</button>
+        </div>
+        <div id="tax_result" class="mt-4"></div>
+      </section>
+
+      <!-- Portfolio Optimizer -->
+      <section id="portfolio" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📈 Portfolio Optimizer</h3>
+          <p class="text-sm">Efficient frontier and max-Sharpe allocation (grid search).</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm">Expected Returns (comma-separated, %)</label>
+            <input id="pf_returns" type="text" class="w-full border rounded p-2" value="8,10,6">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm">Volatilities (comma-separated, %)</label>
+            <input id="pf_vols" type="text" class="w-full border rounded p-2" value="12,18,8">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm">Correlation Matrix (rows separated by ; )</label>
+            <input id="pf_corr" type="text" class="w-full border rounded p-2" value="1,0.2,0.1;0.2,1,0.3;0.1,0.3,1">
+          </div>
+          <div>
+            <label class="block text-sm">Risk-Free Rate (%)</label>
+            <input id="pf_rf" type="number" class="w-full border rounded p-2" value="3" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Grid Step</label>
+            <input id="pf_step" type="number" class="w-full border rounded p-2" value="0.05" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="pf_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Optimize</button>
+        </div>
+        <div id="pf_result" class="mt-4"></div>
+      </section>
+
+      <!-- DCF Valuation -->
+      <section id="dcf" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏢 DCF Valuation</h3>
+          <p class="text-sm">Multi-stage cash flow forecast with terminal value and sensitivity.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Current FCF</label>
+            <input id="dcf_fcf" type="number" class="w-full border rounded p-2" value="500000">
+          </div>
+          <div>
+            <label class="block text-sm">Forecast Years</label>
+            <input id="dcf_years" type="number" class="w-full border rounded p-2" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Growth Rate (%)</label>
+            <input id="dcf_growth" type="number" class="w-full border rounded p-2" value="8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (WACC, %)</label>
+            <input id="dcf_wacc" type="number" class="w-full border rounded p-2" value="10" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Terminal Growth (%)</label>
+            <input id="dcf_terminal" type="number" class="w-full border rounded p-2" value="3" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Net Debt</label>
+            <input id="dcf_debt" type="number" class="w-full border rounded p-2" value="800000">
+          </div>
+          <div>
+            <label class="block text-sm">Shares Outstanding</label>
+            <input id="dcf_shares" type="number" class="w-full border rounded p-2" value="1000000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="dcf_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Value Company</button>
+        </div>
+        <div id="dcf_result" class="mt-4"></div>
+      </section>
+
+      <!-- Options Suite -->
+      <section id="options" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🧮 Options Suite</h3>
+          <p class="text-sm">Black-Scholes pricing, Greeks, and strategy payoffs.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Spot Price (S)</label>
+            <input id="opt_spot" type="number" class="w-full border rounded p-2" value="100">
+          </div>
+          <div>
+            <label class="block text-sm">Strike (K)</label>
+            <input id="opt_strike" type="number" class="w-full border rounded p-2" value="105">
+          </div>
+          <div>
+            <label class="block text-sm">Time to Expiry (years)</label>
+            <input id="opt_time" type="number" class="w-full border rounded p-2" value="0.5" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Risk-Free Rate (%)</label>
+            <input id="opt_rate" type="number" class="w-full border rounded p-2" value="4" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Volatility (%)</label>
+            <input id="opt_vol" type="number" class="w-full border rounded p-2" value="25" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Underlying at Expiry</label>
+            <input id="opt_expiry_price" type="number" class="w-full border rounded p-2" value="110">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="opt_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Options</button>
+        </div>
+        <div id="opt_result" class="mt-4"></div>
+      </section>
+
+      <!-- Credit Analysis -->
+      <section id="credit" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏦 Credit Analysis</h3>
+          <p class="text-sm">DSCR, debt capacity, and default probability (Altman Z).</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">NOI / EBITDA</label>
+            <input id="cr_noi" type="number" class="w-full border rounded p-2" value="250000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Debt Service</label>
+            <input id="cr_debt" type="number" class="w-full border rounded p-2" value="180000">
+          </div>
+          <div>
+            <label class="block text-sm">Target DSCR</label>
+            <input id="cr_target" type="number" class="w-full border rounded p-2" value="1.25" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Interest Expense</label>
+            <input id="cr_interest" type="number" class="w-full border rounded p-2" value="60000">
+          </div>
+        </div>
+        <h3 class="font-semibold mb-3 mt-4">Altman Z-Score Inputs</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Working Capital</label>
+            <input id="cr_wc" type="number" class="w-full border rounded p-2" value="80000">
+          </div>
+          <div>
+            <label class="block text-sm">Retained Earnings</label>
+            <input id="cr_re" type="number" class="w-full border rounded p-2" value="120000">
+          </div>
+          <div>
+            <label class="block text-sm">EBIT</label>
+            <input id="cr_ebit" type="number" class="w-full border rounded p-2" value="150000">
+          </div>
+          <div>
+            <label class="block text-sm">Market Value of Equity</label>
+            <input id="cr_mve" type="number" class="w-full border rounded p-2" value="600000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Liabilities</label>
+            <input id="cr_tl" type="number" class="w-full border rounded p-2" value="500000">
+          </div>
+          <div>
+            <label class="block text-sm">Sales</label>
+            <input id="cr_sales" type="number" class="w-full border rounded p-2" value="900000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Assets</label>
+            <input id="cr_ta" type="number" class="w-full border rounded p-2" value="1100000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="cr_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Analyze Credit</button>
+        </div>
+        <div id="cr_result" class="mt-4"></div>
+      </section>
+
+      <!-- Life Tables -->
+      <section id="lifetables" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📊 Actuarial Life Tables</h3>
+          <p class="text-sm">Generate $q_x$, $l_x$, and $d_x$ from Gompertz-Makeham.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Starting Age</label>
+            <input id="lt_age" type="number" class="w-full border rounded p-2" value="30">
+          </div>
+          <div>
+            <label class="block text-sm">Max Age</label>
+            <input id="lt_max" type="number" class="w-full border rounded p-2" value="100">
+          </div>
+          <div>
+            <label class="block text-sm">Makeham A</label>
+            <input id="lt_a" type="number" class="w-full border rounded p-2" value="0.0005" step="0.0001">
+          </div>
+          <div>
+            <label class="block text-sm">Gompertz B</label>
+            <input id="lt_b" type="number" class="w-full border rounded p-2" value="0.00003" step="0.00001">
+          </div>
+          <div>
+            <label class="block text-sm">Gompertz C</label>
+            <input id="lt_c" type="number" class="w-full border rounded p-2" value="1.08" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="lt_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Table</button>
+        </div>
+        <div id="lt_result" class="mt-4"></div>
+      </section>
+
+      <!-- Lease vs Buy -->
+      <section id="leasebuy" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🚗 Lease vs Buy</h3>
+          <p class="text-sm">Compare PV of leasing vs purchasing with financing.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Purchase Price</label>
+            <input id="lb_price" type="number" class="w-full border rounded p-2" value="32000">
+          </div>
+          <div>
+            <label class="block text-sm">Down Payment</label>
+            <input id="lb_down" type="number" class="w-full border rounded p-2" value="4000">
+          </div>
+          <div>
+            <label class="block text-sm">Loan Rate (%)</label>
+            <input id="lb_rate" type="number" class="w-full border rounded p-2" value="6" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Loan Term (Years)</label>
+            <input id="lb_years" type="number" class="w-full border rounded p-2" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Lease Payment (Monthly)</label>
+            <input id="lb_lease" type="number" class="w-full border rounded p-2" value="380">
+          </div>
+          <div>
+            <label class="block text-sm">Lease Increase (%/yr)</label>
+            <input id="lb_lease_inc" type="number" class="w-full border rounded p-2" value="2" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Maintenance (Buy)</label>
+            <input id="lb_maint" type="number" class="w-full border rounded p-2" value="800">
+          </div>
+          <div>
+            <label class="block text-sm">Residual Value (%)</label>
+            <input id="lb_residual" type="number" class="w-full border rounded p-2" value="45" step="1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (%)</label>
+            <input id="lb_disc" type="number" class="w-full border rounded p-2" value="6" step="0.1">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="lb_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Compare</button>
+        </div>
+        <div id="lb_result" class="mt-4"></div>
+      </section>
+
+      <!-- Crypto -->
+      <section id="crypto" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🪙 Cryptocurrency Tools</h3>
+          <p class="text-sm">Staking, mining profitability, and impermanent loss.</p>
+        </div>
+        <h3 class="font-semibold mb-2">Staking Rewards</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Principal</label>
+            <input id="crp_principal" type="number" class="w-full border rounded p-2" value="5000">
+          </div>
+          <div>
+            <label class="block text-sm">APY (%)</label>
+            <input id="crp_apy" type="number" class="w-full border rounded p-2" value="8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Years</label>
+            <input id="crp_years" type="number" class="w-full border rounded p-2" value="2">
+          </div>
+          <div>
+            <label class="block text-sm">Compounds / Year</label>
+            <input id="crp_comp" type="number" class="w-full border rounded p-2" value="12">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_stake_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Staking</button>
+        </div>
+        <div id="crp_stake_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Mining Profitability</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Daily Revenue</label>
+            <input id="crp_rev" type="number" class="w-full border rounded p-2" value="15">
+          </div>
+          <div>
+            <label class="block text-sm">Power Cost (Daily)</label>
+            <input id="crp_cost" type="number" class="w-full border rounded p-2" value="6">
+          </div>
+          <div>
+            <label class="block text-sm">Hardware Cost</label>
+            <input id="crp_hw" type="number" class="w-full border rounded p-2" value="1200">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_mine_calc" class="bg-green-600 text-white px-4 py-2 rounded">Calculate Mining</button>
+        </div>
+        <div id="crp_mine_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Impermanent Loss</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Price Change (e.g., 1.5 = +50%)</label>
+            <input id="crp_ratio" type="number" class="w-full border rounded p-2" value="1.5" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_il_calc" class="bg-purple-600 text-white px-4 py-2 rounded">Calculate IL</button>
+        </div>
+        <div id="crp_il_result" class="mt-4"></div>
+      </section>
+
+      <!-- Green Finance -->
+      <section id="green" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🌿 Green Finance</h3>
+          <p class="text-sm">Solar ROI, NPV of savings, and payback period.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">System Cost</label>
+            <input id="gr_cost" type="number" class="w-full border rounded p-2" value="18000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Savings</label>
+            <input id="gr_savings" type="number" class="w-full border rounded p-2" value="2200">
+          </div>
+          <div>
+            <label class="block text-sm">Degradation (%/yr)</label>
+            <input id="gr_deg" type="number" class="w-full border rounded p-2" value="0.5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (%)</label>
+            <input id="gr_disc" type="number" class="w-full border rounded p-2" value="5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Analysis Years</label>
+            <input id="gr_years" type="number" class="w-full border rounded p-2" value="25">
+          </div>
+          <div>
+            <label class="block text-sm">Incentives</label>
+            <input id="gr_incentives" type="number" class="w-full border rounded p-2" value="2000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="gr_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate ROI</button>
+        </div>
+        <div id="gr_result" class="mt-4"></div>
+      </section>
+
+      <!-- Estate Planning -->
+      <section id="estate" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏛️ Estate Planning</h3>
+          <p class="text-sm">Estate tax exposure and gifting impact.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Estate Value</label>
+            <input id="es_value" type="number" class="w-full border rounded p-2" value="6500000">
+          </div>
+          <div>
+            <label class="block text-sm">Exemption Amount</label>
+            <input id="es_exempt" type="number" class="w-full border rounded p-2" value="12920000">
+          </div>
+          <div>
+            <label class="block text-sm">Estate Tax Rate (%)</label>
+            <input id="es_rate" type="number" class="w-full border rounded p-2" value="40" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Planned Gifts</label>
+            <input id="es_gifts" type="number" class="w-full border rounded p-2" value="100000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Gift Exclusion</label>
+            <input id="es_excl" type="number" class="w-full border rounded p-2" value="18000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="es_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Estate Tax</button>
+        </div>
+        <div id="es_result" class="mt-4"></div>
+      </section>
+
+      <!-- Forecasting -->
+      <section id="forecast" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📉 Statistical Forecasting</h3>
+          <p class="text-sm">Linear regression, moving average, and exponential smoothing.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm">Data Series (comma-separated)</label>
+            <input id="fc_series" type="text" class="w-full border rounded p-2" value="100,105,98,110,120,130,128,135">
+          </div>
+          <div>
+            <label class="block text-sm">Forecast Periods</label>
+            <input id="fc_periods" type="number" class="w-full border rounded p-2" value="1">
+          </div>
+          <div>
+            <label class="block text-sm">Moving Avg Window</label>
+            <input id="fc_window" type="number" class="w-full border rounded p-2" value="3">
+          </div>
+          <div>
+            <label class="block text-sm">Smoothing Alpha</label>
+            <input id="fc_alpha" type="number" class="w-full border rounded p-2" value="0.3" step="0.05">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="fc_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Forecast</button>
+        </div>
+        <div id="fc_result" class="mt-4"></div>
       </section>
 
       <!-- Scenarios -->
@@ -1369,6 +1925,471 @@ $qs('#aud_ratios').addEventListener('click', () => {
     <tr><td class="border px-2 py-1"><strong>Related Party Transactions</strong></td><td class="border px-2 py-1">Non-arms-length terms</td></tr>
     </tbody></table></div>`;
   $qs('#aud_result').innerHTML = html;
+});
+
+// ========== REAL ESTATE ==========
+function mortgagePayment(principal, annualRate, years){
+  const n = years * 12; const r = annualRate / 100 / 12;
+  if (r === 0) return principal / n;
+  return (principal * r) / (1 - Math.pow(1 + r, -n));
+}
+
+$qs('#re_calc').addEventListener('click', () => {
+  const price = Number($qs('#re_price').value) || 0;
+  const down = Number($qs('#re_down').value) || 0;
+  const rate = Number($qs('#re_rate').value) || 0;
+  const years = Number($qs('#re_years').value) || 0;
+  const propTax = Number($qs('#re_tax').value) || 0;
+  const insurance = Number($qs('#re_ins').value) || 0;
+  const pmiRate = Number($qs('#re_pmi').value) || 0;
+  const hoa = Number($qs('#re_hoa').value) || 0;
+  const income = Number($qs('#re_income').value) || 0;
+  const debts = Number($qs('#re_debts').value) || 0;
+
+  const loan = Math.max(price - down, 0);
+  const ltv = price > 0 ? loan / price : 0;
+  const pmiMonthly = ltv > 0.8 ? loan * (pmiRate / 100) / 12 : 0;
+  const basePayment = mortgagePayment(loan, rate, years);
+  const taxesMonthly = propTax / 12;
+  const insMonthly = insurance / 12;
+  const housing = basePayment + taxesMonthly + insMonthly + hoa + pmiMonthly;
+  const frontDTI = income > 0 ? housing / income * 100 : 0;
+  const backDTI = income > 0 ? (housing + debts) / income * 100 : 0;
+
+  const frontLimit = 0.28; const backLimit = 0.36;
+  const maxPayment = Math.max(0, Math.min(income * frontLimit, income * backLimit - debts));
+  const maxLoan = mortgagePayment(1, rate, years) > 0 ? maxPayment / mortgagePayment(1, rate, years) : 0;
+  const maxPrice = maxLoan + down;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Mortgage Summary</h4>
+    <p>Loan Amount: <strong>$${fmt(loan)}</strong></p>
+    <p>Monthly P&I: <strong>$${fmt(basePayment)}</strong></p>
+    <p>Taxes + Insurance: <strong>$${fmt(taxesMonthly + insMonthly)}</strong></p>
+    <p>PMI: <strong>$${fmt(pmiMonthly)}</strong></p>
+    <p>Total Housing: <strong class="text-green-600">$${fmt(housing)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Affordability</h4>
+    <p>Front-end DTI: <strong>${frontDTI.toFixed(1)}%</strong></p>
+    <p>Back-end DTI: <strong>${backDTI.toFixed(1)}%</strong></p>
+    <p>Max Purchase Price (28/36): <strong class="text-blue-600">$${fmt(maxPrice)}</strong></p></div>`;
+  $qs('#re_result').innerHTML = html;
+});
+
+$qs('#re_rental_calc').addEventListener('click', () => {
+  const price = Number($qs('#re_price').value) || 0;
+  const down = Number($qs('#re_down').value) || 0;
+  const closing = Number($qs('#re_closing').value) || 0;
+  const rent = Number($qs('#re_rent').value) || 0;
+  const vacancy = Number($qs('#re_vacancy').value) || 0;
+  const expenses = Number($qs('#re_expenses').value) || 0;
+  const propTax = Number($qs('#re_tax').value) || 0;
+  const insurance = Number($qs('#re_ins').value) || 0;
+  const rate = Number($qs('#re_rate').value) || 0;
+  const years = Number($qs('#re_years').value) || 0;
+  const loan = Math.max(price - down, 0);
+  const debtService = mortgagePayment(loan, rate, years) * 12;
+  const noi = (rent * 12 * (1 - vacancy / 100)) - (expenses * 12) - propTax - insurance;
+  const cashFlow = noi - debtService;
+  const capRate = price > 0 ? (noi / price) * 100 : 0;
+  const cashInvested = down + closing;
+  const cashOnCash = cashInvested > 0 ? (cashFlow / cashInvested) * 100 : 0;
+  const breakEven = rent > 0 ? ((expenses * 12 + debtService + propTax + insurance) / (rent * 12)) * 100 : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Rental Metrics</h4>
+    <p>NOI: <strong>$${fmt(noi)}</strong></p>
+    <p>Annual Cash Flow: <strong class="${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}">$${fmt(cashFlow)}</strong></p>
+    <p>Cap Rate: <strong>${capRate.toFixed(2)}%</strong></p>
+    <p>Cash-on-Cash: <strong>${cashOnCash.toFixed(2)}%</strong></p>
+    <p>Break-even Occupancy: <strong>${breakEven.toFixed(1)}%</strong></p></div>`;
+  $qs('#re_rental_result').innerHTML = html;
+});
+
+// ========== TAX ==========
+function calcProgressiveTax(taxableIncome, brackets){
+  let tax = 0;
+  for (let i = 0; i < brackets.length; i++) {
+    const [limit, rate] = brackets[i];
+    const nextLimit = (i + 1 < brackets.length) ? brackets[i + 1][0] : Infinity;
+    const incomeInBracket = Math.max(0, Math.min(taxableIncome, nextLimit) - limit);
+    if (incomeInBracket > 0) tax += incomeInBracket * rate;
+  }
+  return tax;
+}
+
+$qs('#tax_calc').addEventListener('click', () => {
+  const status = $qs('#tax_status').value;
+  const income = Number($qs('#tax_income').value) || 0;
+  const deductions = Number($qs('#tax_deductions').value) || 0;
+  const stateRate = Number($qs('#tax_state').value) || 0;
+  const stcg = Number($qs('#tax_stcg').value) || 0;
+  const ltcg = Number($qs('#tax_ltcg').value) || 0;
+
+  const taxable = Math.max(0, income - deductions);
+  const brackets = status === 'married'
+    ? [[0,0.10],[23200,0.12],[94300,0.22],[201050,0.24],[383900,0.32],[487450,0.35],[731200,0.37]]
+    : [[0,0.10],[11600,0.12],[47150,0.22],[100525,0.24],[191950,0.32],[243725,0.35],[609350,0.37]];
+  const federalTax = calcProgressiveTax(taxable + stcg, brackets);
+
+  const cgThresholds = status === 'married' ? { zero: 94050, fifteen: 583750 } : { zero: 47025, fifteen: 518900 };
+  let ltcgRate = 0.15;
+  if (taxable < cgThresholds.zero) ltcgRate = 0.0;
+  else if (taxable > cgThresholds.fifteen) ltcgRate = 0.20;
+  const ltcgTax = ltcg * ltcgRate;
+
+  const stateTax = taxable * (stateRate / 100);
+  const niitThreshold = status === 'married' ? 250000 : 200000;
+  const nii = stcg + ltcg;
+  const niit = Math.max(0, Math.min(nii, income - niitThreshold)) * 0.038;
+
+  const totalTax = federalTax + ltcgTax + stateTax + niit;
+  const effectiveRate = income > 0 ? totalTax / income * 100 : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Tax Summary</h4>
+    <p>Taxable Income: <strong>$${fmt(taxable)}</strong></p>
+    <p>Federal Tax: <strong>$${fmt(federalTax)}</strong></p>
+    <p>Long-Term Capital Gains Tax (${(ltcgRate*100).toFixed(0)}%): <strong>$${fmt(ltcgTax)}</strong></p>
+    <p>State Tax: <strong>$${fmt(stateTax)}</strong></p>
+    <p>NIIT: <strong>$${fmt(niit)}</strong></p>
+    <p>Total Tax: <strong class="text-blue-600">$${fmt(totalTax)}</strong></p>
+    <p>Effective Rate: <strong>${effectiveRate.toFixed(2)}%</strong></p></div>`;
+  $qs('#tax_result').innerHTML = html;
+});
+
+// ========== PORTFOLIO OPTIMIZER ==========
+function parseNumberList(text){
+  return text.split(',').map(v => Number(v.trim())).filter(v => !Number.isNaN(v));
+}
+
+function parseMatrix(text){
+  return text.split(';').map(row => row.split(',').map(v => Number(v.trim())));
+}
+
+function portfolioStats(weights, returns, cov){
+  let ret = 0; for (let i = 0; i < weights.length; i++) ret += weights[i] * returns[i];
+  let variance = 0;
+  for (let i = 0; i < weights.length; i++) {
+    for (let j = 0; j < weights.length; j++) {
+      variance += weights[i] * weights[j] * cov[i][j];
+    }
+  }
+  return { ret, sigma: Math.sqrt(variance) };
+}
+
+$qs('#pf_calc').addEventListener('click', () => {
+  const returns = parseNumberList($qs('#pf_returns').value).map(r => r / 100);
+  const vols = parseNumberList($qs('#pf_vols').value).map(v => v / 100);
+  const corr = parseMatrix($qs('#pf_corr').value);
+  const rf = (Number($qs('#pf_rf').value) || 0) / 100;
+  const step = Number($qs('#pf_step').value) || 0.05;
+  const n = returns.length;
+  if (n < 2 || vols.length !== n || corr.length !== n) {
+    $qs('#pf_result').innerHTML = '<div class="warning-box">Please provide matching returns, vols, and correlation matrix.</div>';
+    return;
+  }
+  const cov = Array.from({length:n}, (_,i)=> Array.from({length:n},(_,j)=> corr[i][j] * vols[i] * vols[j]));
+  let minVar = null; let maxSharpe = null; const frontier = [];
+  if (n === 2) {
+    for (let w = 0; w <= 1 + 1e-9; w += step) {
+      const weights = [w, 1 - w];
+      const stats = portfolioStats(weights, returns, cov);
+      const sharpe = stats.sigma > 0 ? (stats.ret - rf) / stats.sigma : 0;
+      frontier.push({ weights, ...stats, sharpe });
+    }
+  } else {
+    for (let w1 = 0; w1 <= 1 + 1e-9; w1 += step) {
+      for (let w2 = 0; w2 <= 1 - w1 + 1e-9; w2 += step) {
+        const w3 = 1 - w1 - w2;
+        if (w3 < -1e-9) continue;
+        const weights = [w1, w2, Math.max(0, w3)];
+        const stats = portfolioStats(weights, returns, cov);
+        const sharpe = stats.sigma > 0 ? (stats.ret - rf) / stats.sigma : 0;
+        frontier.push({ weights, ...stats, sharpe });
+      }
+    }
+  }
+  frontier.forEach(p => {
+    if (!minVar || p.sigma < minVar.sigma) minVar = p;
+    if (!maxSharpe || p.sharpe > maxSharpe.sharpe) maxSharpe = p;
+  });
+  frontier.sort((a,b)=> a.sigma - b.sigma);
+  const sample = frontier.slice(0, 10);
+
+  const fmtWeights = w => w.map(x => (x*100).toFixed(1) + '%').join(', ');
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Optimal Portfolios</h4>
+    <p>Minimum Variance: <strong>${fmtWeights(minVar.weights)}</strong> — Return ${(minVar.ret*100).toFixed(2)}%, Vol ${(minVar.sigma*100).toFixed(2)}%</p>
+    <p>Max Sharpe: <strong>${fmtWeights(maxSharpe.weights)}</strong> — Return ${(maxSharpe.ret*100).toFixed(2)}%, Vol ${(maxSharpe.sigma*100).toFixed(2)}%, Sharpe ${maxSharpe.sharpe.toFixed(2)}</p></div>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr>
+    <th class="border px-2 py-1">Weights</th><th class="border px-2 py-1">Return</th><th class="border px-2 py-1">Vol</th><th class="border px-2 py-1">Sharpe</th></tr></thead><tbody>`;
+  sample.forEach(p=>{
+    html += `<tr><td class="border px-2 py-1">${fmtWeights(p.weights)}</td><td class="border px-2 py-1">${(p.ret*100).toFixed(2)}%</td><td class="border px-2 py-1">${(p.sigma*100).toFixed(2)}%</td><td class="border px-2 py-1">${p.sharpe.toFixed(2)}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  $qs('#pf_result').innerHTML = html;
+});
+
+// ========== DCF ==========
+$qs('#dcf_calc').addEventListener('click', () => {
+  const fcf = Number($qs('#dcf_fcf').value) || 0;
+  const years = Number($qs('#dcf_years').value) || 0;
+  const growth = Number($qs('#dcf_growth').value) || 0;
+  const wacc = Number($qs('#dcf_wacc').value) || 0;
+  const terminal = Number($qs('#dcf_terminal').value) || 0;
+  const debt = Number($qs('#dcf_debt').value) || 0;
+  const shares = Number($qs('#dcf_shares').value) || 1;
+
+  const r = wacc / 100; const g = growth / 100; const tg = terminal / 100;
+  let pv = 0; let lastFcf = fcf;
+  const rows = [];
+  for (let t = 1; t <= years; t++) {
+    lastFcf = lastFcf * (1 + g);
+    const pvFcf = lastFcf / Math.pow(1 + r, t);
+    pv += pvFcf;
+    rows.push({ year: t, fcf: lastFcf, pv: pvFcf });
+  }
+  const terminalValue = (lastFcf * (1 + tg)) / Math.max(0.0001, (r - tg));
+  const terminalPV = terminalValue / Math.pow(1 + r, years);
+  const enterprise = pv + terminalPV;
+  const equity = enterprise - debt;
+  const perShare = shares > 0 ? equity / shares : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">DCF Summary</h4>
+    <p>Enterprise Value: <strong>$${fmt(enterprise)}</strong></p>
+    <p>Equity Value: <strong>$${fmt(equity)}</strong></p>
+    <p>Value per Share: <strong class="text-blue-600">$${fmt(perShare)}</strong></p></div>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="border px-2 py-1">Year</th><th class="border px-2 py-1">FCF</th><th class="border px-2 py-1">PV</th></tr></thead><tbody>`;
+  rows.forEach(rw => html += `<tr><td class="border px-2 py-1">${rw.year}</td><td class="border px-2 py-1">$${fmt(rw.fcf)}</td><td class="border px-2 py-1">$${fmt(rw.pv)}</td></tr>`);
+  html += `</tbody></table></div>`;
+  $qs('#dcf_result').innerHTML = html;
+});
+
+// ========== OPTIONS ==========
+function normalPdf(x){ return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+function normalCdf(x){
+  // Abramowitz-Stegun approximation
+  const k = 1 / (1 + 0.2316419 * Math.abs(x));
+  const kSum = k * (0.31938153 + k * (-0.356563782 + k * (1.781477937 + k * (-1.821255978 + 1.330274429 * k))));
+  const approx = 1 - normalPdf(x) * kSum;
+  return x >= 0 ? approx : 1 - approx;
+}
+
+function blackScholes(S, K, T, r, v){
+  const sqrtT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + 0.5 * v * v) * T) / (v * sqrtT);
+  const d2 = d1 - v * sqrtT;
+  const call = S * normalCdf(d1) - K * Math.exp(-r * T) * normalCdf(d2);
+  const put = K * Math.exp(-r * T) * normalCdf(-d2) - S * normalCdf(-d1);
+  const deltaCall = normalCdf(d1);
+  const deltaPut = deltaCall - 1;
+  const gamma = normalPdf(d1) / (S * v * sqrtT);
+  const vega = S * normalPdf(d1) * sqrtT / 100;
+  const thetaCall = (-S * normalPdf(d1) * v / (2 * sqrtT) - r * K * Math.exp(-r * T) * normalCdf(d2)) / 365;
+  const thetaPut = (-S * normalPdf(d1) * v / (2 * sqrtT) + r * K * Math.exp(-r * T) * normalCdf(-d2)) / 365;
+  const rhoCall = K * T * Math.exp(-r * T) * normalCdf(d2) / 100;
+  const rhoPut = -K * T * Math.exp(-r * T) * normalCdf(-d2) / 100;
+  return { call, put, deltaCall, deltaPut, gamma, vega, thetaCall, thetaPut, rhoCall, rhoPut };
+}
+
+$qs('#opt_calc').addEventListener('click', () => {
+  const S = Number($qs('#opt_spot').value) || 0;
+  const K = Number($qs('#opt_strike').value) || 0;
+  const T = Number($qs('#opt_time').value) || 0.01;
+  const r = (Number($qs('#opt_rate').value) || 0) / 100;
+  const v = (Number($qs('#opt_vol').value) || 0) / 100;
+  const expiryPrice = Number($qs('#opt_expiry_price').value) || 0;
+  const res = blackScholes(S, K, T, r, v);
+
+  const callPayoff = Math.max(0, expiryPrice - K);
+  const putPayoff = Math.max(0, K - expiryPrice);
+  const coveredCall = expiryPrice - S - res.call + callPayoff;
+  const protectivePut = expiryPrice - S - res.put + putPayoff;
+  const straddle = callPayoff + putPayoff - res.call - res.put;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Pricing & Greeks</h4>
+    <p>Call: <strong>$${fmt(res.call)}</strong> | Put: <strong>$${fmt(res.put)}</strong></p>
+    <p>Delta (Call/Put): <strong>${res.deltaCall.toFixed(3)}</strong> / <strong>${res.deltaPut.toFixed(3)}</strong></p>
+    <p>Gamma: <strong>${res.gamma.toFixed(4)}</strong> | Vega: <strong>${res.vega.toFixed(4)}</strong></p>
+    <p>Theta (Call/Put): <strong>${res.thetaCall.toFixed(4)}</strong> / <strong>${res.thetaPut.toFixed(4)}</strong></p>
+    <p>Rho (Call/Put): <strong>${res.rhoCall.toFixed(4)}</strong> / <strong>${res.rhoPut.toFixed(4)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Strategy P/L at Expiry</h4>
+    <p>Covered Call: <strong>${coveredCall.toFixed(2)}</strong></p>
+    <p>Protective Put: <strong>${protectivePut.toFixed(2)}</strong></p>
+    <p>Straddle: <strong>${straddle.toFixed(2)}</strong></p></div>`;
+  $qs('#opt_result').innerHTML = html;
+});
+
+// ========== CREDIT ==========
+$qs('#cr_calc').addEventListener('click', () => {
+  const noi = Number($qs('#cr_noi').value) || 0;
+  const debtService = Number($qs('#cr_debt').value) || 0;
+  const target = Number($qs('#cr_target').value) || 1.25;
+  const interest = Number($qs('#cr_interest').value) || 0;
+  const wc = Number($qs('#cr_wc').value) || 0;
+  const re = Number($qs('#cr_re').value) || 0;
+  const ebit = Number($qs('#cr_ebit').value) || 0;
+  const mve = Number($qs('#cr_mve').value) || 0;
+  const tl = Number($qs('#cr_tl').value) || 0;
+  const sales = Number($qs('#cr_sales').value) || 0;
+  const ta = Number($qs('#cr_ta').value) || 1;
+
+  const dscr = debtService > 0 ? noi / debtService : 0;
+  const debtCapacity = target > 0 ? noi / target : 0;
+  const interestCoverage = interest > 0 ? noi / interest : 0;
+  const z = 1.2 * (wc / ta) + 1.4 * (re / ta) + 3.3 * (ebit / ta) + 0.6 * (mve / Math.max(1, tl)) + 1.0 * (sales / ta);
+  let defaultProb = 0.2;
+  if (z > 3) defaultProb = 0.01; else if (z > 1.8) defaultProb = 0.05;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Credit Metrics</h4>
+    <p>DSCR: <strong>${dscr.toFixed(2)}</strong></p>
+    <p>Debt Capacity (Target DSCR): <strong>$${fmt(debtCapacity)}</strong></p>
+    <p>Interest Coverage: <strong>${interestCoverage.toFixed(2)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Altman Z-Score</h4>
+    <p>Z-Score: <strong>${z.toFixed(2)}</strong></p>
+    <p>Estimated Default Probability: <strong>${(defaultProb*100).toFixed(1)}%</strong></p></div>`;
+  $qs('#cr_result').innerHTML = html;
+});
+
+// ========== LIFE TABLES ==========
+$qs('#lt_calc').addEventListener('click', () => {
+  const startAge = Number($qs('#lt_age').value) || 0;
+  const maxAge = Number($qs('#lt_max').value) || 100;
+  const A = Number($qs('#lt_a').value) || 0.0005;
+  const B = Number($qs('#lt_b').value) || 0.00003;
+  const C = Number($qs('#lt_c').value) || 1.08;
+  let lx = 100000;
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Life Table (${startAge}-${maxAge})</h4></div>`;
+  html += `<div class="mt-2 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="border px-2 py-1">Age</th><th class="border px-2 py-1">qₓ</th><th class="border px-2 py-1">lₓ</th><th class="border px-2 py-1">dₓ</th></tr></thead><tbody>`;
+  let lifeExpectancy = 0; let lStart = lx;
+  for (let age = startAge; age <= maxAge; age++) {
+    const qx = Math.min(0.999, A + B * Math.pow(C, age));
+    const dx = lx * qx;
+    const lxNext = lx - dx;
+    lifeExpectancy += (lx + lxNext) / 2;
+    html += `<tr><td class="border px-2 py-1">${age}</td><td class="border px-2 py-1">${qx.toFixed(6)}</td><td class="border px-2 py-1">${Math.round(lx)}</td><td class="border px-2 py-1">${Math.round(dx)}</td></tr>`;
+    lx = lxNext;
+  }
+  html += `</tbody></table></div>`;
+  const e0 = lStart > 0 ? lifeExpectancy / lStart : 0;
+  html = `<div class="result-card"><p>Expected remaining years: <strong>${e0.toFixed(2)}</strong></p></div>` + html;
+  $qs('#lt_result').innerHTML = html;
+});
+
+// ========== LEASE VS BUY ==========
+$qs('#lb_calc').addEventListener('click', () => {
+  const price = Number($qs('#lb_price').value) || 0;
+  const down = Number($qs('#lb_down').value) || 0;
+  const rate = Number($qs('#lb_rate').value) || 0;
+  const years = Number($qs('#lb_years').value) || 0;
+  const leasePay = Number($qs('#lb_lease').value) || 0;
+  const leaseInc = Number($qs('#lb_lease_inc').value) || 0;
+  const maint = Number($qs('#lb_maint').value) || 0;
+  const residualPct = Number($qs('#lb_residual').value) || 0;
+  const disc = Number($qs('#lb_disc').value) || 0;
+
+  const loan = Math.max(price - down, 0);
+  const pmt = mortgagePayment(loan, rate, years);
+  const months = years * 12;
+  const r = disc / 100 / 12;
+  let pvLease = 0; let pvBuy = down; let cumLease = 0; let cumBuy = down; let breakeven = null;
+  for (let m = 1; m <= months; m++) {
+    const year = Math.ceil(m / 12);
+    const leaseMonthly = leasePay * Math.pow(1 + leaseInc / 100, year - 1);
+    const maintMonthly = maint / 12;
+    const df = Math.pow(1 + r, -m);
+    const leasePV = leaseMonthly * df;
+    const buyPV = (pmt + maintMonthly) * df;
+    pvLease += leasePV; pvBuy += buyPV;
+    cumLease += leasePV; cumBuy += buyPV;
+    if (breakeven === null && cumLease > cumBuy) breakeven = m;
+  }
+  const residual = price * (residualPct / 100);
+  const residualPV = residual * Math.pow(1 + r, -months);
+  pvBuy -= residualPV;
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">PV Comparison</h4>
+    <p>PV Lease: <strong>$${fmt(pvLease)}</strong></p>
+    <p>PV Buy: <strong>$${fmt(pvBuy)}</strong></p>
+    <p>Break-even Month: <strong>${breakeven ? breakeven : 'N/A'}</strong></p></div>`;
+  $qs('#lb_result').innerHTML = html;
+});
+
+// ========== CRYPTO ==========
+$qs('#crp_stake_calc').addEventListener('click', () => {
+  const principal = Number($qs('#crp_principal').value) || 0;
+  const apy = Number($qs('#crp_apy').value) || 0;
+  const years = Number($qs('#crp_years').value) || 0;
+  const comp = Number($qs('#crp_comp').value) || 1;
+  const fv = principal * Math.pow(1 + apy / 100 / comp, comp * years);
+  const rewards = fv - principal;
+  $qs('#crp_stake_result').innerHTML = `<div class="result-card"><p>Final Value: <strong>$${fmt(fv)}</strong></p><p>Rewards: <strong>$${fmt(rewards)}</strong></p></div>`;
+});
+
+$qs('#crp_mine_calc').addEventListener('click', () => {
+  const rev = Number($qs('#crp_rev').value) || 0;
+  const cost = Number($qs('#crp_cost').value) || 0;
+  const hw = Number($qs('#crp_hw').value) || 0;
+  const profit = rev - cost;
+  const breakevenDays = profit > 0 ? hw / profit : null;
+  $qs('#crp_mine_result').innerHTML = `<div class="result-card"><p>Daily Profit: <strong>$${fmt(profit)}</strong></p><p>Break-even Days: <strong>${breakevenDays ? breakevenDays.toFixed(1) : 'N/A'}</strong></p></div>`;
+});
+
+$qs('#crp_il_calc').addEventListener('click', () => {
+  const ratio = Number($qs('#crp_ratio').value) || 1;
+  const il = (2 * Math.sqrt(ratio) / (1 + ratio)) - 1;
+  $qs('#crp_il_result').innerHTML = `<div class="result-card"><p>Impermanent Loss: <strong>${(il * 100).toFixed(2)}%</strong></p></div>`;
+});
+
+// ========== GREEN FINANCE ==========
+$qs('#gr_calc').addEventListener('click', () => {
+  const cost = Number($qs('#gr_cost').value) || 0;
+  const savings = Number($qs('#gr_savings').value) || 0;
+  const deg = Number($qs('#gr_deg').value) || 0;
+  const disc = Number($qs('#gr_disc').value) || 0;
+  const years = Number($qs('#gr_years').value) || 0;
+  const incentives = Number($qs('#gr_incentives').value) || 0;
+  let npv = -cost + incentives; let cumulative = -cost + incentives; let payback = null;
+  for (let t = 1; t <= years; t++) {
+    const cash = savings * Math.pow(1 - deg / 100, t - 1);
+    const pv = cash / Math.pow(1 + disc / 100, t);
+    npv += pv;
+    cumulative += cash;
+    if (payback === null && cumulative >= 0) payback = t;
+  }
+  $qs('#gr_result').innerHTML = `<div class="result-card"><p>NPV of Savings: <strong>$${fmt(npv)}</strong></p><p>Simple Payback: <strong>${payback ? payback + ' years' : 'N/A'}</strong></p></div>`;
+});
+
+// ========== ESTATE ==========
+$qs('#es_calc').addEventListener('click', () => {
+  const value = Number($qs('#es_value').value) || 0;
+  const exempt = Number($qs('#es_exempt').value) || 0;
+  const rate = Number($qs('#es_rate').value) || 0;
+  const gifts = Number($qs('#es_gifts').value) || 0;
+  const exclusion = Number($qs('#es_excl').value) || 0;
+  const taxable = Math.max(0, value - exempt - Math.max(0, gifts - exclusion));
+  const tax = taxable * (rate / 100);
+  const net = value - tax;
+  $qs('#es_result').innerHTML = `<div class="result-card"><p>Taxable Estate: <strong>$${fmt(taxable)}</strong></p><p>Estate Tax: <strong>$${fmt(tax)}</strong></p><p>Net to Heirs: <strong class="text-green-600">$${fmt(net)}</strong></p></div>`;
+});
+
+// ========== FORECASTING ==========
+$qs('#fc_calc').addEventListener('click', () => {
+  const series = parseNumberList($qs('#fc_series').value);
+  const periods = Number($qs('#fc_periods').value) || 1;
+  const window = Number($qs('#fc_window').value) || 3;
+  const alpha = Number($qs('#fc_alpha').value) || 0.3;
+  const n = series.length;
+  if (n < 2) { $qs('#fc_result').innerHTML = '<div class="warning-box">Provide at least 2 data points.</div>'; return; }
+  const xs = series.map((_, i) => i + 1);
+  const xAvg = xs.reduce((a,b)=>a+b,0) / n;
+  const yAvg = series.reduce((a,b)=>a+b,0) / n;
+  let num = 0; let den = 0;
+  xs.forEach((x,i)=>{ num += (x - xAvg) * (series[i] - yAvg); den += (x - xAvg) ** 2; });
+  const slope = den !== 0 ? num / den : 0;
+  const intercept = yAvg - slope * xAvg;
+  const nextX = n + periods;
+  const regForecast = intercept + slope * nextX;
+  const ma = series.slice(-window).reduce((a,b)=>a+b,0) / Math.min(window, n);
+  let s = series[0];
+  for (let i = 1; i < n; i++) s = alpha * series[i] + (1 - alpha) * s;
+  const expForecast = s;
+  $qs('#fc_result').innerHTML = `<div class="result-card"><p>Linear Regression Forecast: <strong>${regForecast.toFixed(2)}</strong></p><p>Moving Average: <strong>${ma.toFixed(2)}</strong></p><p>Exponential Smoothing: <strong>${expForecast.toFixed(2)}</strong></p></div>`;
 });
 
 // ========== SCENARIOS ==========

@@ -310,21 +310,49 @@
 
 ### Phase 1 (High Priority - User Demand)
 1. **Real Estate Calculator** - Mortgage, affordability, rental analysis
+  - Mortgage payment schedule + PMI + taxes/insurance
+  - Affordability (DTI front/back) + max purchase price
+  - Rental analysis: cap rate, cash-on-cash, break-even occupancy
+  - Deal score summary + sensitivity table (rate, rent, vacancy)
 2. **Complete Tax Calculator** - Federal, state, capital gains
+  - Federal brackets + standard/itemized deduction
+  - State bracket presets + flat-tax states
+  - Short/long-term capital gains + NIIT
+  - AMT check + effective tax rate
 3. **Enhanced Portfolio Optimizer** - Efficient frontier, asset allocation
+  - Efficient frontier curve (min-variance to max-Sharpe)
+  - Asset allocation weights with constraints
+  - Correlation matrix + portfolio backtest summary
+  - Risk/return chart + allocation pie output
 4. **DCF Valuation** - Company valuation, equity analysis
+  - Multi-stage cash flow forecast + terminal value
+  - WACC + CAPM inputs
+  - Equity value + per-share valuation
+  - Sensitivity table (WACC vs growth)
 
 ### Phase 2 (Medium Priority - Professional Use)
 1. **Complete Options Suite** - Multiple strategies, Greeks
+  - Strategy P/L (covered call, protective put, spreads, straddles)
+  - Greeks aggregation + scenario payoff charts
 2. **Credit Analysis Tools** - DSCR, default probability
+  - DSCR calculator + debt capacity
+  - Default probability (scorecard + Z-score)
 3. **Full Life Tables** - Complete actuarial mortality tables
+  - Full $q_x$, $l_x$, $d_x$ tables with interpolation
+  - Life expectancy and survival curves
 4. **Lease vs Buy** - Comprehensive lease analysis
+  - PV of lease vs buy cash flows
+  - Break-even usage/years + residual value
 
 ### Phase 3 (Nice to Have - Specialty)
 1. **Cryptocurrency Tools** - Staking, mining, DeFi
+  - Staking APY, mining breakeven, impermanent loss
 2. **Green Finance** - ESG, solar ROI
+  - Solar payback + NPV of savings + carbon offset value
 3. **Estate Planning** - Tax-efficient wealth transfer
+  - Estate/gift tax exposure + trust scenarios
 4. **Statistical Forecasting** - Time series, regression
+  - Trend/seasonality + forecast confidence bands
 
 ---
 
@@ -352,29 +380,33 @@
 ## 🔧 TECHNICAL IMPROVEMENTS NEEDED
 
 1. **Performance**
-   - Add web workers for heavy calculations
-   - Implement calculation caching
-   - Lazy load calculation modules
+  - Add web workers for heavy calculations (portfolio/DCF/tax)
+  - Implement calculation caching with input hashing
+  - Lazy load calculation modules by category
+  - Add memoized math helpers for repeated functions
 
 2. **Data Visualization**
-   - Add Chart.js/D3.js for graphs
-   - Interactive plots for scenarios
-   - Historical data comparison charts
+  - Add Chart.js/D3.js for graphs
+  - Interactive plots for scenarios and efficient frontier
+  - Historical data comparison charts
+  - Export charts as PNG/SVG
 
 3. **Database Integration**
-   - User calculation history
-   - Saved templates
-   - Shared scenarios
+  - User calculation history with timestamps
+  - Saved templates with tags
+  - Shared scenarios with view-only links
 
 4. **Export Options**
-   - Excel workbook export
-   - PDF reports with charts
-   - API endpoints for programmatic access
+  - Excel workbook export
+  - PDF reports with charts
+  - API endpoints for programmatic access
+  - CSV batch export for portfolio runs
 
 5. **Collaboration**
-   - Share calculations via link
-   - Collaborative scenario planning
-   - Team workspaces
+  - Share calculations via link
+  - Collaborative scenario planning
+  - Team workspaces
+  - Access control (owner/editor/viewer)
 
 ---
 
