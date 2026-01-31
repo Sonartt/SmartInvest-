@@ -380,7 +380,7 @@
 
 <script>
 // Tab Switching
-function switchTab(tabName) {
+function switchTab(tabName, clickedElement) {
   // Hide all tabs
   const tabs = document.querySelectorAll('.tab-content');
   tabs.forEach(tab => tab.classList.remove('active'));
@@ -390,11 +390,21 @@ function switchTab(tabName) {
   navTabs.forEach(nav => nav.classList.remove('active'));
   
   // Show selected tab
-  document.getElementById(tabName).classList.add('active');
+  const selectedTab = document.getElementById(tabName);
+  if (selectedTab) {
+    selectedTab.classList.add('active');
+  }
   
-  // Add active to clicked nav
-  const clickedTab = Array.from(navTabs).find(tab => tab.textContent.toLowerCase().includes(tabName.toLowerCase()));
-  if (clickedTab) clickedTab.classList.add('active');
+  // Add active to clicked nav (if element passed) or find by tabName
+  if (clickedElement) {
+    clickedElement.classList.add('active');
+  } else {
+    const clickedTab = Array.from(navTabs).find(tab => {
+      const tabText = tab.textContent.toLowerCase();
+      return tabText.includes(tabName.toLowerCase()) || tab.getAttribute('onclick')?.includes(`'${tabName}'`);
+    });
+    if (clickedTab) clickedTab.classList.add('active');
+  }
 }
 
 // Refresh All Data

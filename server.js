@@ -448,7 +448,7 @@ app.get('/api/admin/users', adminAuth, (req, res) => {
 });
 
 // Admin: Grant premium access to a user
-app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), (req, res) => {
+app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), async (req, res) => {
   try {
     const userId = req.params.userId;
     const { requirements } = req.body;
