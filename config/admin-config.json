@@ -1,0 +1,47 @@
+{
+    "adminUsers": [
+        {
+            "email": "delijah5415@gmail.com",
+            "role": "super-admin",
+            "permissions": [
+                "user-management",
+                "content-management",
+                "analytics-view",
+                "payment-oversight",
+                "security-settings",
+                "system-configuration"
+            ],
+            "createdAt": "2026-01-31T00:00:00Z",
+            "status": "active",
+            "twoFactorEnabled": false
+        },
+        {
+            "email": "admin@smartinvest.com",
+            "role": "admin",
+            "permissions": [
+                "user-management",
+                "content-management",
+                "analytics-view",
+                "payment-oversight"
+            ],
+            "createdAt": "2026-01-31T00:00:00Z",
+            "status": "active",
+            "twoFactorEnabled": false
+        }
+    ],
+    "securitySettings": {
+        "sessionTimeout": 3600000,
+        "maxLoginAttempts": 5,
+        "lockoutDuration": 900000,
+        "requireStrongPassword": true,
+        "passwordMinLength": 8,
+        "enableAuditLog": true
+    },
+    "features": {
+        "realTimeAnalytics": true,
+        "advancedReporting": true,
+        "bulkOperations": true,
+        "apiAccess": true,
+        "webhooks": true
+    }
+}

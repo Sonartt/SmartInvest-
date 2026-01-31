@@ -148,6 +148,47 @@ function calculateAnnuity(type, payment, rate, periods, age, deferral) {
   };
 }
 
+// Life/Term Insurance Premium Calculator (simplified actuarial pricing)
+function calculateInsurancePremium(coverage, baseRate, age, termYears, gender = 'male', smoker = false, healthFactor = 1) {
+  // Base rate is per $1,000 of coverage annually
+  const genderFactor = gender === 'female' ? 0.92 : 1.0;
+  const smokerFactor = smoker ? 1.35 : 1.0;
+  const ageFactor = Math.max(0.8, 1 + (age - 30) * 0.02);
+  const termFactor = Math.max(0.9, 1 + (termYears - 10) * 0.01);
+
+  const annualPremium = (coverage / 1000) * baseRate * genderFactor * smokerFactor * ageFactor * termFactor * healthFactor;
+  const monthlyPremium = annualPremium / 12;
+  const totalPremium = annualPremium * termYears;
+
+  return {
+    annualPremium,
+    monthlyPremium,
+    totalPremium,
+    factors: {
+      genderFactor,
+      smokerFactor,
+      ageFactor,
+      termFactor,
+      healthFactor
+    }
+  };
+}
+
+// Loss Development / IBNR Estimate (simple LDF approach)
+function calculateIBNR(reportedLosses, paidLosses, lossDevelopmentFactor = 1.15) {
+  const latestReported = Math.max(0, reportedLosses);
+  const ultimateLoss = latestReported * lossDevelopmentFactor;
+  const ibnr = Math.max(0, ultimateLoss - paidLosses);
+
+  return {
+    reportedLosses: latestReported,
+    paidLosses,
+    lossDevelopmentFactor,
+    ultimateLoss,
+    ibnr
+  };
+}
+
 // ========== RISK ANALYSIS CALCULATIONS ==========
 function calculateRisk(value, expectedReturn, stdDev, rfRate, confidence, days, beta, marketReturn) {
   // Value at Risk (VaR) - Parametric method
@@ -184,6 +225,68 @@ function calculateRisk(value, expectedReturn, stdDev, rfRate, confidence, days, 
     alpha: alpha,
     beta: beta,
     annualizedVol: annualizedVol
+  };
+}
+
+// ========== PENSION & LIABILITY CALCULATIONS ==========
+function calculatePensionFunding(assets, liabilities, discountRate, annualContribution, annualBenefits, years = 10) {
+  const projection = [];
+  let projectedAssets = assets;
+  let projectedLiabilities = liabilities;
+  const r = discountRate / 100;
+
+  for (let year = 1; year <= years; year++) {
+    projectedAssets = (projectedAssets + annualContribution - annualBenefits) * (1 + r);
+    projectedLiabilities = projectedLiabilities * (1 + r * 0.6); // conservative liability growth
+
+    projection.push({
+      year,
+      assets: projectedAssets,
+      liabilities: projectedLiabilities,
+      fundingRatio: projectedAssets / projectedLiabilities
+    });
+  }
+
+  return {
+    currentFundingRatio: assets / liabilities,
+    projectedFundingRatio: projection[projection.length - 1].fundingRatio,
+    projection
+  };
+}
+
+// ========== AMORTIZATION CALCULATIONS ==========
+function calculateAmortizationSchedule(principal, annualRate, years, paymentsPerYear = 12, extraPayment = 0) {
+  const r = annualRate / 100 / paymentsPerYear;
+  const n = years * paymentsPerYear;
+  const payment = r === 0 ? principal / n : principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+  let balance = principal;
+  let totalInterest = 0;
+  const schedule = [];
+
+  for (let i = 1; i <= n && balance > 0; i++) {
+    const interest = balance * r;
+    const principalPaid = Math.min(balance, payment - interest + extraPayment);
+    balance = Math.max(0, balance - principalPaid);
+    totalInterest += interest;
+
+    if (i === 1 || i % paymentsPerYear === 0 || balance === 0) {
+      schedule.push({
+        period: i,
+        year: Math.ceil(i / paymentsPerYear),
+        payment: payment + extraPayment,
+        principal: principalPaid,
+        interest,
+        balance
+      });
+    }
+  }
+
+  return {
+    payment,
+    totalInterest,
+    totalPaid: principal + totalInterest,
+    schedule
   };
 }
 
@@ -246,6 +349,21 @@ function calculateNPVIRR(initial, cashflows, rate) {
     payback: payback,
     pi: pi,
     totalCashflow: cashflows.reduce((a, b) => a + b, 0)
+  };
+}
+
+function calculateBreakEven(fixedCosts, pricePerUnit, variableCostPerUnit) {
+  const contributionMargin = pricePerUnit - variableCostPerUnit;
+  const breakEvenUnits = contributionMargin > 0 ? fixedCosts / contributionMargin : Infinity;
+  const breakEvenRevenue = breakEvenUnits * pricePerUnit;
+
+  return {
+    fixedCosts,
+    pricePerUnit,
+    variableCostPerUnit,
+    contributionMargin,
+    breakEvenUnits,
+    breakEvenRevenue
   };
 }
 
@@ -459,8 +577,13 @@ if (typeof module !== 'undefined' && module.exports) {
     calculateBond,
     calculateRetirement,
     calculateAnnuity,
+    calculateInsurancePremium,
+    calculateIBNR,
     calculateRisk,
+    calculatePensionFunding,
+    calculateAmortizationSchedule,
     calculateNPVIRR,
+    calculateBreakEven,
     calculateRatios,
     calculateAudit,
     calculateBlackScholes,

@@ -257,7 +257,7 @@ bash setup-premium-system.sh
 ### 2. Verify Environment
 ```bash
 # .env file should contain:
-ADMIN_USER=delijah5415@gmail.com
+ADMIN_USER=deijah545@gmail.com
 ADMIN_PASS==ELIJAH-41168990
 ```
 

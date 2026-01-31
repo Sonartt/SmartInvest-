@@ -2,7 +2,7 @@
 
 ## Admin Credentials
 
-**Admin Email:** `delijah5415@gmail.com`  
+**Admin Email:** `deijah545@gmail.com`  
 **Admin Username:** `admin`  
 **Admin Password:** `admin`
 
@@ -341,7 +341,7 @@ curl -u your_username:your_password http://localhost:3000/admin
 ## 📞 Support
 
 For admin dashboard issues, contact:
-- **Email:** delijah5415@gmail.com
+- **Email:** deijah545@gmail.com
 - **GitHub Issues:** https://github.com/Sonartt/SmartInvest-/issues
 
 ---
@@ -358,7 +358,7 @@ For admin dashboard issues, contact:
 ║  Username: admin                                 ║
 ║  Password: admin                                 ║
 ║                                                  ║
-║  Admin Email: delijah5415@gmail.com              ║
+║  Admin Email: deijah545@gmail.com              ║
 ║                                                  ║
 ╠══════════════════════════════════════════════════╣
 ║  QUICK COMMANDS:                                 ║

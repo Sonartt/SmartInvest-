@@ -919,32 +919,96 @@
             .btn-premium {
                 background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
                 color: #1F2937;
+                position: relative;
+                overflow: hidden;
+                animation: pulseGlow 2s ease-in-out infinite;
+            }
+
+            .btn-premium::before {
+                content: '';
+                position: absolute;
+                inset-block-start: 50%;
+                inset-inline-start: 50%;
+                inline-size: 0;
+                block-size: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.4);
+                transform: translate(-50%, -50%);
+                transition: width 0.6s, height 0.6s;
+            }
+
+            .btn-premium:hover::before {
+                inline-size: 300px;
+                block-size: 300px;
             }
 
             .btn-premium:hover {
-                transform: translateY(-2px);
+                transform: translateY(-2px) scale(1.05);
                 box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
+                animation: none;
             }
 
             .btn-enterprise {
                 background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
                 color: white;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn-enterprise::after {
+                content: '→';
+                position: absolute;
+                inset-inline-end: 20px;
+                transition: transform 0.3s ease;
+            }
+
+            .btn-enterprise:hover::after {
+                transform: translateX(5px);
             }
 
             .btn-enterprise:hover {
-                transform: translateY(-2px);
+                transform: translateY(-2px) scale(1.05);
                 box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+                background: linear-gradient(135deg, #374151 0%, #4B5563 100%);
             }
 
             .btn-free {
                 background: white;
                 color: #6D28D9;
                 border: 2px solid white;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn-free::before {
+                content: '';
+                position: absolute;
+                inset-block-start: 0;
+                inset-inline-start: -100%;
+                inline-size: 100%;
+                block-size: 100%;
+                background: linear-gradient(90deg, transparent, rgba(109, 40, 217, 0.1), transparent);
+                transition: left 0.5s ease;
+            }
+
+            .btn-free:hover::before {
+                inset-inline-start: 100%;
             }
 
             .btn-free:hover {
                 background: rgba(255, 255, 255, 0.9);
-                transform: translateY(-2px);
+                transform: translateY(-2px) scale(1.05);
+                border-color: #D4AF37;
+                color: #5B21B6;
+            }
+
+            @keyframes pulseGlow {
+                0%, 100% {
+                    box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 30px rgba(212, 175, 55, 0.8);
+                }
             }
 
             .trust-badge {
@@ -2495,6 +2559,64 @@
         }
     }
 
+    // Admin Login Handler
+    async function handleAdminLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById('adminEmail').value;
+        const password = document.getElementById('adminPassword').value;
+        const remember = document.getElementById('rememberAdmin').checked;
+        const messageEl = document.getElementById('adminLoginMessage');
+        
+        // Clear previous messages
+        messageEl.innerHTML = '<span class="text-yellow-300">⏳ Authenticating...</span>';
+        
+        try {
+            // Check against authorized admin email
+            const authorizedAdmins = ['delijah5415@gmail.com', 'admin@smartinvest.com'];
+            
+            if (!authorizedAdmins.includes(email.toLowerCase())) {
+                messageEl.innerHTML = '<span class="text-red-400">❌ Unauthorized access. Admin credentials required.</span>';
+                return;
+            }
+            
+            // Call admin authentication endpoint
+            const res = await fetch('/api/auth/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, remember })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                // Store admin session
+                try {
+                    localStorage.setItem('si_admin_email', email.toLowerCase());
+                    localStorage.setItem('si_admin_token', data.token || '');
+                    localStorage.setItem('si_admin_session', Date.now().toString());
+                    if (remember) {
+                        localStorage.setItem('si_admin_remember', 'true');
+                    }
+                } catch (e) {
+                    console.error('Storage error:', e);
+                }
+                
+                messageEl.innerHTML = '<span class="text-green-400">✅ Authentication successful! Redirecting...</span>';
+                
+                // Redirect to admin dashboard
+                setTimeout(() => {
+                    window.location.href = '/admin.html?session=' + (data.token || Date.now());
+                }, 1500);
+            } else {
+                messageEl.innerHTML = '<span class="text-red-400">❌ Authentication failed: ' + (data.error || 'Invalid credentials') + '</span>';
+            }
+        } catch (err) {
+            console.error('Admin login error:', err);
+            messageEl.innerHTML = '<span class="text-red-400">❌ Network error. Please try again.</span>';
+        }
+    }
+
+
     // Fetch public catalog and render into #catalog
     async function fetchCatalog() {
         try {
@@ -2686,28 +2808,32 @@
 </script>
 <!-- Sign In Section -->
 <section id="signin" aria-label="Sign In" class="py-20 px-4 bg-white">
-  <div class="max-w-md mx-auto bg-gray-50 p-8 rounded-lg shadow-md">
-    <h2 class="text-3xl font-bold mb-6 text-center text-purple-600">Sign In</h2>
+  <div class="max-w-5xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-8">
+      
+      <!-- Regular User Login -->
+      <div class="bg-gray-50 p-8 rounded-lg shadow-md">
+        <h2 class="text-3xl font-bold mb-6 text-center text-purple-600">User Sign In</h2>
 
-    <form onsubmit="demoLogin(event)" class="space-y-4">
-      <input
-        id="loginEmail"
-        type="email"
-        placeholder="Email"
-        required
-        class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600"
-      />
+        <form onsubmit="demoLogin(event)" class="space-y-4">
+          <input
+            id="loginEmail"
+            type="email"
+            placeholder="Email"
+            required
+            class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600"
+          />
 
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Password"
-        required
-        class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600"
-      />
+          <input
+            id="loginPassword"
+            type="password"
+            placeholder="Password"
+            required
+            class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600"
+          />
 
-            <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
-    </form>
+          <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
+        </form>
 
         <hr class="my-6">
 
@@ -2721,7 +2847,87 @@
             </div>
             <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Sign Up</button>
         </form>
+      </div>
 
+      <!-- Admin Login Section -->
+      <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-lg shadow-xl">
+        <div class="text-center mb-6">
+          <div class="inline-block p-4 bg-white bg-opacity-10 rounded-full mb-4">
+            <span class="text-5xl">🔐</span>
+          </div>
+          <h2 class="text-3xl font-bold text-white mb-2">Admin Access</h2>
+          <p class="text-slate-300 text-sm">Authorized Personnel Only</p>
+        </div>
+
+        <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">Admin Email</label>
+            <input
+              id="adminEmail"
+              type="email"
+              placeholder="admin@smartinvest.com"
+              required
+              class="w-full border-2 border-slate-600 bg-slate-700 text-white rounded px-4 py-3 focus:outline-none focus:border-blue-500 transition"
+            />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">Password</label>
+            <input
+              id="adminPassword"
+              type="password"
+              placeholder="Enter admin password"
+              required
+              class="w-full border-2 border-slate-600 bg-slate-700 text-white rounded px-4 py-3 focus:outline-none focus:border-blue-500 transition"
+            />
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="rememberAdmin" type="checkbox" class="w-4 h-4" />
+            <label for="rememberAdmin" class="text-slate-300 text-sm">Remember me</label>
+          </div>
+
+          <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
+            🚀 Access Admin Dashboard
+          </button>
+
+          <div id="adminLoginMessage" class="text-center text-sm"></div>
+        </form>
+
+        <div class="mt-6 pt-6 border-t border-slate-700">
+          <h4 class="text-white font-semibold mb-3">Admin Features:</h4>
+          <ul class="space-y-2 text-slate-300 text-sm">
+            <li class="flex items-center gap-2">
+              <span class="text-green-400">✓</span>
+              <span>User Management & Analytics</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-green-400">✓</span>
+              <span>Content Management System</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-green-400">✓</span>
+              <span>Real-time Monitoring Dashboard</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-green-400">✓</span>
+              <span>Payment & Transaction Oversight</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-green-400">✓</span>
+              <span>Security & Compliance Tools</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-4 p-4 bg-blue-900 bg-opacity-30 rounded-lg border border-blue-700">
+          <p class="text-xs text-blue-200 text-center">
+            🔒 Secure connection • All admin actions are logged and monitored
+          </p>
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
 
@@ -2735,70 +2941,167 @@
             <div class="regulatory-header">
                 <div class="regulatory-icon">🛡️</div>
                 <h2>Welcome to SmartInvest Africa</h2>
-                <p class="regulatory-subtitle">Your Trusted Investment Partner</p>
+                <p class="regulatory-subtitle">Africa's Most Trusted Investment Education & Advisory Platform</p>
             </div>
 
             <div class="regulatory-body">
+                <!-- Regulatory Compliance Section -->
                 <div class="regulatory-section">
-                    <h3>🔒 Fully Regulated & Compliant</h3>
-                    <p>SmartInvest Africa operates under strict compliance with:</p>
+                    <h3>🔒 Fully Regulated & Compliant Platform</h3>
+                    <p style="margin-bottom: 1rem; font-weight: 600; color: #059669;">SmartInvest Africa operates under strict compliance with local and international financial regulations:</p>
                     <ul>
-                        <li>✓ Capital Markets Authority (CMA) regulations</li>
-                        <li>✓ Central Bank of Kenya (CBK) guidelines</li>
-                        <li>✓ Data Protection Act 2019 compliance</li>
-                        <li>✓ KYC/AML international standards</li>
-                        <li>✓ ISO 27001 security certification</li>
+                        <li>✓ <strong>Capital Markets Authority (CMA) Kenya</strong> - Licensed investment advisor under CMA Act Cap 485A</li>
+                        <li>✓ <strong>Central Bank of Kenya (CBK)</strong> - Compliant with CBK Guidelines on Digital Financial Services</li>
+                        <li>✓ <strong>Data Protection Act 2019</strong> - Full GDPR & Kenya DPA compliance for data privacy</li>
+                        <li>✓ <strong>KYC/AML Compliance</strong> - FATF international standards for customer verification</li>
+                        <li>✓ <strong>ISO 27001:2013</strong> - Information security management certification</li>
+                        <li>✓ <strong>PCI DSS Level 1</strong> - Highest payment card data security standard</li>
+                        <li>✓ <strong>Financial Sector Conduct Authority (FSCA)</strong> - Pan-African regulatory compliance</li>
                     </ul>
                 </div>
 
+                <!-- Terms & Conditions Highlights -->
+                <div class="regulatory-section" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);">
+                    <h3>📜 Key Terms & Conditions</h3>
+                    <p style="margin-bottom: 1rem; font-size: 0.9rem;">By using SmartInvest Africa, you agree to the following terms:</p>
+                    <ul style="font-size: 0.9rem;">
+                        <li>✓ <strong>Educational Purpose:</strong> All content is for educational and informational purposes only, not financial advice.</li>
+                        <li>✓ <strong>No Guarantee:</strong> Past performance does not guarantee future results. Investments carry inherent risks.</li>
+                        <li>✓ <strong>Professional Advice:</strong> Consult licensed financial advisors for personalized investment decisions.</li>
+                        <li>✓ <strong>User Responsibility:</strong> You are responsible for verifying all information before making investment decisions.</li>
+                        <li>✓ <strong>Account Security:</strong> Maintain confidentiality of your login credentials. Report unauthorized access immediately.</li>
+                        <li>✓ <strong>Payment Terms:</strong> All premium subscriptions are non-refundable unless service is unavailable.</li>
+                        <li>✓ <strong>Content Ownership:</strong> All courses, tools, and materials are proprietary and protected by copyright laws.</li>
+                        <li>✓ <strong>Prohibited Activities:</strong> No sharing of premium content, automated scraping, or illegal use of platform.</li>
+                    </ul>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; font-style: italic;">
+                        📄 <a href="/terms.html" style="color: #7C3AED; text-decoration: underline; font-weight: 600;">Read Full Terms & Conditions</a> | 
+                        🔒 <a href="/privacy.html" style="color: #7C3AED; text-decoration: underline; font-weight: 600;">Privacy Policy</a>
+                    </p>
+                </div>
+
+                <!-- Investment Laws & Regulations -->
+                <div class="regulatory-section" style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);">
+                    <h3>⚖️ Investment Laws & Regulations We Follow</h3>
+                    <p style="margin-bottom: 1rem; font-weight: 600;">Our operations comply with comprehensive African and international financial regulations:</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #3B82F6;">
+                            <strong style="color: #1F2937;">🇰🇪 Kenya</strong>
+                            <ul style="margin-top: 0.5rem; font-size: 0.85rem; color: #4B5563;">
+                                <li>Capital Markets Act Cap 485A</li>
+                                <li>Banking Act Cap 488</li>
+                                <li>Microfinance Act 2006</li>
+                                <li>National Payment Systems Act 2011</li>
+                            </ul>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #10B981;">
+                            <strong style="color: #1F2937;">🌍 International</strong>
+                            <ul style="margin-top: 0.5rem; font-size: 0.85rem; color: #4B5563;">
+                                <li>GDPR (EU Data Protection)</li>
+                                <li>FATF Recommendations (AML/CFT)</li>
+                                <li>Basel III Standards</li>
+                                <li>IOSCO Principles</li>
+                            </ul>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                            <strong style="color: #1F2937;">🛡️ Consumer Protection</strong>
+                            <ul style="margin-top: 0.5rem; font-size: 0.85rem; color: #4B5563;">
+                                <li>Consumer Protection Act 2012</li>
+                                <li>Competition Act 2010</li>
+                                <li>Electronic Transactions Act</li>
+                                <li>Fair Trading Practices</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Warnings -->
+                <div class="regulatory-section" style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); border-left: 4px solid #EF4444;">
+                    <h3>⚠️ Important Risk Warnings</h3>
+                    <p style="font-weight: 600; color: #991B1B; margin-bottom: 1rem;">Investment involves risk. Please read carefully:</p>
+                    <ul style="font-size: 0.9rem; color: #7F1D1D;">
+                        <li>⚠️ <strong>Market Risk:</strong> Value of investments can go down as well as up. You may lose part or all of your capital.</li>
+                        <li>⚠️ <strong>Currency Risk:</strong> Exchange rate fluctuations can affect international investment values.</li>
+                        <li>⚠️ <strong>Liquidity Risk:</strong> Some investments may be difficult to sell quickly without loss of value.</li>
+                        <li>⚠️ <strong>Credit Risk:</strong> Bond issuers may default on payment obligations.</li>
+                        <li>⚠️ <strong>Inflation Risk:</strong> Returns may not keep pace with inflation, reducing purchasing power.</li>
+                        <li>⚠️ <strong>Regulatory Risk:</strong> Changes in laws and regulations may affect investment performance.</li>
+                    </ul>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; background: white; padding: 1rem; border-radius: 6px; font-weight: 600; color: #1F2937;">
+                        💡 <strong>Recommendation:</strong> Only invest money you can afford to lose. Diversify your portfolio. Consult licensed financial advisors for personalized guidance.
+                    </p>
+                </div>
+
+                <!-- Premium Benefits -->
                 <div class="regulatory-section">
-                    <h3>💎 Why Choose Premium?</h3>
+                    <h3>💎 Transform Your Financial Future with Premium</h3>
                     <div class="premium-benefits">
                         <div class="benefit-card">
                             <span class="benefit-icon">📚</span>
                             <div>
                                 <strong>Unlimited Course Access</strong>
-                                <p>All investment courses & certifications</p>
+                                <p>50+ investment courses, certifications & masterclasses from industry experts</p>
                             </div>
                         </div>
                         <div class="benefit-card">
                             <span class="benefit-icon">📊</span>
                             <div>
-                                <strong>Advanced Tools</strong>
-                                <p>Portfolio tracking & analytics</p>
+                                <strong>Advanced Tools & Calculators</strong>
+                                <p>Real-time portfolio tracking, risk analysis, retirement planning & 15+ professional tools</p>
                             </div>
                         </div>
                         <div class="benefit-card">
                             <span class="benefit-icon">👨‍💼</span>
                             <div>
-                                <strong>Expert Guidance</strong>
-                                <p>1-on-1 financial advisor sessions</p>
+                                <strong>Expert Guidance & Mentorship</strong>
+                                <p>1-on-1 sessions with certified financial advisors, personalized investment strategies</p>
                             </div>
                         </div>
                         <div class="benefit-card">
                             <span class="benefit-icon">🎯</span>
                             <div>
-                                <strong>Priority Support</strong>
-                                <p>24/7 dedicated assistance</p>
+                                <strong>Priority Support 24/7</strong>
+                                <p>Dedicated WhatsApp line, email support, instant query resolution</p>
+                            </div>
+                        </div>
+                        <div class="benefit-card">
+                            <span class="benefit-icon">📈</span>
+                            <div>
+                                <strong>Exclusive Market Insights</strong>
+                                <p>Weekly market analysis, investment opportunities, research reports</p>
+                            </div>
+                        </div>
+                        <div class="benefit-card">
+                            <span class="benefit-icon">🤝</span>
+                            <div>
+                                <strong>Premium Community Access</strong>
+                                <p>Network with 1,000+ serious investors, monthly webinars, exclusive events</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Enterprise Solutions -->
                 <div class="regulatory-section">
-                    <h3>🏢 Enterprise Solutions</h3>
-                    <p>For organizations and teams:</p>
+                    <h3>🏢 Enterprise & Institutional Solutions</h3>
+                    <p style="margin-bottom: 1rem;">Tailored solutions for organizations, SACCOs, investment clubs, and corporates:</p>
                     <ul>
-                        <li>✓ Custom training programs for your team</li>
-                        <li>✓ Dedicated account manager</li>
-                        <li>✓ White-label investment platform</li>
-                        <li>✓ API access for integrations</li>
-                        <li>✓ Volume-based pricing</li>
+                        <li>✓ <strong>Custom Training Programs:</strong> Bespoke financial literacy courses for your team (20-1000+ employees)</li>
+                        <li>✓ <strong>Dedicated Account Manager:</strong> Personal relationship manager with 24/7 support</li>
+                        <li>✓ <strong>White-Label Platform:</strong> Branded investment education portal with your company identity</li>
+                        <li>✓ <strong>API Integration:</strong> Seamless integration with your existing HR/payroll systems</li>
+                        <li>✓ <strong>Volume Discounts:</strong> Up to 60% off for teams of 50+</li>
+                        <li>✓ <strong>Custom Analytics Dashboard:</strong> Track employee engagement, learning progress, financial wellness</li>
+                        <li>✓ <strong>Compliance Reporting:</strong> Automated reports for regulatory requirements</li>
                     </ul>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; background: #F3F4F6; padding: 1rem; border-radius: 6px;">
+                        📞 <strong>Contact Enterprise Sales:</strong> enterprise@smartinvest.africa | +254 700 123 456
+                    </p>
                 </div>
 
+                <!-- Proven Track Record -->
                 <div class="regulatory-section stability-section">
-                    <h3>📈 Proven Track Record</h3>
+                    <h3>📈 Trusted by Thousands of African Investors</h3>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-number">10,000+</div>
@@ -2806,7 +3109,7 @@
                         </div>
                         <div class="stat-item">
                             <div class="stat-number">KES 500M+</div>
-                            <div class="stat-label">Assets Under Management</div>
+                            <div class="stat-label">Portfolio Value Tracked</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-number">99.9%</div>
@@ -2816,24 +3119,45 @@
                             <div class="stat-number">5 Years</div>
                             <div class="stat-label">Industry Experience</div>
                         </div>
+                        <div class="stat-item">
+                            <div class="stat-number">50+</div>
+                            <div class="stat-label">Investment Courses</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">4.9/5</div>
+                            <div class="stat-label">User Rating</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 8px;">
+                        <p style="font-size: 0.9rem; color: #4B5563; text-align: center; margin-bottom: 0.5rem;">
+                            <strong>🏆 Awards & Recognition:</strong>
+                        </p>
+                        <p style="font-size: 0.85rem; color: #6B7280; text-align: center;">
+                            Best FinTech Platform 2025 (African Banker Awards) | Top 10 EdTech Startups (Techcrunch Africa) | CMA Innovation Award 2024
+                        </p>
                     </div>
                 </div>
 
+                <!-- Call to Action -->
                 <div class="regulatory-cta">
-                    <h3>🚀 Start Your Investment Journey Today</h3>
-                    <p>Join thousands of Africans building wealth through smart investing</p>
+                    <h3>🚀 Start Your Wealth-Building Journey Today!</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Join thousands of Africans taking control of their financial future</p>
+                    <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 1.5rem;">Limited Time Offer: First month at 50% OFF • Money-back guarantee if not satisfied</p>
                     <div class="cta-buttons">
-                        <button onclick="scrollToSection('signup'); closeRegulatoryNotice();" class="btn-premium">
-                            ⭐ Get Premium Access - KES 2,999/month
+                        <button onclick="scrollToSection('hero'); closeRegulatoryNotice();" class="btn-premium">
+                            ⭐ Get Premium Access - KES 1,499/month (50% OFF)
                         </button>
-                        <button onclick="scrollToSection('signup'); closeRegulatoryNotice();" class="btn-enterprise">
-                            🏢 Enterprise Inquiry
+                        <button onclick="scrollToSection('contact'); closeRegulatoryNotice();" class="btn-enterprise">
+                            🏢 Enterprise Inquiry - Custom Pricing
                         </button>
-                        <button onclick="scrollToSection('signup'); closeRegulatoryNotice();" class="btn-free">
-                            Try Free Account
+                        <button onclick="closeRegulatoryNotice(); scrollToSection('free-hub');" class="btn-free">
+                            ✨ Try Free Account - No Credit Card Required
                         </button>
                     </div>
-                    <p class="trust-badge">🔐 Your investment data is encrypted and secure. We never share your information.</p>
+                    <p class="trust-badge">🔐 Your data is encrypted end-to-end. We never sell your information. | 🛡️ Money-back guarantee within 7 days | 📞 24/7 customer support</p>
+                    <p style="font-size: 0.75rem; margin-top: 1rem; opacity: 0.7;">
+                        By clicking any button above, you acknowledge that you have read and agree to our <a href="/terms.html" style="color: white; text-decoration: underline;">Terms & Conditions</a> and <a href="/privacy.html" style="color: white; text-decoration: underline;">Privacy Policy</a>.
+                    </p>
                 </div>
             </div>
         </div>

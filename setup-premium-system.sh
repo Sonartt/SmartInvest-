@@ -51,7 +51,7 @@ else
   echo "  Creating default .env..."
   cat > .env << EOF
 # Admin credentials for subscription management
-ADMIN_USER=delijah5415@gmail.com
+ADMIN_USER=deijah545@gmail.com
 ADMIN_PASS==ELIJAH-41168990
 
 # Server port
@@ -109,7 +109,7 @@ echo "   - Premium calculators should be locked"
 echo ""
 echo "4. Grant premium access (as admin):"
 echo "   curl -X POST http://localhost:3000/api/admin/subscriptions \\"
-echo "     -H \"Authorization: Basic $(echo -n 'delijah5415@gmail.com:=ELIJAH-41168990' | base64)\" \\"
+echo "     -H \"Authorization: Basic $(echo -n 'deijah545@gmail.com:=ELIJAH-41168990' | base64)\" \\"
 echo "     -H \"Content-Type: application/json\" \\"
 echo "     -d '{"
 echo "       \"userId\": \"USER_ID_HERE\","

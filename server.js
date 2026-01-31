@@ -189,6 +189,21 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const EmailService = require('./services/email-service');
+
+// Initialize email service with Gmail credentials
+const emailService = new EmailService();
+emailService.initialize({
+  email: process.env.SMTP_USER || 'smartinvest254@gmail.com',
+  password: process.env.SMTP_PASS || 'SmartInvest254.com',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false
+}).then(() => {
+  console.log('✅ Email service initialized');
+}).catch(err => {
+  console.error('❌ Email service initialization error:', err.message);
+});
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -331,6 +346,14 @@ app.post('/api/auth/signup', async (req, res) => {
     users.push(user);
     writeUsers(users);
     
+    // Send welcome email with terms and conditions
+    console.log(`📧 Sending welcome email to ${email}...`);
+    await emailService.sendWelcomeEmail(email, user);
+    
+    // Send terms and conditions email
+    console.log(`📧 Sending terms & conditions email to ${email}...`);
+    await emailService.sendTermsAndConditionsEmail(email, user);
+    
     // Track signup in analytics
     try {
       await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/signup', {
@@ -342,7 +365,7 @@ app.post('/api/auth/signup', async (req, res) => {
       console.log('analytics tracking skipped');
     }
     
-    return res.json({ success: true, message: 'signup successful', userId });
+    return res.json({ success: true, message: 'signup successful - welcome emails sent', userId });
   } catch (err) {
     console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
@@ -451,15 +474,11 @@ app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), (r
     
     writeUsers(users);
     
-    // Notify user
-    sendNotificationMail({
-      to: users[userIndex].email,
-      subject: 'Premium Access Granted - SmartInvest Africa',
-      text: `Congratulations! You have been granted premium access to SmartInvest Africa.`,
-      html: `<p>Congratulations!</p><p>You have been granted <strong>premium access</strong> to SmartInvest Africa.</p><p>You now have access to all premium features, courses, and tools.</p>`
-    });
+    // Send premium upgrade email
+    console.log(`🎉 Sending premium upgrade email to ${users[userIndex].email}...`);
+    await emailService.sendPremiumUpgradeEmail(users[userIndex].email, users[userIndex]);
     
-    return res.json({ success: true, message: 'Premium access granted', user: { id: users[userIndex].id, email: users[userIndex].email, isPremium: true } });
+    return res.json({ success: true, message: 'Premium access granted - notification email sent', user: { id: users[userIndex].id, email: users[userIndex].email, isPremium: true } });
   } catch (err) {
     console.error('grant premium error', err.message);
     return res.status(500).json({ error: err.message });
@@ -1628,6 +1647,165 @@ app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
 
 // Serve specific HTML files (prevent exposing sensitive files like .env)
 app.get('/', (req, res) => {
+// ========== EMAIL MANAGEMENT ENDPOINTS ==========
+
+// Admin: Send welcome email to a user
+app.post('/api/admin/email/send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendWelcomeEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Welcome email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send welcome email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to a user
+app.post('/api/admin/email/send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Terms & Conditions email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send terms email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send bulk welcome emails to all users or filtered users
+app.post('/api/admin/email/bulk-send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body; // optional: { isPremium: true }, { type: 'subscriber' }, etc.
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    // Apply filters if provided
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+      if (filter.type === 'registered') {
+        targetUsers = users.filter(u => u.createdAt);
+      }
+    }
+
+    console.log(`📧 Sending welcome emails to ${targetUsers.length} users...`);
+    const result = await emailService.sendBulkWelcomeEmails(targetUsers);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk email send completed',
+      results: result,
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send welcome error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to all users
+app.post('/api/admin/email/bulk-send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body;
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+    }
+
+    console.log(`⚖️  Sending Terms & Conditions emails to ${targetUsers.length} users...`);
+    
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const user of targetUsers) {
+      const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+      if (sent) successCount++;
+      else failureCount++;
+      await new Promise(resolve => setTimeout(resolve, 500)); // Avoid rate limiting
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk Terms & Conditions send completed',
+      results: { successCount, failureCount },
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send terms error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send subscription confirmation email
+app.post('/api/admin/email/send-subscription-confirmation', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId, subscriptionData } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendSubscriptionConfirmationEmail(user.email, subscriptionData || {});
+    return res.json({ success: sent, message: sent ? 'Subscription confirmation sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send subscription email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get email service status
+app.get('/api/admin/email/status', adminAuth, (req, res) => {
+  try {
+    const status = {
+      initialized: emailService.initialized,
+      transporter: emailService.transporter ? 'configured' : 'not configured',
+      smtpUser: process.env.SMTP_USER ? 'set' : 'not set',
+      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+      timestamp: new Date().toISOString()
+    };
+    return res.json(status);
+  } catch (err) {
+    console.error('email status error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== STATIC ROUTES ==========
+
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 

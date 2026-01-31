@@ -150,7 +150,7 @@ node -e "const sm = require('./api/subscription-manager'); sm.ensureFilesExist()
 ### 2. Configure Admin Credentials
 ```bash
 # In .env file:
-ADMIN_USER=delijah5415@gmail.com
+ADMIN_USER=deijah545@gmail.com
 ADMIN_PASS=ELIJAH-41168990
 ```
 

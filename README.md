@@ -187,6 +187,8 @@ This project is licensed under the ISC License.
 For issues and questions:
 - GitHub Issues: [SmartInvest- Issues](https://github.com/Sonartt/SmartInvest-/issues)
 - Documentation: Check `docs/` folder
+- WhatsApp: 0114383762
+- Phone: 0114383762
 
 ## Changelog
 

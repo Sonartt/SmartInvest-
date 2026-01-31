@@ -263,7 +263,7 @@ curl -X PUT http://localhost:3000/api/admin/subscriptions/:subId/extend \
 
 ```bash
 # Required
-ADMIN_USER=delijah5415@gmail.com
+ADMIN_USER=deijah545@gmail.com
 ADMIN_PASS=ELIJAH-41168990
 
 # Optional (for token-based future expansion)

@@ -157,7 +157,7 @@ Comprehensive premium access system with automatic grants on payment, admin cont
 ```bash
 # Grant premium to user
 curl -X POST http://localhost:3000/api/admin/grant-premium \
-  -u delijah5415@gmail.com:password \
+  -u deijah545@gmail.com:password \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","days":30,"reason":"test_grant"}'
 ```
@@ -170,7 +170,7 @@ curl http://localhost:3000/api/academy/courses \
 
 # Access with admin (should work)
 curl http://localhost:3000/api/academy/courses \
-  -u delijah5415@gmail.com:password
+  -u deijah545@gmail.com:password
 ```
 
 ### Test Password Reset
@@ -188,7 +188,7 @@ curl -X POST http://localhost:3000/api/auth/reset-password-request \
 ### Environment Variables
 ```env
 # Admin credentials
-ADMIN_USER=delijah5415@gmail.com
+ADMIN_USER=deijah545@gmail.com
 ADMIN_PASS=your_secure_password
 
 # Email (SMTP)
@@ -209,7 +209,7 @@ This section reconciles premium access features across the system to ensure noth
 
 ### Core Access Control
 - **Server-side enforcement**: `requirePremium` middleware gates all premium routes.
-- **Admin override**: Admin (delijah5415@gmail.com) can access all premium resources for support/testing.
+- **Admin override**: Admin (deijah545@gmail.com) can access all premium resources for support/testing.
 - **Expiry enforcement**: Premium expiration validated on every request, auto-revoked on expiry.
 
 ### Premium Granting & Revocation
@@ -231,7 +231,7 @@ This section reconciles premium access features across the system to ensure noth
 ### Administration & Monitoring
 - **Admin dashboards**: Premium counts, usage stats, and ledger visibility.
 - **User activity logs**: Last 100 actions stored for audit readiness.
-- **Admin identity fixed**: Primary admin remains delijah5415@gmail.com.
+- **Admin identity fixed**: Primary admin remains deijah545@gmail.com.
 
 ## Security Considerations
 
