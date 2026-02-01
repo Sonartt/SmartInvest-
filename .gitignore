@@ -4,3 +4,10 @@ node_modules/
 *.log
 data/*.json
 transactions.json
+logs/
+dist/
+build/
+coverage/
+*.swp
+*.swo
+*~
