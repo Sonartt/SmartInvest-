@@ -9,6 +9,11 @@ This directory contains code snippets and implementation examples for various fe
 - **shortcode-verification.js** - Business shortcode verification snippet
 - **amount-business-logic-validation.js** - Amount validation logic example
 - **Untitled-7.md** - M-Pesa API endpoint reference
+- **0ath-token.ts** - OAuth token generation example
+- **C2Bvalidation.js** - C2B validation endpoint
+- **confirmationendpoint.ts** - Confirmation endpoint example
+- **realSTKpush.ts** - Complete STK push implementation example
+- **api** - API endpoint reference
 
 ## Transaction Management
 
