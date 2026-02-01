@@ -300,7 +300,14 @@ function readUsers() {
 }
 
 function writeUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  try {
+    const dir = path.dirname(USERS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  } catch (e) {
+    console.error('Error writing users file:', e.message);
+    throw e;
+  }
 }
 
 function readPurchases() {
@@ -314,9 +321,14 @@ function readPurchases() {
 }
 
 function writePurchases(purchases) {
-  const dir = path.dirname(PURCHASES_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(purchases, null, 2));
+  try {
+    const dir = path.dirname(PURCHASES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PURCHASES_FILE, JSON.stringify(purchases, null, 2));
+  } catch (e) {
+    console.error('Error writing purchases file:', e.message);
+    throw e;
+  }
 }
 
 function readTokens() {
@@ -330,9 +342,14 @@ function readTokens() {
 }
 
 function writeTokens(tokens) {
-  const dir = path.dirname(TOKENS_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
+  try {
+    const dir = path.dirname(TOKENS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
+  } catch (e) {
+    console.error('Error writing tokens file:', e.message);
+    throw e;
+  }
 }
 
 app.post('/api/auth/signup', async (req, res) => {
