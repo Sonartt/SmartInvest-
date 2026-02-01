@@ -1,0 +1,108 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.security
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+!logs/.gitkeep
+
+# Build artifacts - .NET
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.user
+*.suo
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Build artifacts - Node/TypeScript
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+__tests__/
+coverage/
+.nyc_output/
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Data files (sensitive)
+data/*.json
+data/content/
+transactions.json
+
+# Upload files
+uploads/*
+!uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Development tools
+.editorconfig
+.eslintrc*
+.prettierrc*
+.husky/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+
+# Vercel
+.vercel/
+.vercelignore
+vercel.json

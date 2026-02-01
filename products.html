@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartInvest Products - Free & Premium Calculators</title>
+  <meta name="description" content="Explore SmartInvest's financial calculator suite - Free basic tools for everyone, Premium advanced analytics for professionals.">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0F172A;
+      --secondary: #1E40AF;
+      --accent: #3B82F6;
+      --success: #059669;
+      --light: #F8FAFC;
+      --dark: #1E293B;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .gradient-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+    }
+
+    .product-card {
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+      border-color: var(--accent);
+    }
+
+    .product-card.premium {
+      border: 2px solid var(--accent);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(30, 64, 175, 0.05) 100%);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .badge-free {
+      background: #E0E7FF;
+      color: #3730A3;
+    }
+
+    .badge-premium {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-item {
+      padding: 0.75rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .feature-item:last-child {
+      border-bottom: none;
+    }
+
+    .check-icon {
+      color: var(--success);
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+
+    .cross-icon {
+      color: #CBD5E1;
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comparison-table th {
+      background: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .comparison-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .comparison-table tr:hover {
+      background: #F8FAFC;
+    }
+
+    .cta-button {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+    }
+
+    .cta-button-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .cta-button-primary:hover {
+      background: #1E40AF;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .cta-button-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+
+    .cta-button-secondary:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .calculator-showcase {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .calc-item {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      border-left: 4px solid var(--accent);
+    }
+
+    .calc-item.premium {
+      border-left-color: #667eea;
+    }
+
+    .testimonial {
+      background: white;
+      padding: 2rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .testimonial-author {
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 1rem;
+    }
+
+    .testimonial-role {
+      font-size: 0.875rem;
+      color: var(--secondary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="bg-white shadow-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="text-2xl font-bold text-primary">SmartInvest</div>
+      <div class="flex gap-4">
+        <a href="index.html" class="text-gray-700 hover:text-primary transition">Home</a>
+        <a href="#products" class="text-gray-700 hover:text-primary transition">Products</a>
+        <a href="#comparison" class="text-gray-700 hover:text-primary transition">Compare</a>
+        <a href="tools/calculator-dashboard.html" class="cta-button cta-button-primary">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="gradient-header py-16 px-4 text-center">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-5xl font-bold mb-4">Financial Calculators for Every Goal</h1>
+      <p class="text-xl text-blue-100 mb-8">Choose the perfect calculator suite for your needs - from basic personal finance to advanced professional analytics</p>
+      <a href="tools/calculator-dashboard.html" class="inline-block cta-button cta-button-primary text-lg px-8 py-3">Start Calculating Now</a>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section id="products" class="py-20 px-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-4 text-primary">Our Product Line</h2>
+      <p class="text-center text-gray-600 mb-12">Two powerful calculator suites designed for different needs</p>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Free Version -->
+        <div class="product-card bg-white rounded-lg p-8 shadow-lg">
+          <div class="flex justify-between items-start mb-6">
+            <h3 class="text-3xl font-bold text-primary">Free Suite</h3>
+            <span class="badge badge-free">For Everyone</span>
+          </div>
+          
+          <div class="text-4xl font-bold text-accent mb-2">$0</div>
+          <p class="text-gray-600 mb-8">No credit card required. Perfect for personal finance</p>
+
+          <button class="w-full cta-button cta-button-secondary text-lg py-3 mb-8">Start Free</button>
+
+          <h4 class="font-bold text-lg mb-4 text-primary">3 Essential Calculators:</h4>
+          <ul class="feature-list mb-8">
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Investment Calculator</div>
+                <div class="text-sm text-gray-600">Compound interest with monthly contributions</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Amortization Tool</div>
+                <div class="text-sm text-gray-600">Loan payment schedules & breakdowns</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Insurance Premium</div>
+                <div class="text-sm text-gray-600">Life insurance cost estimation</div>
+              </div>
+            </li>
+          </ul>
+
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <p class="text-sm text-gray-700"><strong>Perfect for:</strong> Students, freelancers, and anyone learning about personal finance</p>
+          </div>
+        </div>
+
+        <!-- Premium Version -->
+        <div class="product-card premium bg-white rounded-lg p-8 shadow-lg">
+          <div class="flex justify-between items-start mb-6">
+            <h3 class="text-3xl font-bold text-primary">Premium Suite</h3>
+            <span class="badge badge-premium">Professional</span>
+          </div>
+          
+          <div class="text-4xl font-bold mb-2">
+            <span class="text-accent">KES 9,999</span>
+            <span class="text-lg text-gray-600">/month</span>
+          </div>
+          <p class="text-gray-600 mb-8">All calculators + advanced professional tools</p>
+
+          <button onclick="window.location.href='tools/calculator-dashboard.html'" class="w-full cta-button cta-button-primary text-lg py-3 mb-8">Upgrade Now</button>
+
+          <h4 class="font-bold text-lg mb-4 text-primary">10 Professional Calculators:</h4>
+          <ul class="feature-list">
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Investment & Amortization</div>
+                <div class="text-sm text-gray-600">All free features included</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Bond Valuation</div>
+                <div class="text-sm text-gray-600">Duration, convexity, YTM analysis</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Pension Planning</div>
+                <div class="text-sm text-gray-600">Retirement benefit projections</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Actuarial Science</div>
+                <div class="text-sm text-gray-600">Annuities & mortality tables</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Risk Analysis</div>
+                <div class="text-sm text-gray-600">VaR, Sharpe ratio, scenarios</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Business Finance</div>
+                <div class="text-sm text-gray-600">NPV, IRR, break-even analysis</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Financial Ratios</div>
+                <div class="text-sm text-gray-600">8+ key financial ratios</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Audit Tools</div>
+                <div class="text-sm text-gray-600">Materiality & fraud detection</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">CSV Export</div>
+                <div class="text-sm text-gray-600">Download all results</div>
+              </div>
+            </li>
+            <li class="feature-item">
+              <span class="check-icon">✓</span>
+              <div>
+                <div class="font-semibold">Priority Support</div>
+                <div class="text-sm text-gray-600">Dedicated help & updates</div>
+              </div>
+            </li>
+          </ul>
+
+          <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded mt-6">
+            <p class="text-sm text-gray-700"><strong>Perfect for:</strong> Financial analysts, investment professionals, actuaries, and businesses</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showcase -->
+  <section class="py-20 px-4 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-12 text-primary">What You Can Calculate</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h3 class="text-2xl font-bold text-primary mb-6">Free Calculators</h3>
+          <div class="calculator-showcase">
+            <div class="calc-item">
+              <h4 class="font-semibold text-primary mb-2">📊 Investment</h4>
+              <p class="text-sm text-gray-600">Calculate compound interest returns with regular contributions over time</p>
+            </div>
+            <div class="calc-item">
+              <h4 class="font-semibold text-primary mb-2">💰 Amortization</h4>
+              <p class="text-sm text-gray-600">Create detailed loan payment schedules with interest breakdowns</p>
+            </div>
+            <div class="calc-item">
+              <h4 class="font-semibold text-primary mb-2">🛡️ Insurance</h4>
+              <p class="text-sm text-gray-600">Estimate life insurance premiums based on coverage and age</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-2xl font-bold text-primary mb-6">Premium Calculators</h3>
+          <div class="calculator-showcase">
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">💎 Bonds</h4>
+              <p class="text-sm text-gray-600">Advanced bond analysis with duration and convexity calculations</p>
+            </div>
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">🏦 Pension</h4>
+              <p class="text-sm text-gray-600">Comprehensive retirement planning with inflation adjustments</p>
+            </div>
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">📈 Actuarial</h4>
+              <p class="text-sm text-gray-600">Professional annuity and mortality analysis tools</p>
+            </div>
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">⚠️ Risk</h4>
+              <p class="text-sm text-gray-600">Value at Risk (VaR) and Sharpe ratio calculations</p>
+            </div>
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">💼 Business</h4>
+              <p class="text-sm text-gray-600">NPV, IRR, break-even, and profitability index analysis</p>
+            </div>
+            <div class="calc-item premium">
+              <h4 class="font-semibold text-primary mb-2">✅ Audit</h4>
+              <p class="text-sm text-gray-600">Materiality assessment and fraud detection tools</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section id="comparison" class="py-20 px-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-12 text-primary">Feature Comparison</h2>
+
+      <div class="overflow-x-auto bg-white rounded-lg shadow-lg">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th class="bg-primary text-white">Feature</th>
+              <th class="text-center">Free Suite</th>
+              <th class="text-center">Premium Suite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-semibold">Basic Calculators (3)</td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Advanced Calculators (7)</td>
+              <td class="text-center"><span class="cross-icon">✗</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">CSV Export</td>
+              <td class="text-center"><span class="cross-icon">✗</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Save Scenarios</td>
+              <td class="text-center"><span class="cross-icon">✗</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Educational Content</td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Formula Explanations</td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Real-time Calculations</td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Mobile Responsive</td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Priority Support</td>
+              <td class="text-center"><span class="cross-icon">✗</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Early Access to New Tools</td>
+              <td class="text-center"><span class="cross-icon">✗</span></td>
+              <td class="text-center"><span class="check-icon">✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases Section -->
+  <section class="py-20 px-4 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-12 text-primary">Perfect For</h2>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+          <h3 class="text-2xl font-bold text-primary mb-4">📚 Students</h3>
+          <p class="text-gray-600 mb-4">Learn the fundamentals of investment, loans, and insurance with our free calculators. Perfect for financial education.</p>
+          <ul class="space-y-2">
+            <li class="text-sm"><strong>✓</strong> Understand compound interest</li>
+            <li class="text-sm"><strong>✓</strong> Learn loan mechanics</li>
+            <li class="text-sm"><strong>✓</strong> Explore insurance basics</li>
+          </ul>
+        </div>
+
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+          <h3 class="text-2xl font-bold text-primary mb-4">💼 Professionals</h3>
+          <p class="text-gray-600 mb-4">Access advanced financial analysis tools designed for investment professionals, analysts, and financial advisors.</p>
+          <ul class="space-y-2">
+            <li class="text-sm"><strong>✓</strong> NPV/IRR analysis</li>
+            <li class="text-sm"><strong>✓</strong> Risk metrics</li>
+            <li class="text-sm"><strong>✓</strong> Bond valuations</li>
+          </ul>
+        </div>
+
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+          <h3 class="text-2xl font-bold text-primary mb-4">🏢 Businesses</h3>
+          <p class="text-gray-600 mb-4">Enterprise-grade financial tools for corporate planning, auditing, and decision-making.</p>
+          <ul class="space-y-2">
+            <li class="text-sm"><strong>✓</strong> Project valuation</li>
+            <li class="text-sm"><strong>✓</strong> Audit calculations</li>
+            <li class="text-sm"><strong>✓</strong> Financial analysis</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="py-20 px-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-12 text-primary">What Users Say</h2>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="testimonial">
+          <p class="text-gray-700 italic mb-4">"The free calculator helped me understand how compound interest works. Now I'm using premium for my business analysis."</p>
+          <div class="testimonial-author">Sarah M.</div>
+          <div class="testimonial-role">Financial Analyst, Nairobi</div>
+        </div>
+
+        <div class="testimonial">
+          <p class="text-gray-700 italic mb-4">"Incredible value! The pension planning calculator saved us hours of manual calculations. Highly recommend for professionals."</p>
+          <div class="testimonial-author">James K.</div>
+          <div class="testimonial-role">Investment Advisor, Dar es Salaam</div>
+        </div>
+
+        <div class="testimonial">
+          <p class="text-gray-700 italic mb-4">"Perfect for my university finance course. Students love the educational explanations and real-time calculations."</p>
+          <div class="testimonial-author">Prof. Amina H.</div>
+          <div class="testimonial-role">Finance Professor, Lagos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="gradient-header py-16 px-4 text-center">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Ready to Master Your Finances?</h2>
+      <p class="text-xl text-blue-100 mb-8">Start with free calculators today. Upgrade anytime to unlock advanced professional tools.</p>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <a href="tools/calculator-dashboard.html" class="cta-button cta-button-primary text-lg px-8 py-3">Start Free Now</a>
+        <a href="#products" class="cta-button" style="background: white; color: var(--primary); border: 2px solid white; text-lg; padding: 0.75rem 2rem;">View Plans</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-20 px-4 bg-gray-50">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-12 text-primary">Frequently Asked Questions</h2>
+
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-lg">
+          <h3 class="font-bold text-lg text-primary mb-2">❓ Can I upgrade from Free to Premium anytime?</h3>
+          <p class="text-gray-700">Yes! Start free and upgrade whenever you're ready. You'll immediately gain access to all 10 calculators.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg">
+          <h3 class="font-bold text-lg text-primary mb-2">❓ Is my data secure?</h3>
+          <p class="text-gray-700">Absolutely. All calculations are performed securely. We don't store your financial data unless you choose to save scenarios.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg">
+          <h3 class="font-bold text-lg text-primary mb-2">❓ What payment methods do you accept?</h3>
+          <p class="text-gray-700">We accept M-Pesa, PayPal, credit cards, and bank transfers. Choose what works best for you.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg">
+          <h3 class="font-bold text-lg text-primary mb-2">❓ Is there a free trial for Premium?</h3>
+          <p class="text-gray-700">Contact our team to discuss trial options for premium business users.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg">
+          <h3 class="font-bold text-lg text-primary mb-2">❓ Can I export my calculations?</h3>
+          <p class="text-gray-700">Yes! Premium members can export all calculations to CSV for further analysis in Excel or other tools.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-primary text-white py-12 px-4">
+    <div class="max-w-6xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
+      <div>
+        <h4 class="font-bold mb-4">SmartInvest</h4>
+        <p class="text-blue-100">Democratizing financial knowledge across Africa</p>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Products</h4>
+        <ul class="space-y-2 text-blue-100">
+          <li><a href="#products" class="hover:text-white transition">Calculators</a></li>
+          <li><a href="#comparison" class="hover:text-white transition">Compare Plans</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Resources</h4>
+        <ul class="space-y-2 text-blue-100">
+          <li><a href="index.html" class="hover:text-white transition">Home</a></li>
+          <li><a href="terms.html" class="hover:text-white transition">Terms</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-4">Contact</h4>
+        <p class="text-blue-100">Email: info@smartinvest.africa</p>
+        <p class="text-blue-100">Support: support@smartinvest.africa</p>
+        <p class="text-blue-100">WhatsApp: 0114383762</p>
+        <p class="text-blue-100">Phone: 0114383762</p>
+      </div>
+    </div>
+    <div class="border-t border-blue-900 pt-8 text-center text-blue-100">
+      <p>&copy; 2026 SmartInvest Africa. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/public/js/share-link-generator.js"></script>
+  <script src="/public/js/live-chat-widget.js"></script>
+  <script src="/public/js/social-media-widget.js"></script>
+  <script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        if (href !== '#') {
+          e.preventDefault();
+          const target = document.querySelector(href);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      });
+    });
+
+    // Add share buttons to product cards
+    document.addEventListener('DOMContentLoaded', () => {
+      const productCards = document.querySelectorAll('.product-card');
+      
+      productCards.forEach((card, index) => {
+        const productId = `product-${index + 1}`;
+        const productName = card.querySelector('h3')?.textContent || 'Product';
+        
+        // Create share button
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'mt-4 w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2';
+        shareBtn.innerHTML = '🔗 Share this Product';
+        
+        shareBtn.addEventListener('click', async () => {
+          const generator = new ShareLinkGenerator();
+          try {
+            shareBtn.disabled = true;
+            shareBtn.innerHTML = '⏳ Generating...';
+            
+            const result = await generator.generateLink('product', {
+              productId,
+              expiryDays: 30
+            });
+            
+            generator.showShareModal(result.shareUrl, result.expiresAt);
+            
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = '🔗 Share this Product';
+          } catch (error) {
+            alert('Failed to generate share link');
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = '🔗 Share this Product';
+          }
+        });
+        
+        // Add button to card
+        const cardBody = card.querySelector('.p-6');
+        if (cardBody) {
+          cardBody.appendChild(shareBtn);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

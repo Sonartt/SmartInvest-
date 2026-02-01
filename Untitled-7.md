@@ -1,1 +1,0 @@
-https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest

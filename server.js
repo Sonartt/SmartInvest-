@@ -4,78 +4,49 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const storageComplex = require('./storage-complex');
-const pochiRoutes = require('./src/routes/pochi-routes');
+const rateLimit = require('express-rate-limit');
+const contentAPI = require('./api/content-management');
+const subManager = require('./api/subscription-manager');
 
 const app = express();
 app.use(cors());
-app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/api/pochi', pochiRoutes);
+// SECURITY FIX #4: Add request size limits to prevent DOS
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn('⚠️  JWT_SECRET not set in .env — using insecure fallback');
-  return 'INSECURE-DEV-SECRET-CHANGE-ME';
-})();
-const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
-
-// JWT token verification helper
-function verifyTokenFromReq(req) {
-  const auth = (req.headers.authorization || '').toString();
-  let token = null;
-  if (auth && auth.startsWith('Bearer ')) token = auth.split(' ')[1];
-  if (!token && req.cookies && req.cookies.si_token) token = req.cookies.si_token;
-  if (!token) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (e) {
-    return null;
-  }
-}
-
-// Lightweight health check
-app.get('/api/health', (req, res) => {
-  return res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    mpesaEnv: process.env.MPESA_ENV || 'sandbox',
-    paypalMode: process.env.PAYPAL_MODE || process.env.PAYPAL_ENV || 'sandbox',
-    pochiEnabled: true
-  });
-});
-
-// Admin authentication - requires valid JWT with admin flag OR Basic auth with ADMIN_USER/ADMIN_PASS from .env
+// Basic auth for admin routes if ADMIN_USER is set
+// SECURITY FIX #1: Enforce admin authentication always
 function adminAuth(req, res, next) {
-  const adminUserEnv = process.env.ADMIN_USER;
-  const adminPassEnv = process.env.ADMIN_PASS;
+  const adminUser = process.env.ADMIN_USER;
+  const adminPass = process.env.ADMIN_PASS;
   
-  if (!adminUserEnv || !adminPassEnv) {
-    return res.status(500).json({ error: 'Admin authentication not configured: set ADMIN_USER and ADMIN_PASS in .env' });
+  // SECURITY: If admin credentials not configured, BLOCK access (don't bypass)
+  if (!adminUser || !adminPass) {
+    console.error('[SECURITY] Admin access attempt without credentials configured!');
+    return res.status(500).json({ 
+      error: 'Admin authentication not configured. Please set ADMIN_USER and ADMIN_PASS environment variables.' 
+    });
   }
   
-  const payload = verifyTokenFromReq(req);
-  if (payload && payload.admin) {
-    req.user = { email: payload.email, admin: true };
-    return next();
-  }
-
-  // Fallback: Basic auth if ADMIN_USER configured
-  const auth = (req.headers.authorization || '').toString();
-  if (auth && auth.startsWith('Basic ')) {
-    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-    const [user, pass] = creds.split(':');
-    if (user === adminUserEnv && pass === adminPassEnv) {
-      req.user = { email: user, admin: true };
-      return next();
-    }
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
     return res.status(401).end('Unauthorized');
   }
-
-  return res.status(401).json({ error: 'Unauthorized: admin access required' });
+  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  if (user === adminUser && pass === adminPass) {
+    // Log successful admin authentication (only outside production to avoid exposing auth events in general logs)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH] Admin login successful from IP: ${req.ip}`);
+    }
+    return next();
+  }
+  
+  // Log failed authentication attempt
+  console.warn(`[SECURITY] Failed admin login attempt from IP: ${req.ip}`);
+  res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
+  return res.status(401).end('Unauthorized');
 }
 
 const PORT = process.env.PORT || 3000;
@@ -211,239 +182,6 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 });
 
 // Simple JSON file user store (demo). In production use a real DB.
-/* Duplicate USERS_FILE and related requires removed to fix redeclaration error */
-
-
-// (mailer setup and sendNotificationMail are defined later in the file)
-
-// User cache for improved performance
-let userCache = null;
-let userCacheTime = 0;
-
-function readUsers() {
-  // Use cache if fresh (within TTL)
-  const now = Date.now();
-  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
-    // Log cache hit to storage complex
-    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
-    return userCache;
-  }
-  
-  try {
-    const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    const users = JSON.parse(raw || '[]');
-    // Update cache only after successful read
-    userCache = users;
-    userCacheTime = now;
-    // Log cache miss to storage complex
-    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
-    return users;
-  } catch (e) {
-    // Return empty array but don't update cache on error
-    storageComplex.addCrashEntry(e, { function: 'readUsers' });
-    return [];
-  }
-}
-
-function writeUsers(users) {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    // Update cache only after successful write
-    userCache = users;
-    userCacheTime = Date.now();
-  } catch (e) {
-    // Invalidate cache on write failure to force fresh read
-    userCache = null;
-    userCacheTime = 0;
-    throw e;
-  }
-}
-
-// Helper: find user by email efficiently
-function findUserByEmail(users, email) {
-  const emailLower = email.toLowerCase();
-  return users.find(u => u.email.toLowerCase() === emailLower);
-}
-
-app.post('/api/auth/signup', bodyParser.json(), (req, res) => {
-  const { email, password, idNumber, driverLicense, taxNumber } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-  // prevent duplicate
-  const users = readUsers();
-  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-    return res.status(409).json({ error: 'Email already registered. Please login.' });
-  }
-
-  const user = {
-    email: email.toLowerCase(),
-    passwordHash: bcrypt.hashSync(password, 10),
-    createdAt: new Date().toISOString(),
-    createdVia: 'signup',
-    // registration IDs
-    idNumber: idNumber || null,
-    driverLicense: driverLicense || null,
-    taxNumber: taxNumber || null
-  };
-  users.push(user);
-  writeUsers(users);
-
-  logUserActivity(email, 'signup', req.ip);
-  storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
-
-  return res.json({ success: true, message: 'signup successful' });
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-    const users = readUsers();
-    const user = findUserByEmail(users, email);
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-
-    const ok = bcrypt.compareSync(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-
-    // Determine admin flag: explicit user.admin OR ADMIN_USER env match
-    const isAdmin = !!((process.env.ADMIN_USER && String(email).toLowerCase() === String(process.env.ADMIN_USER).toLowerCase()) || user.admin);
-
-    const token = jwt.sign({ email: user.email, admin: !!isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-
-    // Cookie options
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: (function() {
-        const m = String(JWT_EXPIRES || '12h');
-        if (/^\d+$/.test(m)) return Number(m) * 1000;
-        const match = m.match(/^(\d+)h$/);
-        if (match) return Number(match[1]) * 60 * 60 * 1000;
-        return 1000 * 60 * 60 * 12;
-      })()
-    };
-    res.cookie('si_token', token, cookieOptions);
-
-    // Log activity
-    logUserActivity(email, 'login', req.ip);
-    
-    // Log to storage complex
-    storageComplex.addUserEntry(email, 'login', { ip: req.ip });
-    storageComplex.addLogEntry('info', 'User login', { email });
-
-    return res.json({ 
-      success: true, 
-      email: user.email, 
-      admin: !!isAdmin,
-      isPremium: user.isPremium || false,
-      premiumExpiresAt: user.premiumExpiresAt || null
-    });
-  } catch (err) {
-    console.error('login error', err && err.message);
-    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/login' });
-    return res.status(500).json({ error: err && err.message });
-  }
-});
-
-// 8) Add logout endpoint to clear cookie
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('si_token', { path: '/' });
-  return res.json({ success: true });
-});
-
-// GeoIP detection endpoint
-app.get('/api/geo', (req, res) => {
-  // Try Cloudflare country header first (most reliable when using CF)
-  let country = req.headers['cf-ipcountry'];
-  
-  // Fall back to IP-based detection if no CF header
-  if (!country) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection.remoteAddress;
-    // Simple IP range detection for Kenya (simplified - for production use a proper GeoIP database)
-    // Kenya IP ranges typically start with specific prefixes, but this is a basic check
-    // For localhost/development, default to KE
-    if (ip === '::1' || ip === '127.0.0.1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
-      country = 'KE'; // Default to Kenya for local development
-    } else {
-      // For production, you'd use a service like ipapi.co or maxmind
-      country = 'OTHER'; // Default to OTHER for unknown IPs
-    }
-  }
-  
-  // Normalize to uppercase
-  country = String(country).toUpperCase();
-  
-  // Return KE for Kenya, OTHER for everything else
-  const isKenya = country === 'KE' || country === 'KENYA';
-  return res.json({ country: isKenya ? 'KE' : 'OTHER' });
-});
-
-// 9) Add /api/auth/me to introspect token (header or cookie)
-app.get('/api/auth/me', (req, res) => {
-  const payload = verifyTokenFromReq(req);
-  if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
-  return res.json({ success: true, email: payload.email, admin: !!payload.admin });
-});
-
-// PayPal create order (sandbox by default)
-async function getPaypalToken() {
-  const id = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!id || !secret) throw new Error('PayPal credentials not set');
-  const basic = Buffer.from(`${id}:${secret}`).toString('base64');
-  const url = process.env.PAYPAL_ENV === 'production'
-    ? 'https://api-m.paypal.com/v1/oauth2/token'
-    : 'https://api-m.sandbox.paypal.com/v1/oauth2/token';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'grant_type=client_credentials'
-  });
-  if (!res.ok) throw new Error('Failed to get PayPal token');
-  const d = await res.json();
-  return d.access_token;
-}
-
-app.post('/api/pay/paypal/create-order', async (req, res) => {
-  try {
-    const token = await getPaypalToken();
-    const url = process.env.PAYPAL_ENV === 'production'
-      ? 'https://api-m.paypal.com/v2/checkout/orders'
-      : 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
-    // Convert 1000 KES to USD (use env EXCHANGE_RATE_KES_USD if provided)
-    const rate = Number(process.env.EXCHANGE_RATE_KES_USD) || 0.0065;
-    const kesAmount = 1000; // fixed as requested
-    const usdAmount = Number((kesAmount * rate).toFixed(2));
-    const purchase = {
-      intent: 'CAPTURE',
-      purchase_units: [ {
-        amount: { currency_code: 'USD', value: String(usdAmount) },
-        custom_id: req.body.fileId || undefined,
-        reference_id: req.body.fileId || undefined
-      } ],
-      application_context: {
-        return_url: process.env.PAYPAL_RETURN_URL || 'https://example.com/paypal/return',
-        cancel_url: process.env.PAYPAL_CANCEL_URL || 'https://example.com/paypal/cancel'
-      }
-    };
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(purchase)
-    });
-    const data = await r.json();
-    const approve = (data.links||[]).find(l=>l.rel==='approve')?.href;
-    return res.json({ success: true, data, approveUrl: approve });
-  } catch (err) {
-    console.error('paypal error', err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
 const fs = require('fs');
 const path = require('path');
@@ -451,6 +189,21 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const EmailService = require('./services/email-service');
+
+// Initialize email service with Gmail credentials
+const emailService = new EmailService();
+emailService.initialize({
+  email: process.env.SMTP_USER || 'smartinvest254@gmail.com',
+  password: process.env.SMTP_PASS || 'SmartInvest254.com',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false
+}).then(() => {
+  console.log('✅ Email service initialized');
+}).catch(err => {
+  console.error('❌ Email service initialization error:', err.message);
+});
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -528,108 +281,310 @@ async function sendNotificationMail(opts={}){
   }
 })();
 
-// User cache for improved performance
-// let userCache = null;
-// let userCacheTime = 0;
-const USER_CACHE_TTL = 5000; // 5 seconds cache
-
 function readUsers() {
-  // Use cache if fresh (within TTL)
-  const now = Date.now();
-  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
-    // Log cache hit to storage complex
-    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
-    return userCache;
-  }
-  
   try {
     const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    const users = JSON.parse(raw || '[]');
-    // Update cache only after successful read
-    userCache = users;
-    userCacheTime = now;
-    // Log cache miss to storage complex
-    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
-    return users;
+    return JSON.parse(raw || '[]');
   } catch (e) {
-    // Return empty array but don't update cache on error
-    storageComplex.addCrashEntry(e, { function: 'readUsers' });
     return [];
   }
 }
 
 function writeUsers(users) {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    // Update cache only after successful write
-    userCache = users;
-    userCacheTime = Date.now();
-  } catch (e) {
-    // Invalidate cache on write failure to force fresh read
-    userCache = null;
-    userCacheTime = 0;
-    throw e;
-  }
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-// Helper: find user by email efficiently
-function findUserByEmail(users, email) {
-  const emailLower = email.toLowerCase();
-  return users.find(u => u.email.toLowerCase() === emailLower);
-}
-
-// Password reset request
-app.post('/api/auth/reset-password-request', async (req, res) => {
+app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    
+    const { email, password, acceptTerms, mobileNumber, paymentMethod, taxInfo, country, fullName } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
+
     const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-      // Don't reveal if email exists
-      return res.json({ success: true, message: 'If account exists, reset email sent' });
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(409).json({ error: 'email already registered' });
     }
+
+    const hash = bcrypt.hashSync(password, 10);
+    const userId = uuidv4();
     
-    // Generate reset token
-    const token = crypto.randomBytes(32).toString('hex');
-    user.resetToken = token;
-    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    // Capture IP address and user agent for security tracking
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    const user = { 
+      id: userId,
+      email: email.toLowerCase(), 
+      passwordHash: hash,
+      fullName: fullName || '',
+      mobileNumber: mobileNumber || '',
+      country: country || '',
+      paymentMethod: paymentMethod || '',
+      taxInfo: {
+        taxId: (taxInfo && taxInfo.taxId) || '',
+        taxCountry: (taxInfo && taxInfo.taxCountry) || country || '',
+        taxType: (taxInfo && taxInfo.taxType) || 'individual',
+        vatNumber: (taxInfo && taxInfo.vatNumber) || '',
+        businessRegistration: (taxInfo && taxInfo.businessRegistration) || '',
+        verified: false
+      },
+      amount: 0,
+      isPremium: false,
+      premiumGrantedAt: null,
+      premiumGrantedBy: null,
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      registrationIp: ipAddress,
+      registrationUserAgent: userAgent,
+      loginHistory: []
+    };
+    users.push(user);
     writeUsers(users);
     
-    // Send reset email with activity logs
-    sendPasswordResetEmail(email, token);
-    logUserActivity(email, 'password_reset_requested', req.ip);
+    // Send welcome email with terms and conditions
+    console.log(`📧 Sending welcome email to ${email}...`);
+    await emailService.sendWelcomeEmail(email, user);
     
-    return res.json({ success: true, message: 'If account exists, reset email sent' });
+    // Send terms and conditions email
+    console.log(`📧 Sending terms & conditions email to ${email}...`);
+    await emailService.sendTermsAndConditionsEmail(email, user);
+    
+    // Track signup in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
+    
+    return res.json({ success: true, message: 'signup successful - welcome emails sent', userId });
   } catch (err) {
-    console.error('reset password request error', err.message);
+    console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Password reset confirm
-app.post('/api/auth/reset-password-confirm', async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword required' });
-    
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     const users = readUsers();
-    const user = users.find(u => u.resetToken === token && u.resetTokenExpiry > Date.now());
-    if (!user) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     
-    // Update password
-    user.passwordHash = bcrypt.hashSync(newPassword, 10);
-    delete user.resetToken;
-    delete user.resetTokenExpiry;
+    // Capture login details
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const loginTime = new Date().toISOString();
+    
+    // Update last login timestamp and add to login history
+    user.lastLoginAt = loginTime;
+    user.lastLoginIp = ipAddress;
+    
+    // Initialize loginHistory if it doesn't exist
+    if (!user.loginHistory) user.loginHistory = [];
+    
+    // Add current login to history (keep last 50 logins)
+    user.loginHistory.push({
+      timestamp: loginTime,
+      ipAddress: ipAddress,
+      userAgent: userAgent
+    });
+    
+    // Keep only last 50 login records to prevent file bloat
+    if (user.loginHistory.length > 50) {
+      user.loginHistory = user.loginHistory.slice(-50);
+    }
+    
     writeUsers(users);
     
-    logUserActivity(user.email, 'password_reset_completed', req.ip);
-    sendNotificationMail({ to: user.email, subject: 'Password Changed', text: 'Your SmartInvest password was successfully changed.' });
+    // Track login in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
     
-    return res.json({ success: true, message: 'Password reset successful' });
+    // For demo: return a simple success message. In production return a session or JWT.
+    return res.json({ success: true, message: 'login successful', isPremium: user.isPremium || false, isAdmin: user.isAdmin || false });
   } catch (err) {
-    console.error('reset password confirm error', err.message);
+    console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all registered users (with sensitive data visible only to admin)
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    // Return user data without password hashes
+    const safeUsers = users.map(u => {
+      const { passwordHash, ...safeData } = u;
+      return safeData;
+    });
+    return res.json({ success: true, users: safeUsers });
+  } catch (err) {
+    console.error('admin users list error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Grant premium access to a user
+app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { requirements } = req.body;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met (you can customize this logic)
+    const requirementsMet = requirements && requirements.verified === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the required terms for premium access' });
+    }
+    
+    // Grant premium access
+    users[userIndex].isPremium = true;
+    users[userIndex].premiumGrantedAt = new Date().toISOString();
+    users[userIndex].premiumGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Send premium upgrade email
+    console.log(`🎉 Sending premium upgrade email to ${users[userIndex].email}...`);
+    await emailService.sendPremiumUpgradeEmail(users[userIndex].email, users[userIndex]);
+    
+    return res.json({ success: true, message: 'Premium access granted - notification email sent', user: { id: users[userIndex].id, email: users[userIndex].email, isPremium: true } });
+  } catch (err) {
+    console.error('grant premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Revoke premium access from a user
+app.post('/api/admin/users/:userId/revoke-premium', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    users[userIndex].isPremium = false;
+    users[userIndex].premiumRevokedAt = new Date().toISOString();
+    users[userIndex].premiumRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Premium access revoked' });
+  } catch (err) {
+    console.error('revoke premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Add another admin (with requirements check)
+app.post('/api/admin/add-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId, requirements } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met for admin access
+    const requirementsMet = requirements && requirements.verified === true && requirements.adminApproved === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the requirements to become an admin' });
+    }
+    
+    // Grant admin access
+    users[userIndex].isAdmin = true;
+    users[userIndex].adminGrantedAt = new Date().toISOString();
+    users[userIndex].adminGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Notify new admin
+    sendNotificationMail({
+      to: users[userIndex].email,
+      subject: 'Admin Access Granted - SmartInvest Africa',
+      text: `You have been granted administrator access to SmartInvest Africa.`,
+      html: `<p>Congratulations!</p><p>You have been granted <strong>administrator access</strong> to SmartInvest Africa.</p><p>You can now access the admin dashboard and manage the platform.</p>`
+    });
+    
+    return res.json({ success: true, message: 'Admin access granted', admin: { id: users[userIndex].id, email: users[userIndex].email, isAdmin: true } });
+  } catch (err) {
+    console.error('add admin error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Remove admin access
+app.post('/api/admin/remove-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent removing the primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot remove primary admin access' });
+    }
+    
+    users[userIndex].isAdmin = false;
+    users[userIndex].adminRevokedAt = new Date().toISOString();
+    users[userIndex].adminRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Admin access removed' });
+  } catch (err) {
+    console.error('remove admin error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -660,47 +615,11 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
       const items = (stk && stk.CallbackMetadata && stk.CallbackMetadata.Item) || (body && body.CallbackMetadata && body.CallbackMetadata.Item) || [];
       const accItem = Array.isArray(items) ? items.find(i => (String(i.Name||i.name||'')).toLowerCase() === 'accountreference' || (String(i.Name||i.name||'')).toLowerCase() === 'account') : null;
       const acctVal = accItem && accItem.Value ? String(accItem.Value).trim() : null;
-      const resultCode = stk && stk.ResultCode !== undefined ? stk.ResultCode : null;
-      
-      // Find phone number efficiently with single pass
-      let phone = null;
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          const name = item.Name || item.name || '';
-          if (name === 'PhoneNumber' || name === 'phone') {
-            phone = item;
-            break;
-          }
-        }
-      }
-      
-      // Auto-grant premium on successful payment
-      if (resultCode === 0) {
-        if (phone && phone.Value) {
-          const phoneNum = String(phone.Value);
-          const email = phoneNum + '@mpesa.local';
-          // Ensure user exists
-          const users = readUsers();
-          let user = users.find(u => u.email === email);
-          if (!user) {
-            user = {
-              email,
-              passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-              createdAt: new Date().toISOString(),
-              createdVia: 'mpesa_payment',
-              phone: phoneNum
-            };
-            users.push(user);
-            writeUsers(users);
-          }
-          grantPremium(email, 30, 'mpesa_payment', 'system');
-        }
-      }
-      
       if (acctVal) {
         const files = readFilesMeta();
         const match = files.find(f => f.id === acctVal);
         if (match) {
+          const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber') || items.find(i=>i.Name==='phone' ) ) : null;
           const emailLike = phone && phone.Value ? String(phone.Value)+'@mpesa.local' : '';
           grantPurchase(match.id, emailLike, 'mpesa', { raw: payload });
         }
@@ -724,26 +643,6 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
     // Strict mapping: only honor explicit PayPal fields `custom_id`, `reference_id` or `invoice_id` matching a file id
     try {
       const resource = payload.resource || payload.body || payload;
-      const eventType = payload.event_type || '';
-      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
-      
-      // Auto-grant premium on successful payment
-      if ((eventType === 'PAYMENT.CAPTURE.COMPLETED' || eventType === 'CHECKOUT.ORDER.APPROVED') && payerEmail) {
-        const users = readUsers();
-        let user = users.find(u => u.email.toLowerCase() === payerEmail.toLowerCase());
-        if (!user) {
-          user = {
-            email: payerEmail.toLowerCase(),
-            passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-            createdAt: new Date().toISOString(),
-            createdVia: 'paypal_payment'
-          };
-          users.push(user);
-          writeUsers(users);
-        }
-        grantPremium(payerEmail, 30, 'paypal_payment', 'system');
-      }
-      
       const files = readFilesMeta();
       let fileId = null;
       const pus = (resource.purchase_units || resource.purchaseUnits || []);
@@ -755,6 +654,7 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
         }
         if (fileId) break;
       }
+      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
       if (fileId) grantPurchase(fileId, payerEmail, 'paypal', { raw: payload });
     } catch (e) { console.error('paypal grant detection error', e.message); }
     return res.status(200).json({ received: true });
@@ -813,54 +713,11 @@ app.get('/api/admin/kcb-transfers', adminAuth, (req, res) => {
     const file = './transactions.json';
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const only = arr.filter(t => t.provider === 'kcb_manual');
-    
-    // Add pagination
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = only.slice(start, end);
-    
-    return res.json({ 
-      success: true, 
-      transfers: paginated,
-      pagination: {
-        page,
-        limit,
-        total: only.length,
-        hasMore: end < only.length
-      }
-    });
+    return res.json({ success: true, transfers: only });
   } catch (e) {
     console.error('admin list error', e.message);
     return res.status(500).json({ error: e.message });
   }
-});
-
-// Consolidated payments ledger for admins
-app.get('/api/admin/payments', adminAuth, (req, res) => {
-  const files = readFilesMeta();
-  const allPayments = readTransactions().map(tx => summarizeTransaction(tx, files));
-  const purchases = readPurchases();
-  
-  // Add pagination
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const payments = allPayments.slice(start, end);
-  
-  return res.json({ 
-    success: true, 
-    payments,
-    purchases,
-    pagination: {
-      page,
-      limit,
-      total: allPayments.length,
-      hasMore: end < allPayments.length
-    }
-  });
 });
 
 app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
@@ -875,24 +732,6 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     arr[idx].paidAt = new Date().toISOString();
     if (note) arr[idx].note = note;
     fs.writeFileSync(file, JSON.stringify(arr, null, 2));
-
-    // Auto-grant premium to user
-    const email = arr[idx].email;
-    if (email) {
-      const users = readUsers();
-      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (!user) {
-        user = {
-          email: email.toLowerCase(),
-          passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-          createdAt: new Date().toISOString(),
-          createdVia: 'kcb_payment'
-        };
-        users.push(user);
-        writeUsers(users);
-      }
-      grantPremium(email, 30, 'kcb_manual_payment', process.env.ADMIN_USER || 'admin');
-    }
 
     // notify user
     sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer marked paid', text: `Your bank transfer of KES ${arr[idx].amount} has been marked as received. Thank you.` });
@@ -910,87 +749,6 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     return res.json({ success: true, transfer: arr[idx] });
   } catch (e) {
     console.error('mark paid error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: list all users with full details including premium status
-app.get('/api/admin/users', adminAuth, (req, res) => {
-  try {
-    const users = readUsers();
-    const sanitized = users.map(u => ({
-      email: u.email,
-      createdAt: u.createdAt,
-      createdVia: u.createdVia,
-      isPremium: u.isPremium || false,
-      premiumExpiresAt: u.premiumExpiresAt,
-      premiumGrantedAt: u.premiumGrantedAt,
-      premiumReason: u.premiumReason,
-      premiumGrantedBy: u.premiumGrantedBy,
-      phone: u.phone,
-      activityLogs: (u.activityLogs || []).slice(-10)
-    }));
-    return res.json({ success: true, users: sanitized });
-  } catch (e) {
-    console.error('admin users list error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: manually grant premium to a user
-app.post('/api/admin/grant-premium', adminAuth, (req, res) => {
-  try {
-    const { email, days, reason } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    const daysNum = Number(days) || 30;
-    const grantedBy = process.env.ADMIN_USER || 'admin';
-    const user = grantPremium(email, daysNum, reason || 'manual_admin_grant', grantedBy);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    return res.json({ success: true, user: { email: user.email, isPremium: user.isPremium, premiumExpiresAt: user.premiumExpiresAt } });
-  } catch (e) {
-    console.error('grant premium error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: revoke premium from a user
-app.post('/api/admin/revoke-premium', adminAuth, (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    user.isPremium = false;
-    user.premiumRevokedAt = new Date().toISOString();
-    delete user.premiumExpiresAt;
-    writeUsers(users);
-    sendNotificationMail({ to: email, subject: 'Premium Access Revoked', text: 'Your premium access has been revoked by an administrator.' });
-    return res.json({ success: true });
-  } catch (e) {
-    console.error('revoke premium error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: dashboard stats
-app.get('/api/admin/dashboard-stats', adminAuth, (req, res) => {
-  try {
-    const users = readUsers();
-    const files = readFilesMeta();
-    const messages = readMessages();
-    const purchases = readPurchases();
-    const premiumUsers = users.filter(u => u.isPremium && (!u.premiumExpiresAt || new Date(u.premiumExpiresAt) > new Date()));
-    return res.json({
-      success: true,
-      totalUsers: users.length,
-      premiumUsers: premiumUsers.length,
-      filesCount: files.length,
-      pendingMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
-      totalPurchases: purchases.length
-    });
-  } catch (e) {
-    console.error('dashboard stats error', e.message);
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1014,7 +772,7 @@ if (!fs.existsSync(SCENARIOS_FILE)) fs.writeFileSync(SCENARIOS_FILE, JSON.string
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     cb(null, `${id}-${safe}`);
   }
@@ -1026,72 +784,23 @@ function readFilesMeta(){
 }
 function writeFilesMeta(arr){ fs.writeFileSync(FILES_JSON, JSON.stringify(arr, null, 2)); }
 
-// Download tokens and purchases file handling
-const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+// Purchases file helpers
 const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
-if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
 if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
 
-function readTokens() {
-  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } 
-  catch(e) { return {}; }
+function readPurchases(){
+  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } catch(e){ console.warn('Failed to read purchases:', e.message); return []; }
 }
-function writeTokens(data) { 
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(data, null, 2)); 
-}
-function readPurchases() {
-  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } 
-  catch(e) { return []; }
-}
-function writePurchases(data) { 
-  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(data, null, 2)); 
-}
+function writePurchases(arr){ fs.writeFileSync(PURCHASES_FILE, JSON.stringify(arr, null, 2)); }
 
-// Public: list files available for purchasers (legacy behavior)
-app.get('/api/files', requirePaidUser, (req, res) => {
-  try {
-    const files = readFilesMeta();
-    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
-    const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
-});
+// Tokens file helpers
+const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
 
-// Premium: list all published files (no per-file purchase required)
-app.get('/api/premium/files', requirePremium, (req, res) => {
-  try {
-    const files = readFilesMeta().filter(f => f.published);
-    return res.json({ success: true, files });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: upload a file with metadata (title, price, description)
-app.post('/api/admin/upload', adminAuth, upload.single('file'), (req, res) => {
-  try {
-    const { title, price, description } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'file is required (multipart form-data field name: file)' });
-    const meta = readFilesMeta();
-    const id = crypto.randomUUID();
-    const item = {
-      id,
-      title: title || req.file.originalname,
-      description: description || '',
-      price: Number(price || 0),
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      uploadedAt: new Date().toISOString()
-    };
-    meta.push(item);
-    writeFilesMeta(meta);
-    return res.json({ success: true, file: item });
-  } catch (e) { console.error('upload error', e.message); return res.status(500).json({ error: e.message }); }
-});
+function readTokens(){
+  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } catch(e){ console.warn('Failed to read tokens:', e.message); return {}; }
+}
+function writeTokens(obj){ fs.writeFileSync(TOKENS_FILE, JSON.stringify(obj, null, 2)); }
 
 // Admin: delete file metadata and file
 app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
@@ -1133,108 +842,14 @@ app.get('/download/:id', (req, res) => {
 
 // (uploads/data initialization handled earlier in file)
 
-// Read saved transactions from disk (mpesa, paypal, kcb_manual, etc.)
-function readTransactions() {
-  try {
-    const file = './transactions.json';
-    if (!fs.existsSync(file)) return [];
-    const raw = fs.readFileSync(file, 'utf8') || '[]';
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('readTransactions error', e.message);
-    return [];
-  }
-}
-
-// Summarize a raw transaction into a compact, admin-friendly shape
-function summarizeTransaction(tx, files = []) {
-  const base = {
-    provider: tx.provider || 'unknown',
-    createdAt: tx.timestamp || tx.time || new Date().toISOString(),
-    status: tx.status || 'pending',
-    amount: tx.amount || null,
-    currency: tx.currency || null,
-    email: tx.email || null,
-    phone: tx.phone || null,
-    reference: tx.reference || null,
-    receipt: tx.receipt || null,
-    note: tx.note || null
-  };
-
-  const cleanLower = (s) => (s ? String(s).toLowerCase() : '');
-
-  // Provider-specific enrichment
-  if ((tx.provider || '').toLowerCase() === 'mpesa') {
-    const payload = tx.payload || {};
-    const body = payload.Body || payload.body || payload;
-    const stk = (body && (body.stkCallback || body.STKCallback)) || body || {};
-    const items = (stk.CallbackMetadata && stk.CallbackMetadata.Item) || [];
-    const findItem = (name) => items.find(i => cleanLower(i.Name) === name || cleanLower(i.name) === name);
-    const amount = findItem('amount')?.Value || null;
-    const phone = findItem('phonenumber')?.Value || findItem('msisdn')?.Value || null;
-    const receipt = findItem('mpesareceiptnumber')?.Value || null;
-    const account = findItem('accountreference')?.Value || findItem('account')?.Value || null;
-    const resultCode = stk.ResultCode;
-    const status = resultCode === 0 ? 'success' : (resultCode === 1032 ? 'timeout' : 'failed');
-
-    base.amount = amount || base.amount;
-    base.currency = 'KES';
-    base.phone = phone || base.phone;
-    base.email = base.email || (phone ? `${phone}@mpesa.local` : null);
-    base.reference = account || base.reference;
-    base.receipt = receipt || base.receipt;
-    base.status = status || base.status;
-    base.description = stk.ResultDesc || base.description;
-  }
-
-  if ((tx.provider || '').toLowerCase() === 'paypal') {
-    const payload = tx.payload || {};
-    const resource = payload.resource || payload.body || payload;
-    const pu = (resource.purchase_units || resource.purchaseUnits || [])[0] || {};
-    const amountObj = pu.amount || {};
-    const amount = Number(amountObj.value || base.amount) || null;
-    const currency = amountObj.currency_code || base.currency || 'USD';
-    const reference = pu.custom_id || pu.reference_id || pu.invoice_id || base.reference;
-    const email = resource?.payer?.email_address || base.email;
-    const status = resource?.status || payload?.event_type || base.status;
-
-    base.amount = amount;
-    base.currency = currency;
-    base.reference = reference;
-    base.email = email;
-    base.status = status;
-  }
-
-  if ((tx.provider || '').toLowerCase() === 'kcb_manual') {
-    base.status = tx.status || base.status;
-    base.amount = tx.amount || base.amount;
-    base.currency = base.currency || 'KES';
-    base.email = tx.email || base.email;
-    base.reference = tx.reference || base.reference;
-    base.account = tx.account || null;
-  }
-
-  // Map reference to a file name if possible
-  if (base.reference) {
-    const match = files.find(f => f.id === base.reference);
-    if (match) base.fileTitle = match.title;
-  }
-
-  return base;
-}
-
 // Middleware: require that the requester is a purchaser. Checks for purchaser email
 // in header `x-user-email`, query `email` or request body `email`. Returns 402
 // if no purchase found for that email. This enforces that file listings are
 // accessible only to paying users.
 function requirePaidUser(req, res, next) {
   try {
-    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) {
-      const payload = verifyTokenFromReq(req);
-      if (payload && payload.email) email = payload.email;
-    }
-    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email= or sign in' });
+    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
     const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
@@ -1247,177 +862,8 @@ function requirePaidUser(req, res, next) {
   }
 }
 
-// Middleware: require premium access (admin bypass allowed)
-function requirePremium(req, res, next) {
-  try {
-    // Admin bypass: check for admin auth
-    const auth = req.headers.authorization;
-    if (auth && auth.startsWith('Basic ')) {
-      const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-      const [user, pass] = creds.split(':');
-      if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
-        req.isAdmin = true;
-        return next();
-      }
-    }
-    
-    // Check for user email and premium status
-    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) return res.status(402).json({ error: 'Premium access required: please sign in', premiumRequired: true });
-    
-    const e = String(email).toLowerCase();
-    if (!hasPremium(e)) {
-      return res.status(402).json({ 
-        error: 'Premium subscription required', 
-        premiumRequired: true,
-        upgradeUrl: `${process.env.BASE_URL || ''}/premium`
-      });
-    }
-    
-    req.userEmail = e;
-    return next();
-  } catch (e) {
-    console.error('requirePremium error', e && e.message);
-    return res.status(500).json({ error: 'server error' });
-  }
-}
-
 function readScenarios(){ try { return JSON.parse(fs.readFileSync(SCENARIOS_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeScenarios(d){ fs.writeFileSync(SCENARIOS_FILE, JSON.stringify(d, null, 2)); }
-
-// Grant premium access to a user (by email) for specified days
-function grantPremium(email, days = 30, reason = 'payment', grantedBy = 'system') {
-  try {
-    if (!email) return null;
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return null;
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-    user.isPremium = true;
-    user.premiumExpiresAt = expiresAt;
-    user.premiumGrantedAt = new Date().toISOString();
-    user.premiumReason = reason;
-    user.premiumGrantedBy = grantedBy;
-    writeUsers(users);
-    // Send premium welcome email with terms and content details
-    sendPremiumWelcomeEmail(email);
-    return user;
-  } catch (e) {
-    console.error('grantPremium error', e.message);
-    return null;
-  }
-}
-
-// Check if user has active premium
-function hasPremium(email) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user || !user.isPremium) return false;
-    if (user.premiumExpiresAt && new Date(user.premiumExpiresAt) < new Date()) {
-      user.isPremium = false;
-      writeUsers(users);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// Send welcome email with terms, laws, conditions, and premium content description
-function sendPremiumWelcomeEmail(email) {
-  const subject = 'Welcome to SmartInvest Premium — Terms & Content Access';
-  const html = `
-    <h2>Welcome to SmartInvest Premium!</h2>
-    <p>Thank you for joining SmartInvest Africa Premium. Your account now has full access to exclusive content.</p>
-    
-    <h3>Premium Content Includes:</h3>
-    <ul>
-      <li><strong>Investment Academy:</strong> 50+ video lessons covering Investing 101, Trading Essentials, SME Funding, and Digital Assets</li>
-      <li><strong>Advanced Tools:</strong> Portfolio tracker, risk profiler, AI-powered recommendations</li>
-      <li><strong>VIP Community:</strong> Exclusive forum, weekly webinars, and direct mentor access</li>
-      <li><strong>Premium Files:</strong> Downloadable resources, templates, and guides</li>
-    </ul>
-
-    <h3>Terms and Conditions:</h3>
-    <p>By using SmartInvest Premium, you agree to:</p>
-    <ul>
-      <li>Use content for personal educational purposes only</li>
-      <li>Not share, redistribute, or resell any premium content</li>
-      <li>Respect intellectual property rights of all materials</li>
-      <li>Comply with all applicable laws and regulations in your jurisdiction</li>
-    </ul>
-
-    <h3>Legal Framework:</h3>
-    <p>SmartInvest Africa operates under:</p>
-    <ul>
-      <li>Data Protection: GDPR and local data protection laws</li>
-      <li>Financial Services: Licensed under applicable African financial regulations</li>
-      <li>Consumer Protection: Full compliance with consumer rights legislation</li>
-      <li>Anti-Money Laundering (AML): KYC procedures as required by law</li>
-    </ul>
-
-    <h3>Disclaimer:</h3>
-    <p>Investment education and tools are provided for informational purposes. SmartInvest Africa does not provide financial advice. 
-    All investment decisions are your responsibility. Past performance does not guarantee future results.</p>
-
-    <p>For full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Terms & Conditions</a></p>
-    
-    <p>Questions? Contact us at ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
-  `;
-  const text = `Welcome to SmartInvest Premium! You now have access to: Investment Academy (50+ lessons), Advanced Tools, VIP Community, and Premium Files. By using our service you agree to our Terms & Conditions and applicable laws. Full terms at ${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html`;
-  sendNotificationMail({ to: email, subject, html, text });
-}
-
-// Send password reset email with user activity logs
-function sendPasswordResetEmail(email, resetToken) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return;
-    
-    const logs = user.activityLogs || [];
-    const recentLogs = logs.slice(-10).reverse();
-    const logHtml = recentLogs.map(l => `<li>${l.timestamp}: ${l.action} ${l.ip ? '(IP: ' + l.ip + ')' : ''}</li>`).join('');
-    
-    const subject = 'Password Reset Request — SmartInvest';
-    const resetUrl = `${process.env.BASE_URL || 'https://smartinvest.africa'}/reset-password?token=${resetToken}`;
-    const html = `
-      <h2>Password Reset Request</h2>
-      <p>We received a request to reset your password for ${email}.</p>
-      <p><a href="${resetUrl}" style="background: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a></p>
-      <p>This link expires in 1 hour.</p>
-      
-      <h3>Recent Account Activity:</h3>
-      <ul>${logHtml || '<li>No recent activity</li>'}</ul>
-      
-      <p><small>If you didn't request this reset, please ignore this email and contact support immediately.</small></p>
-    `;
-    const text = `Password reset requested for ${email}. Reset link: ${resetUrl} (expires in 1 hour). Recent activity: ${recentLogs.map(l => l.timestamp + ': ' + l.action).join('; ')}`;
-    sendNotificationMail({ to: email, subject, html, text });
-  } catch (e) {
-    console.error('sendPasswordResetEmail error', e.message);
-  }
-}
-
-// Log user activity
-function logUserActivity(email, action, ip = null) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return;
-    user.activityLogs = user.activityLogs || [];
-    user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
-    // Keep only last 100 logs - use splice for efficiency when removing multiple items
-    if (user.activityLogs.length > 100) {
-      user.activityLogs.splice(0, user.activityLogs.length - 100);
-    }
-    writeUsers(users);
-  } catch (e) {
-    console.error('logUserActivity error', e.message);
-  }
-}
 
 // Grant a purchase for a fileId and email (idempotent)
 function grantPurchase(fileId, email, provider='manual', meta={}){
@@ -1426,12 +872,7 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
     const files = readFilesMeta(); if (!files.find(f=>f.id===fileId)) return null;
     if (!email) email = (meta.email || '').toLowerCase();
     const purchases = readPurchases();
-    const exists = purchases.find(p => 
-      p.fileId === fileId && 
-      email && 
-      p.email && 
-      p.email.toLowerCase() === email.toLowerCase()
-    );
+    const exists = purchases.find(p => p.fileId === fileId && p.email && email && p.email.toLowerCase() === email.toLowerCase());
     if (exists) return exists;
     const entry = { id: uuidv4(), fileId, email: email? email.toLowerCase() : '', provider, at: new Date().toISOString(), meta };
     purchases.push(entry);
@@ -1447,15 +888,16 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
 
 // Multer setup (already defined earlier)
 
-// Scenarios endpoints: store/load/delete simple calculator scenarios (premium required)
-app.get('/api/scenarios', requirePremium, (req, res) => {
+// Scenarios endpoints: store/load/delete simple calculator scenarios
+// SECURITY FIX #2: Protect scenario endpoints from abuse
+app.get('/api/scenarios', adminAuth, (req, res) => {
   try {
     const list = readScenarios();
     return res.json({ success: true, scenarios: list });
   } catch (e) { console.error('scenarios list error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/scenarios/:id', requirePremium, (req, res) => {
+app.get('/api/scenarios/:id', adminAuth, (req, res) => {
   try {
     const id = req.params.id;
     const list = readScenarios();
@@ -1465,7 +907,7 @@ app.get('/api/scenarios/:id', requirePremium, (req, res) => {
   } catch (e) { console.error('get scenario error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/scenarios', requirePremium, express.json(), (req, res) => {
+app.post('/api/scenarios', adminAuth, express.json(), (req, res) => {
   try {
     const body = req.body || {};
     const name = body.name || ('scenario-' + Date.now());
@@ -1521,38 +963,28 @@ app.get('/api/admin/files', adminAuth, (req, res) => {
   try { const files = readFilesMeta(); return res.json({ success: true, files }); } catch(e){ return res.status(500).json({ error: e.message }); }
 });
 
-// Route '/api/files' is defined earlier for legacy purchaser listing.
-// Prefer '/api/premium/files' for premium-wide listing.
-
-// Public catalog: list published files (title, price, id) for browsing before purchase
-app.get('/api/catalog', (req, res) => {
+// Public: list published files — restricted to purchasers. Returns published files
+// that the purchaser has access to.
+app.get('/api/files', requirePaidUser, (req, res) => {
   try {
-    const files = readFilesMeta()
-      .filter(f => f.published)
-      .map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
-    return res.json({ success: true, files });
+    const files = readFilesMeta().filter(f => f.published);
+    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
+    const ownedIds = purchases.map(p => p.fileId);
+    const owned = files.filter(f => ownedIds.includes(f.id));
+    return res.json({ success: true, files: owned });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 });
 
-// Public catalog: single item details by id (published only)
-app.get('/api/catalog/:id', (req, res) => {
+// Public catalog: list published files (title, price, id) for browsing before purchase
+app.get('/api/catalog', (req, res) => {
   try {
-    const { id } = req.params;
-    const file = readFilesMeta().find(f => f.id === id && f.published);
-    if (!file) return res.status(404).json({ error: 'not found' });
-    const out = {
-      id: file.id,
-      title: file.title,
-      description: file.description,
-      price: file.price,
-      createdAt: file.createdAt || file.uploadedAt,
-      size: file.size,
-      mime: file.mime || null
-    };
-    return res.json({ success: true, file: out });
-  } catch (e) { return res.status(500).json({ error: e.message }); }
+    const files = readFilesMeta().filter(f => f.published).map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+    return res.json({ success: true, files });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 });
 
 // Admin: update file metadata
@@ -1576,8 +1008,23 @@ if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, JSON.stringif
 function readMessages(){ try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeMessages(d){ fs.writeFileSync(MESSAGES_FILE, JSON.stringify(d, null, 2)); }
 
+// SECURITY FIX #3: Add rate limiting to message endpoint
+// Limit: 10 messages per 15 minutes per IP address
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 messages per window
+  message: 'Too many messages from this IP address. Please try again later.',
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  skip: (req) => {
+    // Don't rate limit admin users
+    return req.headers.authorization && req.headers.authorization.startsWith('Basic ');
+  }
+});
+
 // Public: post a message (name optional, email optional)
-app.post('/api/messages', express.json(), (req, res) => {
+// SECURITY FIX #3: Applied rate limiting to prevent spam
+app.post('/api/messages', messageLimiter, express.json(), (req, res) => {
   try {
     const { name, email, message } = req.body || {};
     if (!message || !String(message).trim()) return res.status(400).json({ error: 'message required' });
@@ -1592,11 +1039,20 @@ app.post('/api/messages', express.json(), (req, res) => {
   } catch (e) { console.error('post message error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-// Public: list messages (visible to everyone)
+// User: list only their own messages (requires email)
 app.get('/api/messages', (req, res) => {
   try {
+    const userEmail = req.query.email || req.headers['x-user-email'];
+    
+    if (!userEmail) {
+      return res.status(400).json({ error: 'email required to view messages' });
+    }
+    
     const msgs = readMessages();
-    return res.json({ success: true, messages: msgs });
+    // Only return messages from this specific user
+    const userMessages = msgs.filter(m => m.email && m.email.toLowerCase() === userEmail.toLowerCase());
+    
+    return res.json({ success: true, messages: userMessages });
   } catch (e) { console.error('list messages error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
@@ -1629,70 +1085,6 @@ app.post('/api/admin/messages/:id/reply', adminAuth, express.json(), (req, res) 
   } catch (e) { console.error('reply message error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-// Storage Complex Endpoints - Admin Only
-// Get all storage complex data
-app.get('/api/admin/storage-complex', adminAuth, (req, res) => {
-  try {
-    const data = storageComplex.getAllStorageData();
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'view_storage_complex', { ip: req.ip });
-    return res.json({ success: true, data });
-  } catch (e) { 
-    console.error('storage complex error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Get storage complex by type
-app.get('/api/admin/storage-complex/:type', adminAuth, (req, res) => {
-  try {
-    const type = req.params.type;
-    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
-    if (!validTypes.includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
-    }
-    const data = storageComplex.getStorageByType(type);
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'view_storage_type', { type, ip: req.ip });
-    return res.json({ success: true, type, data });
-  } catch (e) { 
-    console.error('storage complex type error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Get storage complex statistics
-app.get('/api/admin/storage-stats', adminAuth, (req, res) => {
-  try {
-    const stats = storageComplex.getStorageStats();
-    return res.json({ success: true, stats });
-  } catch (e) { 
-    console.error('storage stats error', e.message); 
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Clear storage by type (admin only)
-app.post('/api/admin/storage-complex/:type/clear', adminAuth, (req, res) => {
-  try {
-    const type = req.params.type;
-    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
-    if (!validTypes.includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
-    }
-    const success = storageComplex.clearStorageByType(type);
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'clear_storage_type', { type, ip: req.ip });
-    return res.json({ success, message: `${type} storage cleared` });
-  } catch (e) { 
-    console.error('clear storage error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type/clear' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
 // Admin: grant purchase to an email for a file (manual grant)
 app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   try {
@@ -1708,35 +1100,22 @@ app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
 });
 
-// Public: request download token
-// - Allows if the email owns a purchase for the file, OR the email has active premium
+// Public: request download token (email must match a purchase)
 app.post('/api/download/request', express.json(), (req, res) => {
   try {
     const { fileId, email } = req.body;
     if (!fileId || !email) return res.status(400).json({ error: 'fileId and email required' });
-    const e = email.toLowerCase();
     const purchases = readPurchases();
-    const owns = purchases.find(p => p.fileId === fileId && p.email === e);
-    const premiumOk = hasPremium(e);
-    if (!owns && !premiumOk) return res.status(402).json({ error: 'Access denied: premium or purchase required' });
+    const ok = purchases.find(p => p.fileId === fileId && p.email === email.toLowerCase());
+    if (!ok) return res.status(402).json({ error: 'purchase not found' });
     const tokens = readTokens();
     const token = uuidv4();
     const expireAt = Date.now() + (60*60*1000); // 1 hour
-    tokens[token] = { fileId, email: e, expireAt };
+    tokens[token] = { fileId, email: email.toLowerCase(), expireAt };
     writeTokens(tokens);
     const url = `${req.protocol}://${req.get('host')}/download/${token}`;
     return res.json({ success: true, url, expiresAt: new Date(expireAt).toISOString() });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
-});
-
-// Premium: get full metadata for a file by id (for premium users)
-app.get('/api/files/:id', requirePremium, (req, res) => {
-  try {
-    const { id } = req.params;
-    const file = readFilesMeta().find(f => f.id === id && f.published);
-    if (!file) return res.status(404).json({ error: 'not found' });
-    return res.json({ success: true, file });
-  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // Serve download by token
@@ -1763,18 +1142,187 @@ app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const rows = arr.filter(t => t.provider === 'kcb_manual');
     const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
-    // Optimize: single-pass CSV generation instead of nested maps
-    const csvRows = rows.map(r => {
-      const values = [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')];
-      return values.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
-    });
-    const csv = [header.join(','), ...csvRows].join('\n');
+    const csv = [header.join(',')].concat(rows.map(r => {
+      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    })).join('\n');
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
     res.send(csv);
   } catch (e) {
     console.error('export error', e.message);
     return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: Get comprehensive statistics
+app.get('/api/admin/stats', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const purchases = readPurchases();
+    const files = readFilesMeta();
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    const messagesFile = './data/messages.json';
+    const messages = fs.existsSync(messagesFile) ? JSON.parse(fs.readFileSync(messagesFile)) : [];
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : {};
+
+    const stats = {
+      totalUsers: users.length,
+      premiumUsers: users.filter(u => u.isPremium).length,
+      adminUsers: users.filter(u => u.isAdmin).length,
+      freeUsers: users.filter(u => !u.isPremium).length,
+      totalFiles: files.length,
+      publishedFiles: files.filter(f => f.published).length,
+      draftFiles: files.filter(f => !f.published).length,
+      totalPurchases: purchases.length,
+      totalMessages: messages.length,
+      unreadMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
+      totalTransactions: transactions.length,
+      pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+      completedTransactions: transactions.filter(t => t.status === 'paid' || t.status === 'completed').length,
+      totalVisitors: (analytics.visitors || []).length,
+      totalSignups: (analytics.signups || []).length,
+      totalLogins: (analytics.logins || []).length,
+      recentLogins: users.filter(u => u.lastLoginAt && new Date(u.lastLoginAt) > new Date(Date.now() - 7*24*60*60*1000)).length,
+      pendingVerifications: transactions.filter(t => t.provider === 'kcb_manual' && t.status === 'pending').length
+    };
+
+    return res.json({ success: true, stats });
+  } catch (err) {
+    console.error('stats error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get analytics data
+app.get('/api/admin/analytics', adminAuth, (req, res) => {
+  try {
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : { visitors: [], signups: [], logins: [] };
+    
+    return res.json({ success: true, analytics });
+  } catch (err) {
+    console.error('analytics error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all transactions
+app.get('/api/admin/transactions', adminAuth, (req, res) => {
+  try {
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    
+    return res.json({ success: true, transactions });
+  } catch (err) {
+    console.error('transactions error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all purchases
+app.get('/api/admin/purchases', adminAuth, (req, res) => {
+  try {
+    const purchases = readPurchases();
+    return res.json({ success: true, purchases });
+  } catch (err) {
+    console.error('purchases error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Export all users to CSV
+app.get('/api/admin/users-export', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const header = ['id', 'email', 'fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'isPremium', 'isAdmin', 'createdAt', 'lastLoginAt'];
+    const csv = [header.join(',')].concat(users.map(u => {
+      return [
+        u.id,
+        u.email,
+        u.fullName || '',
+        u.mobileNumber || '',
+        u.country || '',
+        u.paymentMethod || '',
+        u.amount || 0,
+        u.isPremium ? 'Yes' : 'No',
+        u.isAdmin ? 'Yes' : 'No',
+        u.createdAt || '',
+        u.lastLoginAt || ''
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    })).join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="users-export.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error('user export error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: Delete user
+app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent deleting primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot delete primary admin account' });
+    }
+    
+    const deletedUser = users.splice(userIndex, 1)[0];
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'User deleted', user: { id: deletedUser.id, email: deletedUser.email } });
+  } catch (err) {
+    console.error('delete user error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Update user information
+app.patch('/api/admin/users/:userId', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const updates = req.body;
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent modifying admin status of primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER && updates.isAdmin === false) {
+      return res.status(403).json({ error: 'Cannot modify primary admin status' });
+    }
+    
+    // Update allowed fields
+    const allowedFields = ['fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'taxInfo'];
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        users[userIndex][field] = updates[field];
+      }
+    });
+    
+    users[userIndex].updatedAt = new Date().toISOString();
+    users[userIndex].updatedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    const { passwordHash, ...safeUser } = users[userIndex];
+    return res.json({ success: true, message: 'User updated', user: safeUser });
+  } catch (err) {
+    console.error('update user error', err.message);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -1787,45 +1335,14 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
     const results = { matched: [], unmatched: [] };
-    
-    // Build lookup maps for O(1) matching instead of O(n²) nested loops
-    const pendingByRefAmount = new Map();
-    const pendingByAmount = new Map();
-    
-    pending.forEach(p => {
-      const ref = (p.reference || '').toString().trim();
-      const amt = Number(p.amount);
-      if (ref) {
-        const key = `${ref}:${amt}`;
-        pendingByRefAmount.set(key, p);
-      }
-      // For amount-only matching, store array of candidates with same amount
-      if (!pendingByAmount.has(amt)) {
-        pendingByAmount.set(amt, []);
-      }
-      pendingByAmount.get(amt).push(p);
-    });
-    
     incoming.forEach(entry => {
       const ref = (entry.reference || entry.ref || '').toString().trim();
       const amt = Number(entry.amount || entry.value || 0);
       let found = null;
-      
-      // Try exact match by reference + amount first (O(1) lookup)
-      if (ref) {
-        const key = `${ref}:${amt}`;
-        found = pendingByRefAmount.get(key);
-      }
-      
-      // Fall back to amount-only match - find first unmatched candidate
+      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
       if (!found) {
-        const candidates = pendingByAmount.get(amt) || [];
-        found = candidates.find(c => 
-          !c._matched && 
-          (!entry.email || c.email === entry.email)
-        );
+        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
       }
-      
       if (found) {
         const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
         arr[idx].status = 'paid';
@@ -1834,11 +1351,6 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         results.matched.push({ transaction: arr[idx], entry });
         // notify user
         sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
-        
-        // Mark as matched to prevent double-matching
-        found._matched = true;
-        if (ref) pendingByRefAmount.delete(`${ref}:${amt}`);
-        // Don't delete the entire amount mapping - just mark this candidate as matched
       } else {
         results.unmatched.push(entry);
       }
@@ -1853,545 +1365,498 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
+// ========== SUBSCRIPTION & ACCESS CONTROL ENDPOINTS ==========
+
+// User Login/Registration - Create or retrieve user
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, userId } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email required' });
+    }
+
+    // Try to find existing user
+    let user = subManager.getUserByEmail(email);
+    
+    if (!user) {
+      // Create new user
+      user = subManager.createUser({
+        email,
+        name: email.split('@')[0],
+        phone: '',
+        location: '',
+        taxId: ''
+      });
+      
+      if (user.error) {
+        return res.status(400).json(user);
+      }
+      
+      console.log(`[AUTH] New user created: ${user.id} (${email})`);
+    } else {
+      // Update last login
+      user.lastLogin = new Date().toISOString();
+      subManager.updateUser(user.id, { updatedAt: new Date().toISOString() });
+      console.log(`[AUTH] User logged in: ${user.id} (${email})`);
+    }
+
+    // Add subscription details
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription
+    };
+
+    subManager.logAccess(user.id, 'LOGIN', 'dashboard', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[AUTH] Login error:', err.message);
+    return res.status(500).json({ error: 'Login failed', message: err.message });
+  }
+});
+
+// Get user data
+app.get('/api/users/:userId', (req, res) => {
+  try {
+    const user = subManager.getUser(req.params.userId);
+    
+    if (!user) {
+      subManager.logAccess(req.params.userId, 'GET_USER', 'user-data', 'not-found', req.ip);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription,
+      isPremium: subManager.isPremiumUser(user.id)
+    };
+
+    subManager.logAccess(user.id, 'GET_USER', 'user-data', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[USERS] Get user error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve user', message: err.message });
+  }
+});
+
+// Check calculator access (CRITICAL: NO BYPASSES)
+app.post('/api/calculators/:calcType/access', (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { calcType } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    const user = subManager.getUser(userId);
+    if (!user) {
+      subManager.logAccess(userId, 'ACCESS_CHECK', calcType, 'user-not-found', req.ip);
+      return res.status(401).json({ access: false, reason: 'User not found' });
+    }
+
+    // Free calculators: Investment, Amortization, Insurance
+    const freeCalcs = ['investment', 'amortization', 'insurance'];
+    if (freeCalcs.includes(calcType)) {
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'free-calc', req.ip);
+      return res.json({ access: true, type: 'free', reason: 'Free calculator' });
+    }
+
+    // Premium calculators: Bonds, Pension, Actuarial, Risk, Business, Audit
+    const premiumCalcs = ['bonds', 'pension', 'actuarial', 'risk', 'business', 'audit'];
+    if (premiumCalcs.includes(calcType)) {
+      // AUTHORITATIVE CHECK: isPremiumUser does full validation
+      const isPremium = subManager.isPremiumUser(userId);
+      
+      if (!isPremium) {
+        subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'not-premium', req.ip);
+        return res.status(403).json({ 
+          access: false, 
+          type: 'premium', 
+          reason: 'Premium subscription required' 
+        });
+      }
+
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'premium-calc', req.ip);
+      return res.json({ access: true, type: 'premium', reason: 'Premium subscriber' });
+    }
+
+    subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'unknown-calc', req.ip);
+    return res.status(400).json({ access: false, reason: 'Unknown calculator' });
+  } catch (err) {
+    console.error('[CALCULATORS] Access check error:', err.message);
+    return res.status(500).json({ error: 'Access check failed', message: err.message });
+  }
+});
+
+// ========== ADMIN SUBSCRIPTION MANAGEMENT ==========
+
+// Create subscription for user (ADMIN ONLY)
+app.post('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const { userId, amount, paymentMethod, paymentReference, validFrom, validUntil, reason, notes } = req.body;
+
+    const subscription = subManager.createSubscription({
+      userId,
+      amount,
+      paymentMethod,
+      paymentReference,
+      validFrom,
+      validUntil,
+      reason,
+      notes,
+      grantedBy: 'admin'
+    });
+
+    if (subscription.error) {
+      return res.status(400).json(subscription);
+    }
+
+    console.log(`[ADMIN] Subscription created for user ${userId}`);
+    subManager.logAccess(userId, 'SUBSCRIPTION_CREATED', 'admin', 'success', req.ip);
+
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[ADMIN] Create subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to create subscription', message: err.message });
+  }
+});
+
+// Get all subscriptions (ADMIN ONLY)
+app.get('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const filters = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.userId) filters.userId = req.query.userId;
+
+    const subscriptions = subManager.getAllSubscriptions(filters);
+    return res.json({ success: true, subscriptions });
+  } catch (err) {
+    console.error('[ADMIN] Get subscriptions error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve subscriptions' });
+  }
+});
+
+// Extend subscription (ADMIN ONLY)
+app.put('/api/admin/subscriptions/:subId/extend', adminAuth, (req, res) => {
+  try {
+    const { days } = req.body;
+    if (!days || days < 0) {
+      return res.status(400).json({ error: 'Valid days value required' });
+    }
+
+    const result = subManager.extendSubscription(req.params.subId, days);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} extended by ${days} days`);
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Extend subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to extend subscription' });
+  }
+});
+
+// Revoke subscription (ADMIN ONLY)
+app.post('/api/admin/subscriptions/:subId/revoke', adminAuth, (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    // Get subscription to find user
+    const subscriptions = subManager.getAllSubscriptions();
+    const sub = subscriptions.find(s => s.id === req.params.subId);
+    
+    if (!sub) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    const result = subManager.revokeSubscription(req.params.subId, reason);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} revoked. Reason: ${reason}`);
+    subManager.logAccess(sub.userId, 'SUBSCRIPTION_REVOKED', 'admin', 'revoked', req.ip);
+
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Revoke subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to revoke subscription' });
+  }
+});
+
+// Get all users (ADMIN ONLY)
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const filters = {};
+    if (req.query.isPremium !== undefined) {
+      filters.isPremium = req.query.isPremium === 'true';
+    }
+
+    const users = subManager.getAllUsers(filters);
+    return res.json({ success: true, users });
+  } catch (err) {
+    console.error('[ADMIN] Get users error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve users' });
+  }
+});
+
+// Update user (ADMIN ONLY)
+app.put('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const { name, phone, location, taxId } = req.body;
+    
+    const result = subManager.updateUser(req.params.userId, {
+      name, phone, location, taxId
+    });
+
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ success: true, user: result });
+  } catch (err) {
+    console.error('[ADMIN] Update user error:', err.message);
+    return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user (ADMIN ONLY) - Soft delete
+app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const result = subManager.deleteUser(req.params.userId, reason);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] User ${req.params.userId} deleted. Reason: ${reason}`);
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Delete user error:', err.message);
+    return res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// Serve specific HTML files (prevent exposing sensitive files like .env)
+app.get('/', (req, res) => {
+// ========== EMAIL MANAGEMENT ENDPOINTS ==========
+
+// Admin: Send welcome email to a user
+app.post('/api/admin/email/send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendWelcomeEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Welcome email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send welcome email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to a user
+app.post('/api/admin/email/send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Terms & Conditions email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send terms email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send bulk welcome emails to all users or filtered users
+app.post('/api/admin/email/bulk-send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body; // optional: { isPremium: true }, { type: 'subscriber' }, etc.
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    // Apply filters if provided
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+      if (filter.type === 'registered') {
+        targetUsers = users.filter(u => u.createdAt);
+      }
+    }
+
+    console.log(`📧 Sending welcome emails to ${targetUsers.length} users...`);
+    const result = await emailService.sendBulkWelcomeEmails(targetUsers);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk email send completed',
+      results: result,
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send welcome error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to all users
+app.post('/api/admin/email/bulk-send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body;
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+    }
+
+    console.log(`⚖️  Sending Terms & Conditions emails to ${targetUsers.length} users...`);
+    
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const user of targetUsers) {
+      const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+      if (sent) successCount++;
+      else failureCount++;
+      await new Promise(resolve => setTimeout(resolve, 500)); // Avoid rate limiting
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk Terms & Conditions send completed',
+      results: { successCount, failureCount },
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send terms error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send subscription confirmation email
+app.post('/api/admin/email/send-subscription-confirmation', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId, subscriptionData } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendSubscriptionConfirmationEmail(user.email, subscriptionData || {});
+    return res.json({ success: sent, message: sent ? 'Subscription confirmation sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send subscription email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get email service status
+app.get('/api/admin/email/status', adminAuth, (req, res) => {
+  try {
+    const status = {
+      initialized: emailService.initialized,
+      transporter: emailService.transporter ? 'configured' : 'not configured',
+      smtpUser: process.env.SMTP_USER ? 'set' : 'not set',
+      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+      timestamp: new Date().toISOString()
+    };
+    return res.json(status);
+  } catch (err) {
+    console.error('email status error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== STATIC ROUTES ==========
+
+app.get('/share/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'share.html'));
+});
+
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-expanded.html'));
+});
+
+app.get('/terms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
+
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
-// Premium Academy Content API (requires premium subscription)
-app.get('/api/academy/courses', requirePremium, (req, res) => {
-  const courses = [
-    { id: 'investing-101', title: 'Investing 101', level: 'Beginner', lessons: 15, duration: '3 hours' },
-    { id: 'trading-essentials', title: 'Trading Essentials', level: 'Intermediate', lessons: 20, duration: '5 hours' },
-    { id: 'sme-funding', title: 'SME Funding Readiness', level: 'SME', lessons: 12, duration: '4 hours' },
-    { id: 'digital-assets', title: 'Digital Assets & Crypto', level: 'Advanced', lessons: 18, duration: '6 hours' }
-  ];
-  return res.json({ success: true, courses });
-});
-
-app.get('/api/academy/courses/:id', requirePremium, (req, res) => {
-  const courseContent = {
-    'investing-101': { title: 'Investing 101', modules: ['Basics', 'Risk Management', 'Diversification'] },
-    'trading-essentials': { title: 'Trading Essentials', modules: ['Market Analysis', 'Trading Psychology', 'Risk Control'] },
-    'sme-funding': { title: 'SME Funding Readiness', modules: ['Pitching', 'Valuation', 'Investor Relations'] },
-    'digital-assets': { title: 'Digital Assets & Crypto', modules: ['Custody', 'Security', 'Strategy'] }
-  };
-  const course = courseContent[req.params.id];
-  if (!course) return res.status(404).json({ error: 'Course not found' });
-  return res.json({ success: true, course });
-});
-
-// Premium Tools API
-app.get('/api/tools/portfolio', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'Portfolio tracker data', isPremium: true });
-});
-
-app.get('/api/tools/risk-profiler', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'Risk profiler data', isPremium: true });
-});
-
-app.get('/api/tools/recommendations', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'AI recommendations', isPremium: true });
-});
+// ============================================================================
+// INTEGRATE NEW CONTENT MANAGEMENT & ANALYTICS ENDPOINTS
+// ============================================================================
+contentAPI.courseEndpoints(app, adminAuth);
+contentAPI.insightsEndpoints(app, adminAuth);
+contentAPI.toolsEndpoints(app, adminAuth);
+contentAPI.smeEndpoints(app, adminAuth);
+contentAPI.communityEndpoints(app, adminAuth);
+contentAPI.analyticsEndpoints(app, adminAuth);
+contentAPI.publicEndpoints(app);
 
 // ============================================================================
-// MODERN PAYMENT SYSTEM API ENDPOINTS
+// INTEGRATE SHARE LINKS, PRODUCT FILES, AND USER SEARCH
 // ============================================================================
+const shareLinkAPI = require('./api/share-link-api');
+const productFilesAPI = require('./api/product-files-api');
+const userSearchAPI = require('./api/user-search-api');
+const liveEmailAPI = require('./api/live-email-api');
+const socialMediaAPI = require('./api/social-media-api');
 
-// Helper: require user authentication (lighter than requirePremium)
-function requireAuth(req, res, next) {
-  const payload = verifyTokenFromReq(req);
-  if (!payload || !payload.email) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  req.user = { email: payload.email, admin: payload.admin || false };
-  return next();
+app.use('/api/share', shareLinkAPI);
+app.use('/api/admin/product-files', adminAuth, productFilesAPI);
+app.use('/api/admin/users', adminAuth, userSearchAPI);
+app.use('/api/email', liveEmailAPI);
+app.use('/api/social-media', socialMediaAPI);
+app.put('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+app.post('/api/admin/social-media/update-all', adminAuth, socialMediaAPI);
+app.delete('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+
+// Export app for Vercel serverless
+module.exports = app;
+
+// Start server only if not in serverless environment
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Payment API listening on ${PORT}`));
 }
-
-// Helper: write transactions to file
-function writeTransactions(transactions) {
-  try {
-    const file = './transactions.json';
-    fs.writeFileSync(file, JSON.stringify(transactions, null, 2));
-  } catch (e) {
-    console.error('writeTransactions error', e.message);
-  }
-}
-
-// 1. Process Payment (POST /api/payments/process)
-app.post('/api/payments/process', requireAuth, async (req, res) => {
-  try {
-    const { amount, currency, method, phone, email, description, reference } = req.body;
-    
-    // Validation
-    if (!amount || !currency || !method) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing required fields: amount, currency, method' 
-      });
-    }
-    
-    // Generate transaction ID
-    const transactionId = `txn_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    
-    // Create transaction record
-    const transaction = {
-      id: transactionId,
-      userId: req.user.email,
-      amount: parseFloat(amount),
-      currency,
-      method,
-      status: 'processing',
-      description: description || '',
-      email: email || req.user.email,
-      phone: phone || '',
-      reference: reference || `SMI-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
-      timestamp: new Date().toISOString(),
-      provider: method,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Read existing transactions
-    const transactions = readTransactions();
-    transactions.push(transaction);
-    writeTransactions(transactions);
-    
-    // Simulate payment processing based on method
-    // In production, integrate with actual payment gateways
-    let processingMessage = '';
-    switch (method) {
-      case 'mpesa':
-        processingMessage = 'M-Pesa STK push initiated. Check your phone.';
-        // In production: call actual M-Pesa API
-        break;
-      case 'paystack':
-        processingMessage = 'Redirecting to Paystack payment page...';
-        // In production: create Paystack transaction
-        break;
-      case 'stripe':
-        processingMessage = 'Stripe payment session created.';
-        // In production: create Stripe payment intent
-        break;
-      case 'paypal':
-        processingMessage = 'Redirecting to PayPal...';
-        // In production: create PayPal order
-        break;
-      case 'flutterwave':
-        processingMessage = 'Flutterwave payment initiated.';
-        // In production: create Flutterwave transaction
-        break;
-      default:
-        processingMessage = 'Payment processing...';
-    }
-    
-    return res.json({
-      success: true,
-      transactionId,
-      reference: transaction.reference,
-      amount: transaction.amount,
-      currency: transaction.currency,
-      status: 'processing',
-      message: processingMessage
-    });
-    
-  } catch (err) {
-    console.error('Payment processing error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Payment processing failed', 
-      message: err.message 
-    });
-  }
-});
-
-// 2. Record Transaction (POST /api/payments/record)
-app.post('/api/payments/record', requireAuth, (req, res) => {
-  try {
-    const { transactionId, amount, currency, method, status, email, phone, reference, description } = req.body;
-    
-    if (!transactionId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'transactionId is required' 
-      });
-    }
-    
-    const transactions = readTransactions();
-    const existingTx = transactions.find(tx => tx.id === transactionId || tx.reference === reference);
-    
-    if (existingTx) {
-      // Update existing transaction
-      existingTx.status = status || existingTx.status;
-      existingTx.email = email || existingTx.email;
-      existingTx.phone = phone || existingTx.phone;
-      existingTx.updatedAt = new Date().toISOString();
-      if (description) existingTx.description = description;
-    } else {
-      // Create new record
-      transactions.push({
-        id: transactionId,
-        userId: req.user.email,
-        amount: parseFloat(amount) || 0,
-        currency: currency || 'USD',
-        method: method || 'unknown',
-        status: status || 'pending',
-        description: description || '',
-        email: email || req.user.email,
-        phone: phone || '',
-        reference: reference || transactionId,
-        timestamp: new Date().toISOString(),
-        provider: method || 'unknown',
-        createdAt: new Date().toISOString()
-      });
-    }
-    
-    writeTransactions(transactions);
-    
-    return res.json({
-      success: true,
-      message: 'Transaction recorded successfully'
-    });
-    
-  } catch (err) {
-    console.error('Transaction recording error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to record transaction' 
-    });
-  }
-});
-
-// 3. Get User Transaction History (GET /api/payments/user/history)
-app.get('/api/payments/user/history', requireAuth, (req, res) => {
-  try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 10));
-    const searchQuery = (req.query.search || '').toLowerCase();
-    const statusFilter = req.query.status;
-    
-    const allTransactions = readTransactions();
-    
-    // Filter by user email
-    let userTransactions = allTransactions.filter(tx => 
-      tx.userId === req.user.email || tx.email === req.user.email
-    );
-    
-    // Apply search filter
-    if (searchQuery) {
-      userTransactions = userTransactions.filter(tx => 
-        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
-        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
-        (tx.id && tx.id.toLowerCase().includes(searchQuery))
-      );
-    }
-    
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      userTransactions = userTransactions.filter(tx => 
-        tx.status === statusFilter
-      );
-    }
-    
-    // Sort by timestamp (newest first)
-    userTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // Pagination
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedTransactions = userTransactions.slice(start, end);
-    
-    // Format transactions for frontend
-    const formattedTransactions = paginatedTransactions.map(tx => ({
-      id: tx.id,
-      amount: tx.amount,
-      currency: tx.currency || 'USD',
-      method: tx.method || tx.provider || 'unknown',
-      status: tx.status || 'pending',
-      description: tx.description || `Payment via ${tx.method || tx.provider}`,
-      email: tx.email,
-      phone: tx.phone,
-      reference: tx.reference,
-      timestamp: tx.timestamp || tx.createdAt,
-      receiptUrl: tx.receipt || tx.receiptUrl || null,
-      note: tx.note || null
-    }));
-    
-    return res.json({
-      success: true,
-      transactions: formattedTransactions,
-      pagination: {
-        page,
-        pageSize,
-        total: userTransactions.length,
-        totalPages: Math.ceil(userTransactions.length / pageSize)
-      }
-    });
-    
-  } catch (err) {
-    console.error('Get user history error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve transaction history' 
-    });
-  }
-});
-
-// 4. Get All Transactions - Admin Only (GET /api/payments/admin/all)
-app.get('/api/payments/admin/all', adminAuth, (req, res) => {
-  try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 15));
-    const searchQuery = (req.query.search || '').toLowerCase();
-    const statusFilter = req.query.status;
-    
-    let allTransactions = readTransactions();
-    
-    // Apply search filter
-    if (searchQuery) {
-      allTransactions = allTransactions.filter(tx => 
-        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
-        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
-        (tx.email && tx.email.toLowerCase().includes(searchQuery)) ||
-        (tx.id && tx.id.toLowerCase().includes(searchQuery)) ||
-        (tx.userId && tx.userId.toLowerCase().includes(searchQuery))
-      );
-    }
-    
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      allTransactions = allTransactions.filter(tx => 
-        tx.status === statusFilter
-      );
-    }
-    
-    // Sort by timestamp (newest first)
-    allTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // Pagination
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedTransactions = allTransactions.slice(start, end);
-    
-    // Format transactions for admin view
-    const formattedTransactions = paginatedTransactions.map(tx => ({
-      id: tx.id,
-      userId: tx.userId || tx.email,
-      amount: tx.amount,
-      currency: tx.currency || 'USD',
-      method: tx.method || tx.provider || 'unknown',
-      status: tx.status || 'pending',
-      description: tx.description || `Payment via ${tx.method || tx.provider}`,
-      email: tx.email,
-      phone: tx.phone,
-      reference: tx.reference,
-      timestamp: tx.timestamp || tx.createdAt,
-      receiptUrl: tx.receipt || tx.receiptUrl || null,
-      note: tx.note || null,
-      paidAt: tx.paidAt || null,
-      updatedAt: tx.updatedAt || null
-    }));
-    
-    return res.json({
-      success: true,
-      transactions: formattedTransactions,
-      pagination: {
-        page,
-        pageSize,
-        total: allTransactions.length,
-        totalPages: Math.ceil(allTransactions.length / pageSize)
-      }
-    });
-    
-  } catch (err) {
-    console.error('Get admin transactions error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve transactions' 
-    });
-  }
-});
-
-// 5. Export Transactions to CSV - Admin Only (GET /api/payments/export/csv)
-app.get('/api/payments/export/csv', adminAuth, (req, res) => {
-  try {
-    const allTransactions = readTransactions();
-    
-    // Sort by timestamp (newest first)
-    allTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // CSV Headers
-    const headers = [
-      'Transaction ID',
-      'User ID/Email',
-      'Amount',
-      'Currency',
-      'Payment Method',
-      'Status',
-      'Description',
-      'Email',
-      'Phone',
-      'Reference',
-      'Timestamp',
-      'Receipt URL',
-      'Note'
-    ];
-    
-    // CSV Rows
-    const rows = allTransactions.map(tx => [
-      tx.id || '',
-      tx.userId || tx.email || '',
-      tx.amount || '0',
-      tx.currency || 'USD',
-      tx.method || tx.provider || 'unknown',
-      tx.status || 'pending',
-      (tx.description || '').replace(/,/g, ';'), // Escape commas
-      tx.email || '',
-      tx.phone || '',
-      tx.reference || '',
-      tx.timestamp || tx.createdAt || '',
-      tx.receipt || tx.receiptUrl || '',
-      (tx.note || '').replace(/,/g, ';') // Escape commas
-    ]);
-    
-    // Build CSV content
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    // Set headers for CSV download
-    const filename = `smartinvest-transactions-${new Date().toISOString().split('T')[0]}.csv`;
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    return res.send(csvContent);
-    
-  } catch (err) {
-    console.error('Export CSV error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to export transactions' 
-    });
-  }
-});
-
-// Admin action endpoints for transaction management
-app.post('/api/payments/admin/verify', adminAuth, (req, res) => {
-  try {
-    const { transactionId } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'completed';
-    tx.verifiedAt = new Date().toISOString();
-    tx.verifiedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nVerified by ${req.user.email} on ${new Date().toISOString()}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction verified' });
-  } catch (err) {
-    console.error('Verify transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to verify transaction' });
-  }
-});
-
-app.post('/api/payments/admin/dispute', adminAuth, (req, res) => {
-  try {
-    const { transactionId, reason } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'disputed';
-    tx.disputedAt = new Date().toISOString();
-    tx.disputedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nDisputed by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction marked as disputed' });
-  } catch (err) {
-    console.error('Dispute transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to dispute transaction' });
-  }
-});
-
-app.post('/api/payments/admin/refund', adminAuth, (req, res) => {
-  try {
-    const { transactionId, reason } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'refunded';
-    tx.refundedAt = new Date().toISOString();
-    tx.refundedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nRefunded by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction refunded' });
-  } catch (err) {
-    console.error('Refund transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to refund transaction' });
-  }
-});
-
-app.post('/api/payments/admin/note', adminAuth, (req, res) => {
-  try {
-    const { transactionId, note } = req.body;
-    if (!transactionId || !note) {
-      return res.status(400).json({ success: false, error: 'transactionId and note required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.note = (tx.note || '') + `\n[${new Date().toISOString()}] ${req.user.email}: ${note}`;
-    tx.updatedAt = new Date().toISOString();
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Note added successfully' });
-  } catch (err) {
-    console.error('Add note error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to add note' });
-  }
-});
-
-// ============================================================================
-// END OF MODERN PAYMENT SYSTEM API
-// ============================================================================
-
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));

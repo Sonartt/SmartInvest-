@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Product File Manager | SmartInvest</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .file-item:hover {
+      background-color: #f5f5f5;
+    }
+    .user-card:hover {
+      background-color: #f0f7ff;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Product File Manager</h1>
+          <div class="flex gap-4">
+            <a href="/admin.html" class="text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+            <button id="logoutBtn" class="text-red-600 hover:text-red-800">Logout</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Product Selection -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Select Product</h2>
+        <div class="flex gap-4">
+          <select id="productSelect" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="">-- Select a Product --</option>
+            <option value="investment-basics">Investment Basics</option>
+            <option value="stock-market-101">Stock Market 101</option>
+            <option value="crypto-investing">Crypto Investing</option>
+            <option value="real-estate">Real Estate Investment</option>
+            <option value="retirement-planning">Retirement Planning</option>
+          </select>
+          <button id="loadProductBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Load Files
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="bg-white rounded-lg shadow-md mb-6">
+        <div class="flex border-b">
+          <button class="tab-btn px-6 py-3 font-semibold border-b-2 border-blue-600 text-blue-600" data-tab="files">
+            📁 Product Files
+          </button>
+          <button class="tab-btn px-6 py-3 font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-800" data-tab="search">
+            🔍 Search Users
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content: Product Files -->
+      <div id="filesTab" class="tab-content">
+        <div id="productFileManager"></div>
+      </div>
+
+      <!-- Tab Content: User Search -->
+      <div id="searchTab" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">Search Users</h2>
+          <div id="userSearchContainer"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/public/js/admin-product-file-manager.js"></script>
+  <script src="/public/js/admin-user-search.js"></script>
+  <script>
+    let fileManager = null;
+    let userSearch = null;
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check admin auth
+      const adminUser = localStorage.getItem('adminUser');
+      const adminPass = localStorage.getItem('adminPass');
+      
+      if (!adminUser || !adminPass) {
+        alert('Please login as admin first');
+        window.location.href = '/admin.html';
+        return;
+      }
+
+      // Initialize user search
+      userSearch = new AdminUserSearch('userSearchContainer');
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          
+          // Update buttons
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('border-blue-600', 'text-blue-600');
+            b.classList.add('border-transparent', 'text-gray-600');
+          });
+          btn.classList.remove('border-transparent', 'text-gray-600');
+          btn.classList.add('border-blue-600', 'text-blue-600');
+          
+          // Update content
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+          });
+          document.getElementById(`${tab}Tab`).classList.remove('hidden');
+        });
+      });
+
+      // Load product files
+      document.getElementById('loadProductBtn').addEventListener('click', () => {
+        const productId = document.getElementById('productSelect').value;
+        if (!productId) {
+          alert('Please select a product');
+          return;
+        }
+
+        // Initialize file manager
+        const container = document.getElementById('productFileManager');
+        container.innerHTML = '<div id="fileManagerContainer"></div>';
+        
+        fileManager = new AdminProductFileManager('fileManagerContainer', productId);
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+          localStorage.removeItem('adminUser');
+          localStorage.removeItem('adminPass');
+          window.location.href = '/admin.html';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
