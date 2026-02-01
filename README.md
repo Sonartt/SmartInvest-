@@ -39,12 +39,34 @@ SmartInvest Africa is a comprehensive web application focused on democratizing i
 
 ## 📞 Contact Information
 
-- **Website Email**: smartinvest254@gmail.com
+- **Website Email**: smartinvestsi254@gmail.com
 - **Admin Email**: delijah5415@gmail.com
+- **Admin Name**: ELIJAH DANIEL
 - **Phone**: 0731856995 / 0114383762
 - **WhatsApp**: [Chat with us](https://wa.me/254731856995)
 - **Location**: Nairobi, Kenya
 - **Hours**: Mon-Fri, 9am-6pm EAT
+
+## 🔐 Admin Access
+
+SmartInvest has a **separate admin authentication system** distinct from regular user login:
+
+- **Admin Login**: [/admin-login.html](/admin-login.html)
+- **Admin Dashboard**: [/admin.html](/admin.html) (protected)
+- **User Login**: [/login.html](/login.html)
+
+### Quick Access
+- Homepage navigation has both "Login" (users) and "Admin" (administrators)
+- Footer has dedicated "Administration" section
+
+### Default Admin Accounts
+See `/config/admin-config.json` for configured admins:
+- `delijah5415@gmail.com` (super-admin)
+- `admin@smartinvest.com` (admin)
+
+### Documentation
+- **[ADMIN_SYSTEM_SUMMARY.md](./ADMIN_SYSTEM_SUMMARY.md)** - Quick overview
+- **[docs/ADMIN_LOGIN_SETUP.md](./docs/ADMIN_LOGIN_SETUP.md)** - Complete setup guide
 
 ## ⚡ Quick Start
 
@@ -88,11 +110,22 @@ The application will be available at `http://localhost:3000`
 
 ## 📚 Documentation
 
+### Getting Started
 - **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide
 - **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Complete deployment checklist
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Vercel deployment guide
+
+### Features & Integration
 - **[INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md)** - Comprehensive feature summary
 - **[LIVE_FEATURES_COMPLETE.md](./LIVE_FEATURES_COMPLETE.md)** - Live chat, email, and social media docs
-- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Vercel deployment guide
+- **[FEATURE_INTEGRATION_COMPLETE.md](./FEATURE_INTEGRATION_COMPLETE.md)** - Feature integration status
+
+### Admin & Security
+- **[ADMIN_SYSTEM_SUMMARY.md](./ADMIN_SYSTEM_SUMMARY.md)** - Admin login system overview
+- **[docs/ADMIN_LOGIN_SETUP.md](./docs/ADMIN_LOGIN_SETUP.md)** - Complete admin setup guide
+- **[docs/ADMIN_DASHBOARD_GUIDE.md](./docs/ADMIN_DASHBOARD_GUIDE.md)** - Admin dashboard usage
+- **[ADMIN_ACCESS_GUIDE.md](./ADMIN_ACCESS_GUIDE.md)** - Admin access control
+- **[SECRET_MANAGEMENT.md](./SECRET_MANAGEMENT.md)** - Security best practices
 
 ## 🚀 Deployment
 

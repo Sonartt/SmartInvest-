@@ -100,7 +100,7 @@ class EmailService {
       const htmlContent = this.generateWelcomeEmailHTML(fullName, userType, userData);
       
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || 'SmartInvest <smartinvest254@gmail.com>',
+        from: process.env.SMTP_FROM || 'SmartInvest <smartinvestsi254@gmail.com>',
         to: email,
         subject: `Welcome to SmartInvest Africa, ${fullName}!`,
         html: htmlContent,
@@ -133,7 +133,7 @@ class EmailService {
       const htmlContent = this.generateTermsEmailHTML(fullName);
 
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || 'SmartInvest <smartinvest254@gmail.com>',
+        from: process.env.SMTP_FROM || 'SmartInvest <smartinvestsi254@gmail.com>',
         to: email,
         subject: 'SmartInvest - Terms, Conditions, Rules and Regulations',
         html: htmlContent,
@@ -166,7 +166,7 @@ class EmailService {
       const htmlContent = this.generatePremiumUpgradeEmailHTML(fullName, userData);
 
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || 'SmartInvest <smartinvest254@gmail.com>',
+        from: process.env.SMTP_FROM || 'SmartInvest <smartinvestsi254@gmail.com>',
         to: email,
         subject: '🎉 Welcome to SmartInvest Premium!',
         html: htmlContent,
@@ -199,7 +199,7 @@ class EmailService {
       const htmlContent = this.generateSubscriptionEmailHTML(fullName, subscriptionData);
 
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || 'SmartInvest <smartinvest254@gmail.com>',
+        from: process.env.SMTP_FROM || 'SmartInvest <smartinvestsi254@gmail.com>',
         to: email,
         subject: 'Subscription Confirmation - SmartInvest',
         html: htmlContent,
@@ -310,7 +310,7 @@ class EmailService {
 
           <div class="section">
             <h3>Need Help?</h3>
-            <p>Our support team is here to help! Contact us at: <strong>smartinvest254@gmail.com</strong></p>
+            <p>Our support team is here to help! Contact us at: <strong>smartinvestsi254@gmail.com</strong></p>
           </div>
 
           <p style="color: #666; font-size: 13px; margin-top: 30px;">
@@ -442,7 +442,7 @@ class EmailService {
 
           <div class="section">
             <h3>10. CONTACT & SUPPORT</h3>
-            <p><strong>Email:</strong> smartinvest254@gmail.com</p>
+            <p><strong>Email:</strong> smartinvestsi254@gmail.com</p>
             <p><strong>Website:</strong> ${process.env.APP_URL || 'http://localhost:3000'}</p>
           </div>
 
@@ -525,7 +525,7 @@ class EmailService {
 
           <div class="section">
             <h3>Need Help?</h3>
-            <p>Our premium support team is available to assist you. Email us at: <strong>smartinvest254@gmail.com</strong></p>
+            <p>Our premium support team is available to assist you. Email us at: <strong>smartinvestsi254@gmail.com</strong></p>
           </div>
         </div>
         
@@ -595,7 +595,7 @@ class EmailService {
           </div>
 
           <p style="color: #666; font-size: 13px; margin-top: 20px;">
-            This is an automated confirmation email. Please do not reply directly. For support, email smartinvest254@gmail.com
+            This is an automated confirmation email. Please do not reply directly. For support, email smartinvestsi254@gmail.com
           </p>
         </div>
         
@@ -636,7 +636,7 @@ Important Next Steps:
 3. Verify your email address
 
 Need Help?
-Contact us at: smartinvest254@gmail.com
+Contact us at: smartinvestsi254@gmail.com
 
 © 2026 SmartInvest Africa. All rights reserved.
     `;
@@ -694,7 +694,7 @@ All content is protected by copyright. For personal, non-commercial use only.
 We reserve the right to suspend accounts violating these terms.
 
 10. CONTACT & SUPPORT
-Email: smartinvest254@gmail.com
+Email: smartinvestsi254@gmail.com
 
 By using SmartInvest, you agree to these terms.
 
@@ -732,7 +732,7 @@ Getting Started:
 4. Start planning your financial future
 
 Need Help?
-Email: smartinvest254@gmail.com
+Email: smartinvestsi254@gmail.com
 
 © 2026 SmartInvest Africa.
     `;
@@ -764,7 +764,7 @@ What's Included:
 Managing Your Subscription:
 You can manage your subscription from your account settings anytime.
 
-For support, email: smartinvest254@gmail.com
+For support, email: smartinvestsi254@gmail.com
 
 © 2026 SmartInvest Africa.
     `;

@@ -53,7 +53,7 @@ class ContactFormHandler {
       }
     } catch (error) {
       console.error('Contact form error:', error);
-      this.showMessage('An error occurred. Please try again or contact us directly at smartinvest254@gmail.com', 'error');
+      this.showMessage('An error occurred. Please try again or contact us directly at smartinvestsi254@gmail.com', 'error');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;

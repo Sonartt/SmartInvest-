@@ -199,9 +199,17 @@ router.post('/admin-login', (req, res) => {
     return res.json({ success: false, error: 'Account is not active' });
   }
 
-  // For demo purposes, accept any password for configured admin emails
-  // In production, implement proper password hashing and verification
-  const isValidPassword = password.length >= 6; // Simple validation for demo
+  // Verify password
+  // Check if admin has password field configured, otherwise accept any password
+  let isValidPassword = false;
+  if (adminUser.password) {
+    // Direct password comparison (for development)
+    // In production, use bcrypt: bcrypt.compare(password, adminUser.hashedPassword)
+    isValidPassword = password === adminUser.password;
+  } else {
+    // Fallback: accept any password with minimum length
+    isValidPassword = password.length >= 6;
+  }
 
   if (!isValidPassword) {
     recordFailedAttempt(email, ip);
@@ -240,7 +248,9 @@ router.post('/admin-login', (req, res) => {
 
   res.json({
     success: true,
+    message: 'Login successful',
     token,
+    redirectUrl: 'admin.html',
     user: {
       email: adminUser.email,
       role: adminUser.role,
@@ -251,8 +261,70 @@ router.post('/admin-login', (req, res) => {
 });
 
 /**
+ * POST/GET /api/auth/verify-admin
+ * Verify admin session token (supports both POST body and Authorization header)
+ */
+router.post('/verify-admin', (req, res) => {
+  const token = req.body.token || req.headers['authorization']?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.json({ success: false, error: 'Token required' });
+  }
+
+  const sessions = readJSON(ADMIN_SESSIONS_PATH, { sessions: [] });
+  const session = sessions.sessions.find(s => s.token === token);
+
+  if (!session) {
+    return res.json({ success: false, error: 'Invalid session' });
+  }
+
+  // Check if session expired
+  if (new Date(session.expiresAt).getTime() < Date.now()) {
+    return res.json({ success: false, error: 'Session expired' });
+  }
+
+  res.json({
+    success: true,
+    user: {
+      email: session.email,
+      role: session.role,
+      permissions: session.permissions
+    }
+  });
+});
+
+router.get('/verify-admin', (req, res) => {
+  const token = req.headers['authorization']?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.json({ success: false, error: 'Token required' });
+  }
+
+  const sessions = readJSON(ADMIN_SESSIONS_PATH, { sessions: [] });
+  const session = sessions.sessions.find(s => s.token === token);
+
+  if (!session) {
+    return res.json({ success: false, error: 'Invalid session' });
+  }
+
+  // Check if session expired
+  if (new Date(session.expiresAt).getTime() < Date.now()) {
+    return res.json({ success: false, error: 'Session expired' });
+  }
+
+  res.json({
+    success: true,
+    user: {
+      email: session.email,
+      role: session.role,
+      permissions: session.permissions
+    }
+  });
+});
+
+/**
  * POST /api/auth/admin-verify
- * Verify admin session token
+ * Verify admin session token (legacy endpoint)
  */
 router.post('/admin-verify', (req, res) => {
   const { token } = req.body;

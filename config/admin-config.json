@@ -2,6 +2,8 @@
     "adminUsers": [
         {
             "email": "delijah5415@gmail.com",
+            "name": "ELIJAH DANIEL",
+            "password": "ELIJAH-41168990",
             "role": "super-admin",
             "permissions": [
                 "user-management",
@@ -17,6 +19,8 @@
         },
         {
             "email": "admin@smartinvest.com",
+            "name": "SmartInvest Admin",
+            "password": "admin123",
             "role": "admin",
             "permissions": [
                 "user-management",

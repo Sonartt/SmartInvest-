@@ -194,7 +194,7 @@ const EmailService = require('./services/email-service');
 // Initialize email service with Gmail credentials
 const emailService = new EmailService();
 emailService.initialize({
-  email: process.env.SMTP_USER || 'smartinvest254@gmail.com',
+  email: process.env.SMTP_USER || 'smartinvestsi254@gmail.com',
   password: process.env.SMTP_PASS || 'SmartInvest254.com',
   host: 'smtp.gmail.com',
   port: 587,

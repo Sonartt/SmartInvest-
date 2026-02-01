@@ -21,8 +21,8 @@ class ContactInfoLoader {
       console.error('Failed to load settings:', error);
       this.settings = {
         email: {
-          website: 'smartinvest254@gmail.com',
-          support: 'smartinvest254@gmail.com'
+          website: 'smartinvestsi254@gmail.com',
+          support: 'smartinvestsi254@gmail.com'
         },
         contacts: {
           phone: '0731856995',

@@ -359,8 +359,9 @@ class LiveChatWidget {
       this.addMessage('admin', 
         `Thank you for your message! Our team will review it and get back to you soon.\n\n` +
         `For urgent matters, you can also reach us at:\n` +
-        `📧 smartinvest254@gmail.com\n` +
-        `📞 0731856995 / 0114383762`,
+        `📧 smartinvestsi254@gmail.com\n` +
+        `📞 0731856995 / 0114383762\n` +
+        `👤 Contact: ELIJAH DANIEL`,
         true
       );
       this.scrollToBottom();

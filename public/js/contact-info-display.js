@@ -2,7 +2,7 @@
 class ContactInfoDisplay {
   constructor() {
     this.contactInfo = {
-      email: 'smartinvest254@gmail.com',
+      email: 'smartinvestsi254@gmail.com',
       adminEmail: 'delijah5415@gmail.com',
       phones: ['0731856995', '0114383762'],
       address: 'Nairobi, Kenya',

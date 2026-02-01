@@ -134,6 +134,9 @@
           <button onclick="refreshAllData()" class="btn-enhanced bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
             <span class="refresh-button inline-block">🔄</span> Refresh All
           </button>
+          <button onclick="adminLogout()" class="btn-enhanced bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+            🚪 Logout
+          </button>
         </div>
       </div>
     </div>
@@ -388,6 +391,89 @@
   </div>
 
 <script>
+// ==========================================
+// AUTHENTICATION CHECK
+// ==========================================
+(function() {
+  // Check if user has valid admin token
+  const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+  
+  if (!adminToken) {
+    // No token found, redirect to admin login
+    window.location.href = 'admin-login.html';
+    return;
+  }
+
+  // Verify token with backend
+  fetch('/api/auth/verify-admin', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${adminToken}`
+    },
+    body: JSON.stringify({ token: adminToken })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data.success) {
+      // Token is invalid or expired
+      alert('Your session has expired. Please login again.');
+      localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminToken');
+      window.location.href = 'admin-login.html';
+    } else {
+      // Token is valid, display admin info
+      console.log('Admin authenticated:', data.user);
+      displayAdminInfo(data.user);
+    }
+  })
+  .catch(err => {
+    console.error('Auth verification error:', err);
+    alert('Authentication error. Please login again.');
+    window.location.href = 'admin-login.html';
+  });
+})();
+
+// Display admin info in dashboard
+function displayAdminInfo(user) {
+  // You can add admin info display here if needed
+  console.log('Logged in as:', user.email, '- Role:', user.role);
+}
+
+// Logout function
+function adminLogout() {
+  const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+  
+  if (adminToken) {
+    fetch('/api/auth/admin-logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token: adminToken })
+    })
+    .then(() => {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminEmail');
+      sessionStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminEmail');
+      window.location.href = 'admin-login.html';
+    })
+    .catch(err => {
+      console.error('Logout error:', err);
+      // Still clear local storage and redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = 'admin-login.html';
+    });
+  } else {
+    window.location.href = 'admin-login.html';
+  }
+}
+
+// ==========================================
+// TAB SWITCHING & NAVIGATION
+// ==========================================
 // Tab Switching
 function switchTab(tabName, clickedElement) {
   // Hide all tabs

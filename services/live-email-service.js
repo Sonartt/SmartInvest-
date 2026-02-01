@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 
 // Email configuration
 const ADMIN_EMAIL = 'delijah5415@gmail.com';
-const WEBSITE_EMAIL = 'smartinvest254@gmail.com';
+const WEBSITE_EMAIL = 'smartinvestsi254@gmail.com';
 const SUPPORT_PHONES = ['0731856995', '0114383762'];
 
 class EmailService {
