@@ -1,13 +1,80 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+.env.security
+
+# OS files
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
 *.log
-bin/
-obj/
-data/*.json
-data/content/
-transactions.json
-uploads/*
-!uploads/.gitkeep
 logs/*
 !logs/.gitkeep
+!logs/README.md
+
+# Build artifacts - .NET
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build artifacts - Node/TypeScript
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+.tsbuildinfo
+
+# IDE files
+.vs/
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.code-workspace
+
+# Data files
+data/*.json
+!data/social-media.json
+data/content/*
+!data/README.md
+transactions.json
+share-links.json
+product-files.json
+user-file-access.json
+
+# Upload files
+uploads/*
+!uploads/.gitkeep
+!uploads/README.md
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/

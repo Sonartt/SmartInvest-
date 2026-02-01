@@ -2,21 +2,57 @@
 
 SmartInvest Africa is a comprehensive web application focused on democratizing investment knowledge, tools, and opportunities across Africa.
 
-## Features
+## 🌟 New Live Features
+
+### 💬 Live Chat Support
+- **Floating chat widget** on all pages
+- **Real-time messaging** with admin email notifications
+- **Auto-reply system** for common questions
+- **Message history** stored in browser
+- **User-friendly interface** with minimize/maximize
+
+### 📧 Live Email Service
+- **Professional email templates** for all communications
+- **Contact form integration** with instant delivery
+- **Chat notifications** sent to admin immediately
+- **Gmail SMTP integration** for reliable delivery
+- **Branded HTML emails** with SmartInvest styling
+
+### 📱 Social Media Management
+- **Admin dashboard** for managing all social media links
+- **8 platforms supported**: Instagram, Twitter, Facebook, LinkedIn, WhatsApp, Telegram, TikTok, YouTube
+- **Dynamic widgets** on all pages
+- **WhatsApp integration** with auto-formatted phone numbers
+- **Platform-specific icons** and colors
+
+## 🚀 Core Features
 
 - **Landing Page**: Investment Academy, Insights, Tools, SME funding readiness, Community, and Contact
 - **Payment Integration**: M-Pesa, PayPal, and KCB Bank manual transfers
 - **File Marketplace**: Upload, manage, and sell digital resources
-- **Admin Dashboard**: Manage transfers, files, and user messages
+- **Share Links**: Generate shareable product links with tracking and expiration
+- **Premium File Management**: Admin-only file uploads for premium users (100MB limit)
+- **Admin User Search**: Search users by email, ID, or name
+- **Admin Dashboard**: Manage transfers, files, users, and social media
 - **Accessibility & SEO**: WCAG compliant with comprehensive SEO optimization
 - **Investment Calculator**: Standalone tool for investment and insurance projections
 
-## Quick Start
+## 📞 Contact Information
+
+- **Website Email**: smartinvest254@gmail.com
+- **Admin Email**: delijah5415@gmail.com
+- **Phone**: 0731856995 / 0114383762
+- **WhatsApp**: [Chat with us](https://wa.me/254731856995)
+- **Location**: Nairobi, Kenya
+- **Hours**: Mon-Fri, 9am-6pm EAT
+
+## ⚡ Quick Start
 
 ### Prerequisites
 
 - Node.js >= 18.0.0
 - npm or yarn
+- Gmail account with app password
 
 ### Installation
 
@@ -33,14 +69,32 @@ cp .env.example .env
 
 # Edit .env with your credentials
 nano .env
+```
 
-# Start the server
+### Gmail App Password Setup
+
+1. Go to [Google Account Settings](https://myaccount.google.com/)
+2. Enable **2-Step Verification**
+3. Generate **App Password** for "SmartInvest Email"
+4. Copy the 16-character password to `.env` file
+
+### Start Development Server
+
+```bash
 npm start
 ```
 
 The application will be available at `http://localhost:3000`
 
-## Deployment
+## 📚 Documentation
+
+- **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Complete deployment checklist
+- **[INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md)** - Comprehensive feature summary
+- **[LIVE_FEATURES_COMPLETE.md](./LIVE_FEATURES_COMPLETE.md)** - Live chat, email, and social media docs
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Vercel deployment guide
+
+## 🚀 Deployment
 
 ### Vercel (Recommended)
 

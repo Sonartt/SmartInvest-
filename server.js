@@ -1806,6 +1806,10 @@ app.get('/api/admin/email/status', adminAuth, (req, res) => {
 
 // ========== STATIC ROUTES ==========
 
+app.get('/share/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'share.html'));
+});
+
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -1830,6 +1834,24 @@ contentAPI.smeEndpoints(app, adminAuth);
 contentAPI.communityEndpoints(app, adminAuth);
 contentAPI.analyticsEndpoints(app, adminAuth);
 contentAPI.publicEndpoints(app);
+
+// ============================================================================
+// INTEGRATE SHARE LINKS, PRODUCT FILES, AND USER SEARCH
+// ============================================================================
+const shareLinkAPI = require('./api/share-link-api');
+const productFilesAPI = require('./api/product-files-api');
+const userSearchAPI = require('./api/user-search-api');
+const liveEmailAPI = require('./api/live-email-api');
+const socialMediaAPI = require('./api/social-media-api');
+
+app.use('/api/share', shareLinkAPI);
+app.use('/api/admin/product-files', adminAuth, productFilesAPI);
+app.use('/api/admin/users', adminAuth, userSearchAPI);
+app.use('/api/email', liveEmailAPI);
+app.use('/api/social-media', socialMediaAPI);
+app.put('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+app.post('/api/admin/social-media/update-all', adminAuth, socialMediaAPI);
+app.delete('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
 
 // Export app for Vercel serverless
 module.exports = app;

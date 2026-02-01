@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Management | SmartInvest Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .social-card {
+      transition: all 0.3s ease;
+    }
+    .social-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    .platform-icon {
+      font-size: 32px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Social Media Management</h1>
+          <div class="flex gap-4">
+            <a href="/admin.html" class="text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+            <button id="logoutBtn" class="text-red-600 hover:text-red-800">Logout</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Info Banner -->
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-blue-700">
+              <strong>Admin Only:</strong> These social media links will be displayed to users on the website. Users can click them to reach out to SmartInvest on various platforms.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Media Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">📘</span>
+              <h3 class="text-lg font-semibold">Facebook</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="facebook" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://facebook.com/smartinvest"
+          >
+          <button onclick="updatePlatform('facebook')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">🐦</span>
+              <h3 class="text-lg font-semibold">Twitter/X</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="twitter" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://twitter.com/smartinvest"
+          >
+          <button onclick="updatePlatform('twitter')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">📷</span>
+              <h3 class="text-lg font-semibold">Instagram</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="instagram" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://instagram.com/smartinvest"
+          >
+          <button onclick="updatePlatform('instagram')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">💼</span>
+              <h3 class="text-lg font-semibold">LinkedIn</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="linkedin" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://linkedin.com/company/smartinvest"
+          >
+          <button onclick="updatePlatform('linkedin')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">📺</span>
+              <h3 class="text-lg font-semibold">YouTube</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="youtube" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://youtube.com/@smartinvest"
+          >
+          <button onclick="updatePlatform('youtube')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">💬</span>
+              <h3 class="text-lg font-semibold">WhatsApp</h3>
+            </div>
+          </div>
+          <input 
+            type="tel" 
+            id="whatsapp" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="0731856995"
+            value="0731856995"
+          >
+          <button onclick="updatePlatform('whatsapp')" class="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">✈️</span>
+              <h3 class="text-lg font-semibold">Telegram</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="telegram" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://t.me/smartinvest"
+          >
+          <button onclick="updatePlatform('telegram')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+
+        <div class="social-card bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="platform-icon">🎵</span>
+              <h3 class="text-lg font-semibold">TikTok</h3>
+            </div>
+          </div>
+          <input 
+            type="url" 
+            id="tiktok" 
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" 
+            placeholder="https://tiktok.com/@smartinvest"
+          >
+          <button onclick="updatePlatform('tiktok')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Update
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Update Section -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Bulk Update</h2>
+        <p class="text-gray-600 mb-4">Update all social media links at once</p>
+        <button onclick="updateAll()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">
+          💾 Save All Changes
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let socialMediaData = {};
+
+    // Load existing social media data
+    async function loadSocialMedia() {
+      try {
+        const auth = btoa(`${localStorage.getItem('adminUser')}:${localStorage.getItem('adminPass')}`);
+        const response = await fetch('/api/social-media', {
+          headers: {
+            'Authorization': `Basic ${auth}`
+          }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          socialMediaData = data.socialMedia;
+          
+          // Populate form fields
+          Object.keys(socialMediaData).forEach(platform => {
+            const input = document.getElementById(platform);
+            if (input && socialMediaData[platform]) {
+              input.value = socialMediaData[platform];
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load social media:', error);
+      }
+    }
+
+    // Update single platform
+    async function updatePlatform(platform) {
+      const input = document.getElementById(platform);
+      const url = input.value.trim();
+      
+      try {
+        const auth = btoa(`${localStorage.getItem('adminUser')}:${localStorage.getItem('adminPass')}`);
+        const response = await fetch(`/api/social-media/${platform}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert(`${platform} updated successfully!`);
+          socialMediaData = data.socialMedia;
+        } else {
+          alert(`Failed to update ${platform}: ${data.error}`);
+        }
+      } catch (error) {
+        console.error(`Update ${platform} error:`, error);
+        alert(`Failed to update ${platform}`);
+      }
+    }
+
+    // Update all platforms
+    async function updateAll() {
+      const updates = {};
+      const platforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'whatsapp', 'telegram', 'tiktok'];
+      
+      platforms.forEach(platform => {
+        const input = document.getElementById(platform);
+        if (input) {
+          updates[platform] = input.value.trim();
+        }
+      });
+      
+      try {
+        const auth = btoa(`${localStorage.getItem('adminUser')}:${localStorage.getItem('adminPass')}`);
+        const response = await fetch('/api/social-media/update-all', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updates)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('All social media links updated successfully!');
+          socialMediaData = data.socialMedia;
+        } else {
+          alert(`Failed to update: ${data.error}`);
+        }
+      } catch (error) {
+        console.error('Bulk update error:', error);
+        alert('Failed to update social media links');
+      }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('adminUser');
+        localStorage.removeItem('adminPass');
+        window.location.href = '/admin.html';
+      }
+    });
+
+    // Check auth and load data
+    const adminUser = localStorage.getItem('adminUser');
+    const adminPass = localStorage.getItem('adminPass');
+
+    if (!adminUser || !adminPass) {
+      alert('Please login as admin first');
+      window.location.href = '/admin.html';
+    } else {
+      loadSocialMedia();
+    }
+  </script>
+</body>
+</html>

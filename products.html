@@ -623,6 +623,9 @@
     </div>
   </footer>
 
+  <script src="/public/js/share-link-generator.js"></script>
+  <script src="/public/js/live-chat-widget.js"></script>
+  <script src="/public/js/social-media-widget.js"></script>
   <script>
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -634,6 +637,49 @@
           if (target) {
             target.scrollIntoView({ behavior: 'smooth' });
           }
+        }
+      });
+    });
+
+    // Add share buttons to product cards
+    document.addEventListener('DOMContentLoaded', () => {
+      const productCards = document.querySelectorAll('.product-card');
+      
+      productCards.forEach((card, index) => {
+        const productId = `product-${index + 1}`;
+        const productName = card.querySelector('h3')?.textContent || 'Product';
+        
+        // Create share button
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'mt-4 w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2';
+        shareBtn.innerHTML = '🔗 Share this Product';
+        
+        shareBtn.addEventListener('click', async () => {
+          const generator = new ShareLinkGenerator();
+          try {
+            shareBtn.disabled = true;
+            shareBtn.innerHTML = '⏳ Generating...';
+            
+            const result = await generator.generateLink('product', {
+              productId,
+              expiryDays: 30
+            });
+            
+            generator.showShareModal(result.shareUrl, result.expiresAt);
+            
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = '🔗 Share this Product';
+          } catch (error) {
+            alert('Failed to generate share link');
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = '🔗 Share this Product';
+          }
+        });
+        
+        // Add button to card
+        const cardBody = card.querySelector('.p-6');
+        if (cardBody) {
+          cardBody.appendChild(shareBtn);
         }
       });
     });

@@ -15,13 +15,29 @@
         "moduleResolution": "node",
         "types": [
             "node"
-        ]
+        ],
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true,
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./dist/.tsbuildinfo"
     },
     "include": [
         "src/**/*"
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist",
+        "bin",
+        "obj",
+        "**/*.test.ts",
+        "**/*.spec.ts"
     ]
 }

@@ -1,12 +1,72 @@
-node_modules
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+.env.security
+.env.example
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
-data/*.json
-transactions.json
-uploads/*
-!uploads/.gitkeep
 logs/*
 !logs/.gitkeep
+!logs/README.md
+
+# Build artifacts - .NET
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+
+# Build artifacts - Node/TypeScript
+dist/
+build/
+.next/
+out/
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+
+# Data files
+data/*.json
+data/content/*
+!data/README.md
+transactions.json
+
+# Upload files
+uploads/*
+!uploads/.gitkeep
+!uploads/README.md
+
+# Git directories
 .git
 .github
+
+# Documentation (not needed for deployment)
+*.md
+!README.md
+
+# Test files
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+__tests__/
+coverage/
+
+# Config files not needed in production
+.editorconfig
+.eslintrc*
+.prettierrc*
+tsconfig.json
