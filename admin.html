@@ -167,6 +167,10 @@
           <span class="text-xl">💰</span> Transfers
           <span class="notification-badge" id="transfersBadge" style="display:none;">0</span>
         </div>
+        <div class="nav-tab" onclick="switchTab('access-reviews')">
+          <span class="text-xl">🛡️</span> Access Reviews
+          <span class="notification-badge" id="accessBadge" style="display:none;">0</span>
+        </div>
         <div class="nav-tab" onclick="switchTab('files')">
           <span class="text-xl">📁</span> Files
         </div>
@@ -346,6 +350,17 @@
       </div>
     </div>
 
+    <!-- Access Reviews Tab -->
+    <div id="access-reviews" class="tab-content">
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Access Reviews</h2>
+        <div class="flex gap-2 mb-4">
+          <button onclick="loadAccessViolations()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
+        </div>
+        <div id="accessReviewList">Loading access reviews…</div>
+      </div>
+    </div>
+
     <!-- Files Tab -->
     <div id="files" class="tab-content">
   <!-- File Marketplace Section -->
@@ -504,7 +519,7 @@ function switchTab(tabName, clickedElement) {
 
 // Refresh All Data
 async function refreshAllData() {
-  await Promise.all([loadFiles(), load(), loadAdminMessages(), loadUsers(), loadAnalytics(), loadTransactions(), updateStats()]);
+  await Promise.all([loadFiles(), load(), loadAdminMessages(), loadUsers(), loadAnalytics(), loadTransactions(), loadAccessViolations(), updateStats()]);
   alert('✅ All data refreshed!');
 }
 
@@ -1034,6 +1049,105 @@ function viewUserDetails(userId) {
     .catch(e => alert('Error loading user details'));
 }
 
+// ==========================================
+// ACCESS REVIEWS
+// ==========================================
+async function loadAccessViolations() {
+  try {
+    const res = await fetch('/api/admin/access-violations');
+    const data = await res.json();
+    const out = document.getElementById('accessReviewList');
+    if (!data.success) {
+      out.textContent = 'Failed to load access reviews';
+      return;
+    }
+
+    const violations = data.violations || [];
+    const pending = violations.filter(v => v.status === 'pending');
+    const badge = document.getElementById('accessBadge');
+    if (badge) {
+      badge.style.display = pending.length ? 'inline-block' : 'none';
+      badge.textContent = pending.length;
+    }
+
+    if (!violations.length) {
+      out.innerHTML = '<div class="text-sm text-gray-500">No access violations recorded.</div>';
+      return;
+    }
+
+    const rows = violations.map(v => {
+      const status = v.status || 'pending';
+      const statusColor = status === 'blocked' ? 'text-red-600' : status === 'authorized' ? 'text-green-600' : status === 'dismissed' ? 'text-gray-500' : 'text-yellow-600';
+      return `
+        <tr class="border-b">
+          <td class="px-3 py-2">
+            <div class="font-semibold">${v.reason || 'access_denied'}</div>
+            <div class="text-xs text-gray-500">${new Date(v.at).toLocaleString()}</div>
+            <div class="text-xs text-gray-500">${v.path || ''}</div>
+          </td>
+          <td class="px-3 py-2 text-sm">
+            <div>${v.email || 'N/A'}</div>
+            <div class="text-xs text-gray-500">File: ${v.fileId || 'N/A'}</div>
+          </td>
+          <td class="px-3 py-2 text-sm">
+            <div>${v.ip || 'N/A'}</div>
+            <div class="text-xs text-gray-500">${v.userAgent ? v.userAgent.slice(0, 40) + (v.userAgent.length > 40 ? '…' : '') : ''}</div>
+          </td>
+          <td class="px-3 py-2 text-sm font-semibold ${statusColor}">${status}</td>
+          <td class="px-3 py-2">
+            <div class="flex flex-col gap-1">
+              <button onclick="takeAccessAction('${v.id}', 'block')" class="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700">Block IP</button>
+              <button onclick="takeAccessAction('${v.id}', 'authorize')" class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700">Authorize</button>
+              <button onclick="takeAccessAction('${v.id}', 'dismiss')" class="bg-gray-600 text-white px-2 py-1 rounded text-xs hover:bg-gray-700">Dismiss</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    out.innerHTML = `
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr class="text-left text-gray-700">
+              <th class="px-3 py-2 font-semibold">Event</th>
+              <th class="px-3 py-2 font-semibold">User</th>
+              <th class="px-3 py-2 font-semibold">Source</th>
+              <th class="px-3 py-2 font-semibold">Status</th>
+              <th class="px-3 py-2 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    console.error('loadAccessViolations error', e);
+    document.getElementById('accessReviewList').textContent = 'Error loading access reviews';
+  }
+}
+
+async function takeAccessAction(id, action) {
+  if (!confirm(`Apply action: ${action}?`)) return;
+  const note = prompt('Optional note for this action:', '') || '';
+  const payload = { action, note };
+  if (action === 'block') payload.blockDuration = 24 * 60 * 60 * 1000;
+
+  try {
+    const res = await fetch(`/api/admin/access-violations/${id}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      alert('Action failed: ' + (data.error || 'Unknown error'));
+      return;
+    }
+    loadAccessViolations();
+  } catch (e) {
+    alert('Action error: ' + e.message);
+  }
+}
+
 // Initialize on page load
 window.addEventListener('load', () => {
   initScrollAnimations();
@@ -1045,6 +1159,7 @@ loadAdminMessages();
 loadUsers();
 loadAnalytics();
 loadTransactions();
+loadAccessViolations();
 updateStats();
 </script>
 </body>

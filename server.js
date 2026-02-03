@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const contentAPI = require('./api/content-management');
 const subManager = require('./api/subscription-manager');
 const shareLinkService = require('./services/share-link-service');
+const { blockIP, unblockIP, getClientIP, isIPBlocked, logSecurityEvent } = require('./middleware/security');
 
 const app = express();
 app.use(cors());
@@ -48,6 +49,17 @@ function adminAuth(req, res, next) {
   console.warn(`[SECURITY] Failed admin login attempt from IP: ${req.ip}`);
   res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
   return res.status(401).end('Unauthorized');
+}
+
+function isAdminRequest(req) {
+  const adminUser = process.env.ADMIN_USER;
+  const adminPass = process.env.ADMIN_PASS;
+  if (!adminUser || !adminPass) return false;
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) return false;
+  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  return user === adminUser && pass === adminPass;
 }
 
 const PORT = process.env.PORT || 3000;
@@ -313,7 +325,45 @@ function writeUsers(users) {
 }
 
 function normalizeEmail(value) {
-  return String(value || '').trim().toLowerCase();
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  const [local, domain] = raw.split('@');
+  if (!domain) return raw;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const stripped = local.split('+')[0].replace(/\./g, '');
+    return `${stripped}@gmail.com`;
+  }
+  return raw;
+}
+
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits;
+}
+
+function findContactConflict(users, { email, mobileNumber, phone }, currentUserId = null) {
+  const targetEmail = normalizeEmail(email);
+  const targetPhone = normalizePhone(mobileNumber || phone);
+  let emailMatch = null;
+  let phoneMatch = null;
+
+  if (targetEmail) {
+    emailMatch = users.find(u => u.id !== currentUserId && normalizeEmail(u.email) === targetEmail);
+  }
+
+  if (targetPhone) {
+    phoneMatch = users.find(u => u.id !== currentUserId && normalizePhone(u.mobileNumber || u.phone) === targetPhone);
+  }
+
+  if (emailMatch) {
+    return { conflict: true, field: 'email', message: 'email already in use by another account' };
+  }
+
+  if (phoneMatch) {
+    return { conflict: true, field: 'mobileNumber', message: 'mobile number already in use by another account' };
+  }
+
+  return { conflict: false };
 }
 
 function getWalletBalance(user) {
@@ -337,7 +387,11 @@ app.post('/api/auth/signup', async (req, res) => {
     const referralToken = req.body.referralToken || req.body.affiliateToken || req.body.ref || null;
 
     const users = readUsers();
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    const conflict = findContactConflict(users, { email, mobileNumber });
+    if (conflict.conflict) {
+      return res.status(409).json({ error: conflict.message });
+    }
+    if (users.find(u => normalizeEmail(u.email) === normalizeEmail(email))) {
       return res.status(409).json({ error: 'email already registered' });
     }
 
@@ -363,7 +417,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const user = { 
       id: userId,
-      email: email.toLowerCase(), 
+      email: String(email || '').trim().toLowerCase(), 
       passwordHash: hash,
       fullName: fullName || '',
       mobileNumber: mobileNumber || '',
@@ -439,7 +493,13 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const normalizedEmail = normalizeEmail(email);
+    const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (matches.length > 1) {
+      logSecurityEvent('contact-conflict', req.ip, { reason: 'duplicate_email', email: normalizedEmail });
+      return res.status(409).json({ error: 'contact conflict detected, contact support' });
+    }
+    const user = matches[0];
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
@@ -683,6 +743,14 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
         if (match) {
           const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber') || items.find(i=>i.Name==='phone' ) ) : null;
           const emailLike = phone && phone.Value ? String(phone.Value)+'@mpesa.local' : '';
+          const users = readUsers();
+          if (emailLike) {
+            const normalizedEmail = normalizeEmail(emailLike);
+            const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+            if (matches.length > 1) {
+              logSecurityEvent('payment-contact-conflict', req.ip, { provider: 'mpesa', email: normalizedEmail, reason: 'duplicate_email' });
+            }
+          }
           grantPurchase(match.id, emailLike, 'mpesa', { raw: payload });
         }
       }
@@ -717,6 +785,17 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
         if (fileId) break;
       }
       const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
+      if (payerEmail) {
+        const users = readUsers();
+        const normalizedEmail = normalizeEmail(payerEmail);
+        const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+        if (matches.length > 1) {
+          logSecurityEvent('payment-contact-conflict', req.ip, { provider: 'paypal', email: normalizedEmail, reason: 'duplicate_email' });
+        }
+        if (matches.length === 0) {
+          logSecurityEvent('payment-unregistered-email', req.ip, { provider: 'paypal', email: normalizedEmail });
+        }
+      }
       if (fileId) grantPurchase(fileId, payerEmail, 'paypal', { raw: payload });
     } catch (e) { console.error('paypal grant detection error', e.message); }
     return res.status(200).json({ received: true });
@@ -732,11 +811,23 @@ app.post('/api/pay/kcb/manual', (req, res) => {
     const { name, email, amount, reference } = req.body;
     if (!name || !email || !amount) return res.status(400).json({ error: 'name, email and amount required' });
 
+    const users = readUsers();
+    const normalizedEmail = normalizeEmail(email);
+    const emailMatches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (emailMatches.length > 1) {
+      logSecurityEvent('payment-contact-conflict', req.ip, { email: normalizedEmail, reason: 'duplicate_email' });
+      return res.status(409).json({ error: 'contact conflict detected for email' });
+    }
+    if (emailMatches.length === 0) {
+      logSecurityEvent('payment-unregistered-email', req.ip, { email: normalizedEmail, provider: 'kcb_manual' });
+      return res.status(400).json({ error: 'email not registered' });
+    }
+
     const tx = {
       provider: 'kcb_manual',
       timestamp: new Date().toISOString(),
       name,
-      email,
+      email: emailMatches[0].email,
       amount,
       reference: reference || '',
       status: 'pending',
@@ -864,6 +955,47 @@ function readTokens(){
 }
 function writeTokens(obj){ fs.writeFileSync(TOKENS_FILE, JSON.stringify(obj, null, 2)); }
 
+// Access violations logging
+const ACCESS_VIOLATIONS_FILE = path.join(__dirname, 'data', 'access-violations.json');
+if (!fs.existsSync(ACCESS_VIOLATIONS_FILE)) {
+  fs.writeFileSync(ACCESS_VIOLATIONS_FILE, JSON.stringify({ violations: [] }, null, 2));
+}
+
+function readAccessViolations(){
+  try { return JSON.parse(fs.readFileSync(ACCESS_VIOLATIONS_FILE, 'utf8') || '{"violations":[]}'); }
+  catch(e){ return { violations: [] }; }
+}
+
+function writeAccessViolations(data){
+  fs.writeFileSync(ACCESS_VIOLATIONS_FILE, JSON.stringify(data, null, 2));
+}
+
+function logAccessViolation(req, details = {}){
+  try {
+    const ip = getClientIP(req);
+    const entry = {
+      id: uuidv4(),
+      at: new Date().toISOString(),
+      ip,
+      method: req.method,
+      path: req.originalUrl,
+      userAgent: req.headers['user-agent'] || '',
+      email: details.email || '',
+      fileId: details.fileId || '',
+      reason: details.reason || 'access_denied',
+      status: 'pending'
+    };
+    const store = readAccessViolations();
+    store.violations = store.violations || [];
+    store.violations.push(entry);
+    if (store.violations.length > 5000) store.violations = store.violations.slice(-5000);
+    writeAccessViolations(store);
+    logSecurityEvent('access-violation', ip, { reason: entry.reason, path: entry.path, email: entry.email, fileId: entry.fileId });
+  } catch (e) {
+    console.error('logAccessViolation error', e.message);
+  }
+}
+
 // Admin: delete file metadata and file
 app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
   try {
@@ -883,8 +1015,8 @@ app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
 // grant purchases via provider webhooks or admin grants. This improves security by avoiding
 // client-side simulated purchases.
 
-// Download a file if a valid token exists for that file
-app.get('/download/:id', (req, res) => {
+// Download a file by id if a valid token exists for that file (legacy path)
+app.get('/download/file/:id', (req, res) => {
   try {
     const id = req.params.id;
     const token = req.query.token || req.headers['x-download-token'];
@@ -910,12 +1042,28 @@ app.get('/download/:id', (req, res) => {
 // accessible only to paying users.
 function requirePaidUser(req, res, next) {
   try {
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).json({ error: 'Access denied. IP blocked.' });
+    }
+
+    if (isAdminRequest(req)) {
+      req.purchaserEmail = process.env.ADMIN_USER || 'admin';
+      req.isStaff = true;
+      return next();
+    }
     const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
+    if (!email) {
+      logAccessViolation(req, { reason: 'missing_email', fileId: '', email: '' });
+      return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
+    }
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
     const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
-    if (!ok) return res.status(402).json({ error: 'No purchases found for this email' });
+    if (!ok) {
+      logAccessViolation(req, { reason: 'purchase_not_found', email: e, fileId: '' });
+      return res.status(402).json({ error: 'No purchases found for this email' });
+    }
     req.purchaserEmail = e;
     return next();
   } catch (e) {
@@ -1030,6 +1178,9 @@ app.get('/api/admin/files', adminAuth, (req, res) => {
 app.get('/api/files', requirePaidUser, (req, res) => {
   try {
     const files = readFilesMeta().filter(f => f.published);
+    if (req.isStaff) {
+      return res.json({ success: true, files });
+    }
     const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
     const ownedIds = purchases.map(p => p.fileId);
     const owned = files.filter(f => ownedIds.includes(f.id));
@@ -1042,7 +1193,20 @@ app.get('/api/files', requirePaidUser, (req, res) => {
 // Public catalog: list published files (title, price, id) for browsing before purchase
 app.get('/api/catalog', (req, res) => {
   try {
-    const files = readFilesMeta().filter(f => f.published).map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+    const files = readFilesMeta()
+      .filter(f => f.published)
+      .map(f => ({
+        id: f.id,
+        title: f.title,
+        price: f.price,
+        description: f.description,
+        size: f.size,
+        pdfInfo: f.pdfInfo ? {
+          title: f.pdfInfo.title,
+          description: f.pdfInfo.description,
+          pages: f.pdfInfo.pages
+        } : null
+      }));
     return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
@@ -1152,10 +1316,15 @@ app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   try {
     const id = req.params.id; const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'email required' });
+    const users = readUsers();
+    const normalizedEmail = normalizeEmail(email);
+    const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (matches.length > 1) return res.status(409).json({ error: 'contact conflict detected for email' });
+    if (matches.length === 0) return res.status(400).json({ error: 'email not registered' });
     const files = readFilesMeta(); const file = files.find(f=>f.id===id);
     if (!file) return res.status(404).json({ error: 'file not found' });
     const purchases = readPurchases();
-    purchases.push({ id: uuidv4(), fileId: id, email: email.toLowerCase(), grantedBy: req.headers['x-admin']||'admin', at: new Date().toISOString() });
+    purchases.push({ id: uuidv4(), fileId: id, email: matches[0].email.toLowerCase(), grantedBy: req.headers['x-admin']||'admin', at: new Date().toISOString() });
     writePurchases(purchases);
     sendNotificationMail({ to: email, subject: `Access granted to ${file.title}`, text: `You have been granted access to download ${file.title}.` });
     return res.json({ success: true });
@@ -1165,15 +1334,32 @@ app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
 // Public: request download token (email must match a purchase)
 app.post('/api/download/request', express.json(), (req, res) => {
   try {
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).json({ error: 'Access denied. IP blocked.' });
+    }
     const { fileId, email } = req.body;
-    if (!fileId || !email) return res.status(400).json({ error: 'fileId and email required' });
-    const purchases = readPurchases();
-    const ok = purchases.find(p => p.fileId === fileId && p.email === email.toLowerCase());
-    if (!ok) return res.status(402).json({ error: 'purchase not found' });
+    if (!fileId) return res.status(400).json({ error: 'fileId required' });
+    const files = readFilesMeta();
+    const file = files.find(f => f.id === fileId && f.published);
+    if (!file) return res.status(404).json({ error: 'file not found' });
+    const staffRequest = isAdminRequest(req);
+    const isFree = Number(file.price || 0) <= 0;
+    if (!staffRequest && !isFree && !email) return res.status(400).json({ error: 'email required for paid downloads' });
+    const normalizedEmail = email ? String(email).toLowerCase() : (process.env.ADMIN_USER || 'admin');
+
+    if (!staffRequest && !isFree) {
+      const purchases = readPurchases();
+      const ok = purchases.find(p => p.fileId === fileId && p.email === normalizedEmail);
+      if (!ok) {
+        logAccessViolation(req, { reason: 'purchase_not_found', email: normalizedEmail, fileId });
+        return res.status(402).json({ error: 'purchase not found' });
+      }
+    }
     const tokens = readTokens();
     const token = uuidv4();
     const expireAt = Date.now() + (60*60*1000); // 1 hour
-    tokens[token] = { fileId, email: email.toLowerCase(), expireAt };
+    tokens[token] = { fileId, email: normalizedEmail, expireAt };
     writeTokens(tokens);
     const url = `${req.protocol}://${req.get('host')}/download/${token}`;
     return res.json({ success: true, url, expiresAt: new Date(expireAt).toISOString() });
@@ -1183,11 +1369,23 @@ app.post('/api/download/request', express.json(), (req, res) => {
 // Serve download by token
 app.get('/download/:token', (req, res) => {
   try {
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).send('Access denied. IP blocked.');
+    }
     const token = req.params.token;
     const tokens = readTokens();
     const entry = tokens[token];
-    if (!entry) return res.status(404).send('Invalid or expired token');
-    if (Date.now() > entry.expireAt) { delete tokens[token]; writeTokens(tokens); return res.status(410).send('Token expired'); }
+    if (!entry) {
+      logAccessViolation(req, { reason: 'invalid_token', email: '', fileId: '' });
+      return res.status(404).send('Invalid or expired token');
+    }
+    if (Date.now() > entry.expireAt) {
+      delete tokens[token];
+      writeTokens(tokens);
+      logAccessViolation(req, { reason: 'expired_token', email: entry.email || '', fileId: entry.fileId || '' });
+      return res.status(410).send('Token expired');
+    }
     const files = readFilesMeta(); const file = files.find(f=>f.id===entry.fileId);
     if (!file) return res.status(404).send('File not found');
     const filePath = path.join(UPLOADS_DIR, file.filename);
@@ -1195,6 +1393,65 @@ app.get('/download/:token', (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${file.originalName.replace(/\"/g,'') }"`);
     return res.sendFile(filePath);
   } catch(e){ console.error('download error', e.message); return res.status(500).send('Server error'); }
+});
+
+// Admin: review access violations
+app.get('/api/admin/access-violations', adminAuth, (req, res) => {
+  try {
+    const store = readAccessViolations();
+    const violations = (store.violations || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+    return res.json({ success: true, violations });
+  } catch (e) {
+    console.error('access violations list error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: take action on access violations
+app.post('/api/admin/access-violations/:id/action', adminAuth, express.json(), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, note, blockDuration } = req.body || {};
+    const store = readAccessViolations();
+    const violations = store.violations || [];
+    const idx = violations.findIndex(v => v.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'violation not found' });
+
+    const entry = violations[idx];
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!['block', 'authorize', 'dismiss'].includes(normalizedAction)) {
+      return res.status(400).json({ error: 'invalid action' });
+    }
+
+    if (normalizedAction === 'block') {
+      const durationMs = Number(blockDuration) || (24 * 60 * 60 * 1000);
+      if (entry.ip) blockIP(entry.ip, durationMs, 'Unauthorized access attempt');
+      entry.status = 'blocked';
+      entry.blockedUntil = new Date(Date.now() + durationMs).toISOString();
+    }
+
+    if (normalizedAction === 'authorize') {
+      if (entry.ip) unblockIP(entry.ip, 'Admin authorized');
+      entry.status = 'authorized';
+    }
+
+    if (normalizedAction === 'dismiss') {
+      entry.status = 'dismissed';
+    }
+
+    entry.action = normalizedAction;
+    entry.note = note || '';
+    entry.actionAt = new Date().toISOString();
+    entry.actionBy = process.env.ADMIN_USER || 'admin';
+
+    violations[idx] = entry;
+    store.violations = violations;
+    writeAccessViolations(store);
+    return res.json({ success: true, violation: entry });
+  } catch (e) {
+    console.error('access violation action error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
 });
 
 // CSV export of KCB manual transfers
@@ -1367,6 +1624,14 @@ app.patch('/api/admin/users/:userId', adminAuth, express.json(), (req, res) => {
       return res.status(403).json({ error: 'Cannot modify primary admin status' });
     }
     
+    const conflict = findContactConflict(users, {
+      email: updates.email || users[userIndex].email,
+      mobileNumber: updates.mobileNumber || users[userIndex].mobileNumber
+    }, users[userIndex].id);
+    if (conflict.conflict) {
+      return res.status(409).json({ error: conflict.message });
+    }
+
     // Update allowed fields
     const allowedFields = ['fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'taxInfo'];
     allowedFields.forEach(field => {

@@ -45,6 +45,39 @@ function writeFile(filepath, data) {
   }
 }
 
+function normalizeEmail(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  const [local, domain] = raw.split('@');
+  if (!domain) return raw;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const stripped = local.split('+')[0].replace(/\./g, '');
+    return `${stripped}@gmail.com`;
+  }
+  return raw;
+}
+
+function normalizePhone(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function findContactConflict(users, { email, phone }, currentUserId = null) {
+  const targetEmail = normalizeEmail(email);
+  const targetPhone = normalizePhone(phone);
+
+  if (targetEmail) {
+    const emailMatch = users.find(u => u.id !== currentUserId && normalizeEmail(u.email) === targetEmail);
+    if (emailMatch) return { conflict: true, field: 'email', message: 'Email already exists' };
+  }
+
+  if (targetPhone) {
+    const phoneMatch = users.find(u => u.id !== currentUserId && normalizePhone(u.phone) === targetPhone);
+    if (phoneMatch) return { conflict: true, field: 'phone', message: 'Phone number already exists' };
+  }
+
+  return { conflict: false };
+}
+
 function logAccess(userId, action, resource, status, ip) {
   const timestamp = new Date().toISOString();
   const logEntry = `[${timestamp}] User: ${userId} | Action: ${action} | Resource: ${resource} | Status: ${status} | IP: ${ip}\n`;
@@ -65,7 +98,11 @@ function createUser(userData) {
   const users = readFile(USERS_FILE);
   
   // Check if user already exists
-  if (users.some(u => u.email === userData.email)) {
+  const conflict = findContactConflict(users, { email: userData.email, phone: userData.phone });
+  if (conflict.conflict) {
+    return { error: conflict.message };
+  }
+  if (users.some(u => normalizeEmail(u.email) === normalizeEmail(userData.email))) {
     return { error: 'User with this email already exists' };
   }
   
@@ -305,6 +342,14 @@ function updateUser(userId, updateData) {
     return { error: 'User not found' };
   }
   
+  const conflict = findContactConflict(users, {
+    email: updateData.email || user.email,
+    phone: updateData.phone || user.phone
+  }, user.id);
+  if (conflict.conflict) {
+    return { error: conflict.message };
+  }
+
   // Only allow updating non-critical fields
   const allowedFields = ['name', 'phone', 'location', 'taxId'];
   allowedFields.forEach(field => {

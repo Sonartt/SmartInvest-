@@ -18,13 +18,15 @@
       list.innerHTML = files.map(f => {
         const title = escapeHtml(f.title);
         const desc = escapeHtml(f.description || '');
-        const price = Number(f.price || 0).toLocaleString();
+        const priceLabel = `${Number(f.price || 0).toLocaleString()} KES`;
+        const pdfInfo = f.pdfInfo ? `<div style="margin-top:6px;color:#64748b;font-size:12px;">PDF: ${escapeHtml(f.pdfInfo.title || f.title)} • ${escapeHtml(f.pdfInfo.pages || 0)} pages</div>` : '';
         return `
           <article class="catalog-row" style="padding:12px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
             <div>
               <h4 style="margin:0;color:#0f172a;">${title}</h4>
               <p style="margin:4px 0;color:#475569;font-size:14px;">${desc}</p>
-              <span style="font-weight:600;color:#1a365d;">${price} KES</span>
+              ${pdfInfo}
+              <span style="font-weight:600;color:#1a365d;">${priceLabel}</span>
             </div>
             <div>
               <a class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded text-sm" href="/catalog.html?id=${encodeURIComponent(f.id)}">View</a>
@@ -50,11 +52,14 @@
       if (!data.success){ throw new Error(data.error || 'Failed to load'); }
       const f = data.file;
       if (qs('#list-card')) qs('#list-card').style.display = 'none';
+      const priceLabel = `${Number(f.price || 0).toLocaleString()} KES`;
+      const pdfInfo = f.pdfInfo ? `<div style="margin-top:6px;color:#64748b;font-size:13px;">PDF: ${escapeHtml(f.pdfInfo.title || f.title)} • ${escapeHtml(f.pdfInfo.pages || 0)} pages</div>` : '';
       container.innerHTML = `
         <h1 class="text-2xl font-semibold text-slate-900">${escapeHtml(f.title)}</h1>
         <p class="mt-2 text-slate-700">${escapeHtml(f.description||'')}</p>
+        ${pdfInfo}
         <dl class="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-600">
-          <div><dt class="font-medium">Price</dt><dd>${Number(f.price||0).toLocaleString()} KES</dd></div>
+          <div><dt class="font-medium">Price</dt><dd>${priceLabel}</dd></div>
           <div><dt class="font-medium">Size</dt><dd>${(f.size||0)} bytes</dd></div>
         </dl>
         <div class="mt-6 flex items-center gap-3">
@@ -62,6 +67,7 @@
           <button id="btnDownload" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded">Download (Premium)</button>
           <span id="status" class="text-sm text-slate-600"></span>
         </div>
+        <p style="margin-top:8px;color:#64748b;font-size:12px;">Premium downloads require a verified purchase email.</p>
       `;
       qs('#btnDownload').addEventListener('click', () => requestDownload(id));
     } catch (e){

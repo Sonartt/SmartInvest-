@@ -160,6 +160,23 @@ function blockIP(ip, duration = null, reason = 'Rate limit exceeded') {
 }
 
 /**
+ * Unblock IP address
+ */
+function unblockIP(ip, reason = 'Admin authorized') {
+  if (!ip) return false;
+  if (blockedIPs.has(ip)) {
+    blockedIPs.delete(ip);
+  }
+  const persistentBlocked = readJSON(BLOCKED_IPS_PATH, { ips: {} });
+  if (persistentBlocked.ips[ip]) {
+    delete persistentBlocked.ips[ip];
+    writeJSON(BLOCKED_IPS_PATH, persistentBlocked);
+  }
+  logSecurityEvent('ip-unblocked', ip, { reason });
+  return true;
+}
+
+/**
  * Rate Limiting Middleware Factory
  */
 function createRateLimiter(type = 'api') {
@@ -409,6 +426,7 @@ module.exports = {
   requestLogger,
   isIPBlocked,
   blockIP,
+  unblockIP,
   logSecurityEvent,
   getClientIP
 };
