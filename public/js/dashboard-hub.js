@@ -714,9 +714,10 @@ async function refreshDashboard() {
   usersEl.textContent = premiumEl.textContent = filesEl.textContent = messagesEl.textContent = '…';
 
   try {
-    const res = await fetch('/api/admin/dashboard-stats');
-    const data = await res.json();
-    if (!data.success) throw new Error('Failed to load stats');
+    const res = await fetchWithTimeout('/api/admin/dashboard-stats');
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok || !data.success) throw new Error('Failed to load stats');
     usersEl.textContent = data.totalUsers ?? '0';
     premiumEl.textContent = data.premiumUsers ?? '0';
     filesEl.textContent = data.totalFiles ?? '0';

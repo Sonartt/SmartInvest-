@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Investment Dashboard - SmartInvest Africa</title>
+    <meta name="description" content="Advanced blockchain investment strategies, crypto analysis, NSE market forum, and bank savings insights. Premium feature.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://smartinvest.africa/blockchain-investment-dashboard.html">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%231a365d'/%3E%3Cstop offset='100%25' style='stop-color:%232563eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3Cpath d='M30 55 L40 45 L50 60 L70 35' stroke='%23d4af37' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='70' cy='35' r='3' fill='%23d4af37'/%3E%3C/svg%3E">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/wwwroot/css/corporate-theme.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a2b4a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .premium-guard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .premium-guard.active {
+            display: flex;
+        }
+
+        .premium-guard-content {
+            background: linear-gradient(135deg, #1a365d 0%, #2563eb 100%);
+            padding: 3rem 2rem;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .premium-guard-content h2 {
+            color: #d4af37;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .premium-guard-content p {
+            color: white;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .premium-guard-features {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .premium-guard-features li {
+            color: #d4af37;
+            margin-bottom: 0.5rem;
+            list-style: none;
+        }
+
+        .premium-guard-features li:before {
+            content: "✓ ";
+            margin-right: 0.5rem;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #1a365d 0%, #2563eb 100%);
+            padding: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-bottom: 2px solid #d4af37;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #d4af37 !important;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+            transition: all 0.3s;
+            margin: 0 0.5rem;
+        }
+
+        .nav-link:hover {
+            color: #d4af37 !important;
+        }
+
+        .container-main {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: linear-gradient(135deg, rgba(26, 54, 93, 0.8) 0%, rgba(37, 99, 235, 0.8) 100%);
+            border: 2px solid #d4af37;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(212, 175, 55, 0.2);
+        }
+
+        .section-title {
+            color: #d4af37;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title i {
+            font-size: 2rem;
+        }
+
+        .blockchain-structure {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .blockchain-node {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 2px solid #64748b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .blockchain-node:hover {
+            border-color: #d4af37;
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.2);
+        }
+
+        .blockchain-node h4 {
+            color: #d4af37;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .blockchain-node p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .investment-strategy {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .strategy-card {
+            background: #1e293b;
+            border-left: 4px solid #d4af37;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .strategy-card:hover {
+            transform: translateX(4px);
+                box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15);
+        }
+
+        .strategy-card h5 {
+            color: #d4af37;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .strategy-card .description {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .strategy-card .risk-level {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .risk-low {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .risk-medium {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+        }
+
+        .risk-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .crypto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .crypto-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .crypto-card:hover {
+            border-color: #d4af37;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+        }
+
+        .crypto-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .crypto-name {
+            color: #d4af37;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .crypto-info {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+        }
+
+        .bank-savings-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .bank-option {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 2px solid #334155;
+        }
+
+        .bank-option:hover {
+            border-color: #d4af37;
+        }
+
+        .bank-option h5 {
+            color: #d4af37;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .interest-rate {
+            font-size: 1.8rem;
+            color: #4ade80;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .bank-details {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .nse-forum {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .forum-thread {
+            background: #0f172a;
+            border-left: 4px solid #d4af37;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .forum-thread:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateX(4px);
+        }
+
+        .forum-thread-title {
+            color: #d4af37;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .forum-thread-meta {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .forum-thread-preview {
+            color: #cbd5e1;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-box {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            color: #d4af37;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .stat-label {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features-list li {
+            color: #cbd5e1;
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .features-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #d4af37;
+            font-weight: 700;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #d4af37 0%, #c4a02f 100%);
+            color: #1a365d;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+        }
+
+        .tutorial-video {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .tutorial-video a {
+            color: #d4af37;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .tutorial-video a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 1.4rem;
+            }
+
+            .blockchain-structure,
+            .investment-strategy,
+            .crypto-grid,
+            .bank-savings-container,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .premium-guard-content {
+                margin: 1rem;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Premium Guard -->
+    <div id="premiumGuard" class="premium-guard">
+        <div class="premium-guard-content">
+            <h2>🔒 Premium Feature</h2>
+            <p>This advanced blockchain investment dashboard is available exclusively to premium members.</p>
+            <ul class="premium-guard-features">
+                <li>Blockchain investment strategies</li>
+                <li>Crypto portfolio analysis</li>
+                <li>Bank savings optimization</li>
+                <li>NSE market forum access</li>
+                <li>Real-time market alerts</li>
+            </ul>
+            <button onclick="window.location.href='/index.html'" class="btn-primary-custom">Upgrade to Premium</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-cube"></i> SmartInvest Blockchain
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="javascript:void(0)" onclick="logout()">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-main">
+        <!-- Blockchain Structure Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-link"></i> Blockchain Structure
+            </div>
+            <p>Understanding the fundamental structure of blockchain technology for investment purposes.</p>
+            <div class="blockchain-structure">
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-cube"></i> Blocks</h4>
+                    <p>Immutable records of transactions grouped chronologically. Each block contains transaction data, timestamp, and a cryptographic hash linking to the previous block.</p>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-link"></i> Chain</h4>
+                    <p>Sequential linking of blocks through cryptographic hashing. The chain structure ensures data integrity and prevents unauthorized modifications to transaction history.</p>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-lock"></i> Consensus</h4>
+                    <p>Distributed agreement mechanisms (Proof of Work, Proof of Stake) that validate new blocks. Essential for security and decentralization.</p>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-network-wired"></i> Decentralization</h4>
+                    <p>No central authority controls the network. Thousands of nodes maintain copies of the ledger, ensuring transparency and resilience.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investment Strategies Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-chart-line"></i> Blockchain Investment Strategies
+            </div>
+            <p>Proven strategies for building a diversified blockchain investment portfolio.</p>
+            <div class="investment-strategy">
+                <div class="strategy-card">
+                    <h5>Long-term Accumulation (HODL)</h5>
+                    <div class="description">Buy and hold quality assets for 3+ years, benefiting from compound growth and market cycles.</div>
+                    <span class="risk-level risk-medium">Medium Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Lower stress trading</li>
+                        <li>Tax-efficient (in some regions)</li>
+                        <li>Time-weighted growth</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5>Dollar-Cost Averaging</h5>
+                    <div class="description">Invest fixed amounts at regular intervals, reducing impact of market volatility.</div>
+                    <span class="risk-level risk-low">Low Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Reduces timing risk</li>
+                        <li>Disciplined approach</li>
+                        <li>Works in bull & bear markets</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5>Yield Farming & Staking</h5>
+                    <div class="description">Earn returns by providing liquidity or validating transactions on blockchain networks.</div>
+                    <span class="risk-level risk-high">High Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>High returns potential</li>
+                        <li>Smart contract risk</li>
+                        <li>Market volatility exposure</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5>Portfolio Rebalancing</h5>
+                    <div class="description">Maintain target allocations by periodic buying/selling to lock in gains and manage risk.</div>
+                    <span class="risk-level risk-medium">Medium Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Systematic discipline</li>
+                        <li>Reduces emotional trading</li>
+                        <li>Tax optimization</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crypto Blockchains Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-coins"></i> Major Crypto Blockchains
+            </div>
+            <p>Leading blockchain networks and their investment characteristics.</p>
+            <div class="crypto-grid">
+                <div class="crypto-card">
+                    <div class="crypto-icon">₿</div>
+                    <div class="crypto-name">Bitcoin (BTC)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> Proof of Work<br>
+                        <strong>Market Cap:</strong> Largest<br>
+                        <strong>Profile:</strong> Store of value
+                    </div>
+                </div>
+                <div class="crypto-card">
+                    <div class="crypto-icon">Ξ</div>
+                    <div class="crypto-name">Ethereum (ETH)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> Proof of Stake<br>
+                        <strong>Market Cap:</strong> 2nd Largest<br>
+                        <strong>Profile:</strong> Smart contracts
+                    </div>
+                </div>
+                <div class="crypto-card">
+                    <div class="crypto-icon">◊</div>
+                    <div class="crypto-name">Polygon (MATIC)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> Layer 2<br>
+                        <strong>Focus:</strong> Scalability<br>
+                        <strong>Profile:</strong> Low-cost transactions
+                    </div>
+                </div>
+                <div class="crypto-card">
+                    <div class="crypto-icon">◆</div>
+                    <div class="crypto-name">Solana (SOL)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> High-speed<br>
+                        <strong>TPS:</strong> 65,000+<br>
+                        <strong>Profile:</strong> Developer platform
+                    </div>
+                </div>
+                <div class="crypto-card">
+                    <div class="crypto-icon">🔺</div>
+                    <div class="crypto-name">Cardano (ADA)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> Peer-reviewed<br>
+                        <strong>Focus:</strong> Sustainability<br>
+                        <strong>Profile:</strong> Academic approach
+                    </div>
+                </div>
+                <div class="crypto-card">
+                    <div class="crypto-icon">🌍</div>
+                    <div class="crypto-name">Ripple (XRP)</div>
+                    <div class="crypto-info">
+                        <strong>Blockchain:</strong> Payment<br>
+                        <strong>Focus:</strong> Cross-border<br>
+                        <strong>Profile:</strong> Banking utility
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Savings & Interest Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-piggy-bank"></i> Bank Savings & Interest Methods
+            </div>
+            <p>Traditional and modern savings strategies for wealth building.</p>
+            <div class="bank-savings-container">
+                <div class="bank-option">
+                    <h5><i class="fas fa-university"></i> High-Interest Savings Account</h5>
+                    <div class="interest-rate">4.5% - 5.5% APY</div>
+                    <div class="bank-details">
+                        <strong>Accessibility:</strong> Liquid<br>
+                        <strong>Risk:</strong> FDIC Insured<br>
+                        <strong>Time Horizon:</strong> Short-term<br>
+                        <strong>Best For:</strong> Emergency funds, short-term goals
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-certificate"></i> Certificates of Deposit (CD)</h5>
+                    <div class="interest-rate">5.0% - 5.5% APY</div>
+                    <div class="bank-details">
+                        <strong>Accessibility:</strong> Fixed term<br>
+                        <strong>Risk:</strong> FDIC Insured<br>
+                        <strong>Time Horizon:</strong> 3 months - 5 years<br>
+                        <strong>Best For:</strong> Predictable returns, medium-term goals
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-chart-pie"></i> Money Market Account</h5>
+                    <div class="interest-rate">4.75% - 5.3% APY</div>
+                    <div class="bank-details">
+                        <strong>Accessibility:</strong> Limited checks<br>
+                        <strong>Risk:</strong> FDIC Insured<br>
+                        <strong>Time Horizon:</strong> Medium-term<br>
+                        <strong>Best For:</strong> Balance of access and returns
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-bond"></i> Treasury Bonds & Bills</h5>
+                    <div class="interest-rate">5.0% - 5.3% Yield</div>
+                    <div class="bank-details">
+                        <strong>Accessibility:</strong> Secondary market<br>
+                        <strong>Risk:</strong> Government backed<br>
+                        <strong>Time Horizon:</strong> 4 weeks - 30 years<br>
+                        <strong>Best For:</strong> Ultra-safe long-term savings
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NSE Market Forum Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-comments"></i> NSE Market Forum & Discussion
+            </div>
+            <p>Latest discussions and insights about the Nairobi Securities Exchange (NSE) market.</p>
+            <div class="nse-forum">
+                <div class="forum-thread">
+                    <div class="forum-thread-title">📈 NSE Index Reaches All-Time High</div>
+                    <div class="forum-thread-meta">Posted 2 hours ago | 156 replies | 1,234 views</div>
+                    <div class="forum-thread-preview">The NSE 20 Share Index surpassed 2,000 points today. Market analysts are discussing the key drivers behind this growth and potential future trends...</div>
+                </div>
+                <div class="forum-thread">
+                    <div class="forum-thread-title">💰 Best Dividend Stocks in Kenya 2024</div>
+                    <div class="forum-thread-meta">Posted 5 hours ago | 89 replies | 892 views</div>
+                    <div class="forum-thread-preview">Community members sharing their top picks for dividend-paying stocks on the NSE. EABL, KCB, and Safaricom dominate the discussion...</div>
+                </div>
+                <div class="forum-thread">
+                    <div class="forum-thread-title">🏦 Banking Sector Performance Analysis</div>
+                    <div class="forum-thread-meta">Posted 1 day ago | 234 replies | 2,456 views</div>
+                    <div class="forum-thread-preview">In-depth analysis of Q3 performance for major Kenyan banks. KCB Group, Equity Group, and Standard Chartered Kenya showing strong growth...</div>
+                </div>
+                <div class="forum-thread">
+                    <div class="forum-thread-title">🔍 Fundamental Analysis: Safaricom's Growth Prospects</div>
+                    <div class="forum-thread-meta">Posted 2 days ago | 167 replies | 1,890 views</div>
+                    <div class="forum-thread-preview">Detailed analysis of Safaricom's market position, subscriber growth, and expansion into adjacent services. What's your outlook for 2024?</div>
+                </div>
+                <div class="forum-thread">
+                    <div class="forum-thread-title">📊 Portfolio Diversification Strategy for NSE</div>
+                    <div class="forum-thread-meta">Posted 3 days ago | 145 replies | 1,567 views</div>
+                    <div class="forum-thread-preview">Community members sharing their NSE portfolio allocation strategies across sectors: banking, telco, insurance, manufacturing, and utilities...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-tachometer-alt"></i> Market Overview
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value">2,050</div>
+                    <div class="stat-label">NSE 20 Share Index</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">$45B+</div>
+                    <div class="stat-label">Market Capitalization</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">67</div>
+                    <div class="stat-label">Listed Companies</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">8.5K+</div>
+                    <div class="stat-label">Forum Members</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Resources -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-book"></i> Educational Resources
+            </div>
+            <div class="features-list">
+                <li><strong>Blockchain Fundamentals Course:</strong> Learn the basics of blockchain technology and cryptocurrency investing</li>
+                <li><strong>NSE Trading Guide:</strong> Complete guide to trading on the Nairobi Securities Exchange</li>
+                <li><strong>Portfolio Management Masterclass:</strong> Build and manage a diversified investment portfolio</li>
+                <li><strong>Risk Management Workshop:</strong> Understand and mitigate investment risks</li>
+                <li><strong>Crypto Security Best Practices:</strong> Secure your digital assets effectively</li>
+                <li><strong>Market Analysis Toolkit:</strong> Technical and fundamental analysis for better decisions</li>
+            </div>
+        </div>
+
+        <!-- Complex Financial Systems Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-cogs"></i> Complex Financial Systems & Methodologies
+            </div>
+            <p>Advanced financial frameworks and structural systems for sophisticated investment strategies.</p>
+            <div class="blockchain-structure">
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-line-chart"></i> Quantitative Finance Models</h4>
+                    <p>Mathematical models for portfolio optimization, pricing, and risk assessment including Black-Scholes, CAPM, and Monte Carlo simulations.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>VaR (Value at Risk) Calculation</li>
+                        <li>Expected Shortfall Analysis</li>
+                        <li>Correlation Matrices</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-exchange-alt"></i> Arbitrage Strategies</h4>
+                    <p>Identify and exploit price differences across markets. Includes statistical arbitrage, triangular arbitrage, and cross-exchange opportunities.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Crypto-Crypto Arbitrage</li>
+                        <li>Fiat Exchange Spreads</li>
+                        <li>Temporal Arbitrage</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-network-wired"></i> Market Microstructure</h4>
+                    <p>Deep analysis of order flow, liquidity dynamics, and market impact. Understanding bid-ask spreads, limit orders, and market maker behavior.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Liquidity Metrics</li>
+                        <li>Slippage Analysis</li>
+                        <li>Order Book Dynamics</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-cube"></i> Smart Contract Economics</h4>
+                    <p>Understanding tokenomics, incentive mechanisms, and smart contract risk assessment for DeFi protocols.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Token Allocation Models</li>
+                        <li>Staking Mechanisms</li>
+                        <li>Protocol Sustainability</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Derivatives Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-chart-area"></i> Financial Derivatives & Instruments
+            </div>
+            <p>Complex derivative instruments for hedging, speculation, and portfolio optimization.</p>
+            <div class="investment-strategy">
+                <div class="strategy-card">
+                    <h5><i class="fas fa-arrow-right"></i> Futures Contracts</h5>
+                    <div class="description">Standardized agreements to buy/sell assets at predetermined price and date. Highly leveraged.</div>
+                    <span class="risk-level risk-high">High Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Leverage up to 100x</li>
+                        <li>Perpetual & Quarterly</li>
+                        <li>Liquidation Risk</li>
+                        <li>Funding Rates</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5><i class="fas fa-copy"></i> Options Contracts</h5>
+                    <div class="description">Right (not obligation) to buy (call) or sell (put) assets at fixed price. Non-linear payoff profiles.</div>
+                    <span class="risk-level risk-high">High Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Greeks: Delta, Gamma, Theta</li>
+                        <li>IV Crush Risk</li>
+                        <li>Time Decay</li>
+                        <li>Spread Strategies</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5><i class="fas fa-handshake"></i> Swap Agreements</h5>
+                    <div class="description">Exchange of cash flows between parties. Used for interest rate, currency, and commodity hedging.</div>
+                    <span class="risk-level risk-medium">Medium Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Interest Rate Swaps</li>
+                        <li>Basis Swaps</li>
+                        <li>Counterparty Risk</li>
+                        <li>Mark-to-Market</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5><i class="fas fa-forward"></i> Forward Contracts</h5>
+                    <div class="description">Customized over-the-counter agreements. Flexible but carry counterparty and settlement risks.</div>
+                    <span class="risk-level risk-medium">Medium Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>No Exchange Trading</li>
+                        <li>Customizable Terms</li>
+                        <li>Delivery or Cash Settlement</li>
+                        <li>Counterparty Credit Risk</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5><i class="fas fa-cubes"></i> Structured Products</h5>
+                    <div class="description">Complex instruments combining multiple derivatives for specific payoff profiles and risk characteristics.</div>
+                    <span class="risk-level risk-high">High Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Exotic Options</li>
+                        <li>Knock-in/Knock-out</li>
+                        <li>Conditional Coupon</li>
+                        <li>Principal Protection</li>
+                    </ul>
+                </div>
+                <div class="strategy-card">
+                    <h5><i class="fas fa-certificate"></i> Asset-Backed Securities</h5>
+                    <div class="description">Securitized pools of assets generating cash flows. Including MBS, ABS, and tokenized real estate.</div>
+                    <span class="risk-level risk-medium">Medium Risk</span>
+                    <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                        <li>Tranches & Subordination</li>
+                        <li>Prepayment Risk</li>
+                        <li>Liquidity Risk</li>
+                        <li>Credit Enhancement</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real Assets & Properties Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-building"></i> Real Assets & Property Management
+            </div>
+            <p>Tangible assets including real estate, commodities, and physical properties with comprehensive cost tracking.</p>
+            <div class="bank-savings-container">
+                <div class="bank-option">
+                    <h5><i class="fas fa-home"></i> Real Estate Investment</h5>
+                    <div class="interest-rate">6-12% Annual Yield</div>
+                    <div class="bank-details">
+                        <strong>Asset Types:</strong> Commercial, Residential, Industrial<br>
+                        <strong>Return Sources:</strong> Rental income, Appreciation<br>
+                        <strong>Liquidity:</strong> Low (3-12 months)<br>
+                        <strong>Capital Required:</strong> High ($50K+)<br>
+                        <strong>Tax Benefits:</strong> Depreciation, Mortgage deduction
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-leaf"></i> Commodity Investments</h5>
+                    <div class="interest-rate">Variable Return</div>
+                    <div class="bank-details">
+                        <strong>Assets:</strong> Gold, Oil, Agriculture<br>
+                        <strong>Correlation:</strong> Often negative with stocks<br>
+                        <strong>Liquidity:</strong> High (commodities exchanges)<br>
+                        <strong>Storage Costs:</strong> Physical assets require safe storage<br>
+                        <strong>Trading Methods:</strong> Futures, ETFs, Physical
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-water"></i> Natural Resources</h5>
+                    <div class="interest-rate">5-20% Annual Yield</div>
+                    <div class="bank-details">
+                        <strong>Types:</strong> Timber, Mining, Agriculture<br>
+                        <strong>Timeline:</strong> Long-term (5-40 years)<br>
+                        <strong>ESG Impact:</strong> Environmental considerations<br>
+                        <strong>Regulatory Risk:</strong> Government permits, environmental compliance<br>
+                        <strong>Maintenance:</strong> Active management required
+                    </div>
+                </div>
+                <div class="bank-option">
+                    <h5><i class="fas fa-industry"></i> Infrastructure Assets</h5>
+                    <div class="interest-rate">4-8% Annual Yield</div>
+                    <div class="bank-details">
+                        <strong>Assets:</strong> Toll roads, Airports, Utilities<br>
+                        <strong>Cash Flow:</strong> Stable, long-term contracts<br>
+                        <strong>Capital:</strong> Very high ($100M+)<br>
+                        <strong>Regulatory:</strong> Government oversight, concession agreements<br>
+                        <strong>Maintenance:</strong> Continuous CapEx required
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance Costs Calculator Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-tools"></i> Property Maintenance Cost Analysis
+            </div>
+            <p>Calculate and optimize maintenance costs for real and tangible assets.</p>
+            <div style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-top: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Real Estate Maintenance</h5>
+                        <ul class="features-list">
+                            <li><strong>Annual:</strong> 1-2% of property value</li>
+                            <li><strong>Routine:</strong> Cleaning, Landscaping</li>
+                            <li><strong>Major Repairs:</strong> Roof, HVAC, Foundation</li>
+                            <li><strong>Capital Expenditure:</strong> Unit replacements</li>
+                            <li><strong>Insurance & Taxes:</strong> Additional 1-2%</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Equipment Maintenance</h5>
+                        <ul class="features-list">
+                            <li><strong>Scheduled Maintenance:</strong> Oil changes, servicing</li>
+                            <li><strong>Predictive Maintenance:</strong> Sensor monitoring</li>
+                            <li><strong>Breakdown Costs:</strong> Emergency repairs</li>
+                            <li><strong>Spare Parts:</strong> Inventory management</li>
+                            <li><strong>Labor Costs:</strong> Skilled technician hours</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Infrastructure Maintenance</h5>
+                        <ul class="features-list">
+                            <li><strong>Preventive:</strong> Regular inspections & servicing</li>
+                            <li><strong>Corrective:</strong> Fixing identified issues</li>
+                            <li><strong>Lifecycle Costs:</strong> Plan for replacements</li>
+                            <li><strong>Environmental:</strong> Compliance & remediation</li>
+                            <li><strong>Technology Upgrade:</strong> System modernization</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #334155;">
+                    <h5 style="color: #d4af37; margin-bottom: 1rem;">Cost Estimation Formula</h5>
+                    <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px; font-family: monospace; color: #cbd5e1;">
+                        <div style="margin-bottom: 0.75rem;">Total Annual Maintenance = (Asset Value × Rate) + Planned CapEx + Emergency Reserve</div>
+                        <div style="margin-bottom: 0.75rem;">Emergency Reserve = 20-30% of estimated maintenance costs</div>
+                        <div style="color: #4ade80;">Example: $1M property × 1.5% = $15K annual maintenance + $5K reserve</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intangible Assets Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-lightbulb"></i> Intangible Assets & Intellectual Property
+            </div>
+            <p>Non-physical assets including intellectual property, brands, and digital assets with valuation methodologies.</p>
+            <div class="blockchain-structure">
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-patent"></i> Patents & Trade Secrets</h4>
+                    <p>Exclusive rights to inventions and proprietary processes. Valuation based on competitive advantage and royalty potential.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Patent Term: 20 years from filing</li>
+                        <li>Maintenance fees required</li>
+                        <li>Royalty stream analysis</li>
+                        <li>Obsolescence risk</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-trademark"></i> Trademarks & Brands</h4>
+                    <p>Brand equity and customer recognition value. Measured through brand valuation models like income and market approaches.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Brand recognition metrics</li>
+                        <li>Customer loyalty premium</li>
+                        <li>Trademark registration costs</li>
+                        <li>Renewal cycles (7-10 years)</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-file-contract"></i> Copyrights & Digital IP</h4>
+                    <p>Ownership of creative works and digital content. Including music, software, written works, and media.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Lifetime + 70 years protection</li>
+                        <li>Royalty collection platforms</li>
+                        <li>DRM and anti-piracy costs</li>
+                        <li>Derivative rights valuation</li>
+                    </ul>
+                </div>
+                <div class="blockchain-node">
+                    <h4><i class="fas fa-users"></i> Goodwill & Customer Relations</h4>
+                    <p>Business value from established relationships, reputation, and customer base. Key in acquisition valuations.</p>
+                    <ul class="features-list" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <li>Customer lifetime value</li>
+                        <li>Acquisition cost per customer</li>
+                        <li>Retention rates analysis</li>
+                        <li>Impairment testing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Management & Hedging -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-shield-alt"></i> Risk Management & Hedging Strategies
+            </div>
+            <p>Comprehensive risk mitigation approaches for complex portfolios.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Value at Risk (VaR)</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Estimate maximum loss at given confidence level (95%, 99%) over specific period.</p>
+                    <div style="background: #0f172a; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #4ade80;">
+                        Example: 95% VaR of $10M at 1-day = Portfolio could lose $500K on worst 1 day in 20
+                    </div>
+                </div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Expected Shortfall (CVaR)</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Average loss when VaR threshold is exceeded. Measures tail risk more accurately.</p>
+                    <div style="background: #0f172a; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #4ade80;">
+                        Example: 95% CVaR = Average loss when exceeding VaR threshold
+                    </div>
+                </div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Correlation Matrix</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Measure relationships between assets. Diversification benefit when correlation < 1.0</p>
+                    <div style="background: #0f172a; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #4ade80;">
+                        Lower correlations = Better diversification benefits
+                    </div>
+                </div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Stress Testing</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Simulate portfolio performance under extreme market scenarios.</p>
+                    <div style="background: #0f172a; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #4ade80;">
+                        Scenarios: Market crash, rate spikes, volatility explosion
+                    </div>
+                </div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Hedging Instruments</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Use derivatives to offset portfolio risks.</p>
+                    <ul class="features-list" style="font-size: 0.85rem;">
+                        <li>Protective puts for downside</li>
+                        <li>Collar strategies</li>
+                        <li>Futures for beta hedging</li>
+                        <li>Long/short positioning</li>
+                    </ul>
+                </div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 1.5rem; border-left: 4px solid #d4af37;">
+                    <h5 style="color: #d4af37; margin-bottom: 0.75rem;">Scenario Analysis</h5>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.75rem;">Model portfolio behavior under different economic conditions.</p>
+                    <ul class="features-list" style="font-size: 0.85rem;">
+                        <li>Bull market scenario</li>
+                        <li>Bear market scenario</li>
+                        <li>Stagflation scenario</li>
+                        <li>Crisis scenario</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Allocation Framework -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-pie-chart"></i> Advanced Asset Allocation Models
+            </div>
+            <p>Sophisticated portfolio construction methodologies for optimal risk-adjusted returns.</p>
+            <div style="background: #1e293b; border-radius: 12px; padding: 2rem; margin-top: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Modern Portfolio Theory (MPT)</h5>
+                        <ul class="features-list">
+                            <li>Mean-variance optimization</li>
+                            <li>Efficient frontier construction</li>
+                            <li>Maximum Sharpe ratio portfolio</li>
+                            <li>Minimum variance portfolio</li>
+                            <li>Constraint handling</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Risk Parity Approach</h5>
+                        <ul class="features-list">
+                            <li>Equal risk contribution</li>
+                            <li>Volatility normalization</li>
+                            <li>Leverage optimization</li>
+                            <li>Dynamic rebalancing</li>
+                            <li>Multi-asset class focus</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #d4af37; margin-bottom: 1rem;">Black-Litterman Model</h5>
+                        <ul class="features-list">
+                            <li>Market equilibrium prior</li>
+                            <li>Expert views incorporation</li>
+                            <li>Confidence levels weighted</li>
+                            <li>Reverse optimization</li>
+                            <li>Intuitive adjustments</li>
+                        </ul>
+                    </div>
+                </div>
+                <div style="padding-top: 1.5rem; border-top: 1px solid #334155;">
+                    <h5 style="color: #d4af37; margin-bottom: 1rem;">Sample Allocation: Moderate Growth Portfolio</h5>
+                    <div style="background: #0f172a; padding: 1.5rem; border-radius: 8px;">
+                        <div style="margin-bottom: 0.75rem; color: #cbd5e1;">
+                            <strong>Equities (60%):</strong> <span style="color: #4ade80;">Domestic 40% | International 20%</span>
+                        </div>
+                        <div style="margin-bottom: 0.75rem; color: #cbd5e1;">
+                            <strong>Fixed Income (25%):</strong> <span style="color: #4ade80;">Bonds 20% | Cash 5%</span>
+                        </div>
+                        <div style="margin-bottom: 0.75rem; color: #cbd5e1;">
+                            <strong>Alternatives (15%):</strong> <span style="color: #4ade80;">Real Estate 8% | Commodities 4% | Crypto 3%</span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 0.85rem; margin-top: 1rem;">
+                            ✓ Expected Return: 7-8% annually | ✓ Expected Risk: 8-10% volatility | ✓ Sharpe Ratio: 0.7-0.9
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Financial Systems Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-sitemap"></i> Complex Financial Systems Architecture
+            </div>
+            <p>Integrated financial management covering equities, derivatives, real assets, and intangible assets.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Financial System Layers</h5>
+                <div class="blockchain-structure">
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-chart-line"></i> Equity Systems</h4>
+                        <p><strong>Stock Trading:</strong> NSE, international exchanges<br>
+                        <strong>Portfolio Allocation:</strong> ETFs, mutual funds<br>
+                        <strong>Dividend Tracking:</strong> Income distribution, reinvestment</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-certificate"></i> Fixed Income</h4>
+                        <p><strong>Bond Management:</strong> Government, corporate bonds<br>
+                        <strong>Yield Calculation:</strong> YTM, duration analysis<br>
+                        <strong>Credit Risk:</strong> Rating assessment, default probability</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-exchange-alt"></i> Derivatives</h4>
+                        <p><strong>Options:</strong> Calls, puts, spreads<br>
+                        <strong>Futures:</strong> Commodity, index futures<br>
+                        <strong>Swaps:</strong> Interest rate, currency swaps</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-home"></i> Real Assets</h4>
+                        <p><strong>Real Estate:</strong> Properties, REITs<br>
+                        <strong>Commodities:</strong> Gold, oil, agriculture<br>
+                        <strong>Infrastructure:</strong> Bonds, equity stakes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Derivatives & Options Trading Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-exchange-alt"></i> Derivatives Trading & Strategies
+            </div>
+            <p>Advanced hedging and speculative strategies using options, futures, and other derivatives.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Derivative Instruments</h5>
+                <div class="investment-strategy">
+                    <div class="strategy-card">
+                        <h5>Call Options</h5>
+                        <div class="description">Right to buy an asset at predetermined price. Profit from price appreciation.</div>
+                        <span class="risk-level risk-high">High Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Limited downside loss</li>
+                            <li>Unlimited upside potential</li>
+                            <li>Time decay risk</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Put Options</h5>
+                        <div class="description">Right to sell an asset at predetermined price. Profit from price decline.</div>
+                        <span class="risk-level risk-high">High Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Portfolio protection</li>
+                            <li>Downside profit potential</li>
+                            <li>Premium cost</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Bull Call Spread</h5>
+                        <div class="description">Buy call + sell higher strike call. Defined risk and reward.</div>
+                        <span class="risk-level risk-medium">Medium Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Lower net cost</li>
+                            <li>Limited profit</li>
+                            <li>Defined max loss</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Iron Condor</h5>
+                        <div class="description">Sell call spread + sell put spread. Income from range-bound market.</div>
+                        <span class="risk-level risk-high">High Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Premium income strategy</li>
+                            <li>Limited breakeven range</li>
+                            <li>Maximum defined loss</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Index Futures</h5>
+                        <div class="description">Leverage exposure to market indices. High leverage, daily settlement.</div>
+                        <span class="risk-level risk-high">High Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>10-20x leverage</li>
+                            <li>Margin requirements</li>
+                            <li>Unlimited loss potential</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Currency Swaps</h5>
+                        <div class="description">Exchange currency cash flows. Manage forex exposure and interest rates.</div>
+                        <span class="risk-level risk-medium">Medium Risk</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Reduces forex risk</li>
+                            <li>Lowers borrowing costs</li>
+                            <li>Counterparty risk</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Greeks & Risk Metrics</h5>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">Delta (Δ)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Rate of change in option price relative to underlying asset price (-1 to +1)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">Gamma (Γ)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Rate of change of delta. Higher near-the-money options</div>
+                    </div>
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">Theta (Θ)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Time decay. Loss in value as expiration approaches</div>
+                    </div>
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">Vega (ν)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Sensitivity to volatility changes. Important for longer-dated options</div>
+                    </div>
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">Rho (ρ)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Sensitivity to interest rate changes. Mostly for long-dated options</div>
+                    </div>
+                    <div class="stat-box">
+                        <div style="font-size: 1.4rem; color: #d4af37; font-weight: 700;">IV (Implied Vol)</div>
+                        <div style="color: #cbd5e1; font-size: 0.85rem; margin-top: 0.5rem;">Market's expectation of future volatility derived from option prices</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Property & Asset Management Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-building"></i> Property & Tangible Asset Management
+            </div>
+            <p>Complete tracking of real estate, physical assets, and maintenance obligations.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Asset Categories</h5>
+                <div class="bank-savings-container">
+                    <div class="bank-option">
+                        <h5><i class="fas fa-home"></i> Residential Properties</h5>
+                        <div class="interest-rate" style="color: #4ade80; font-size: 1.4rem; margin: 0.5rem 0;">Primary + Rental</div>
+                        <div class="bank-details">
+                            <strong>Valuation Methods:</strong> Market comp, income approach<br>
+                            <strong>Annual Costs:</strong> Property tax, insurance, maintenance<br>
+                            <strong>Income:</strong> Rental revenue, appreciation<br>
+                            <strong>ROI Calculation:</strong> (Rent - Expenses) / Property Value
+                        </div>
+                    </div>
+                    <div class="bank-option">
+                        <h5><i class="fas fa-industry"></i> Commercial Properties</h5>
+                        <div class="interest-rate" style="color: #4ade80; font-size: 1.4rem; margin: 0.5rem 0;">Office + Retail</div>
+                        <div class="bank-details">
+                            <strong>Cap Rate:</strong> NOI / Purchase Price<br>
+                            <strong>Operating Expenses:</strong> Utilities, maintenance, staff<br>
+                            <strong>Lease Analysis:</strong> Tenant quality, renewal terms<br>
+                            <strong>Valuation:</strong> DCF using lease cash flows
+                        </div>
+                    </div>
+                    <div class="bank-option">
+                        <h5><i class="fas fa-car"></i> Vehicle Assets</h5>
+                        <div class="interest-rate" style="color: #4ade80; font-size: 1.4rem; margin: 0.5rem 0;">Depreciation</div>
+                        <div class="bank-details">
+                            <strong>Purchase Cost:</strong> Acquisition price<br>
+                            <strong>Annual Depreciation:</strong> 15-20% first year<br>
+                            <strong>Maintenance:</strong> Service, repairs, insurance<br>
+                            <strong>Residual Value:</strong> End-of-life worth calculation
+                        </div>
+                    </div>
+                    <div class="bank-option">
+                        <h5><i class="fas fa-tools"></i> Equipment & Machinery</h5>
+                        <div class="interest-rate" style="color: #4ade80; font-size: 1.4rem; margin: 0.5rem 0;">CAPEX Tracking</div>
+                        <div class="bank-details">
+                            <strong>Useful Life:</strong> Asset depreciation schedule<br>
+                            <strong>Maintenance Budget:</strong> Preventive + reactive<br>
+                            <strong>Replacement Reserve:</strong> End-of-life planning<br>
+                            <strong>Tracking:</strong> Serial numbers, warranty periods
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Maintenance Cost Tracking</h5>
+                <div class="investment-strategy">
+                    <div class="strategy-card">
+                        <h5>Preventive Maintenance</h5>
+                        <div class="description">Scheduled service to prevent failures and extend asset life.</div>
+                        <span class="risk-level risk-low">Recommended</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Oil changes, inspections</li>
+                            <li>Extends equipment life by 20-30%</li>
+                            <li>Lower total cost of ownership</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Reactive Maintenance</h5>
+                        <div class="description">Repairs performed after failure. Higher costs, downtime risk.</div>
+                        <span class="risk-level risk-high">Avoid When Possible</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Emergency repairs</li>
+                            <li>Unexpected expenses</li>
+                            <li>Asset damage escalation</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Predictive Maintenance</h5>
+                        <div class="description">Use IoT sensors and AI to predict failures before they occur.</div>
+                        <span class="risk-level risk-low">Advanced</span>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>IoT monitoring</li>
+                            <li>ML-based predictions</li>
+                            <li>Optimal maintenance timing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intangible Assets Section -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-lightbulb"></i> Intangible Assets & IP Management
+            </div>
+            <p>Valuation and tracking of intellectual property, brands, licenses, and equity stakes.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Intangible Asset Types</h5>
+                <div class="blockchain-structure">
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-copyright"></i> Intellectual Property</h4>
+                        <p><strong>Patents:</strong> Protection period 20 years<br>
+                        <strong>Trademarks:</strong> Brand protection, renewable<br>
+                        <strong>Copyrights:</strong> Creative works, lifetime + 70 years<br>
+                        <strong>Trade Secrets:</strong> Non-patented valuable info</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-briefcase"></i> Brand Equity</h4>
+                        <p><strong>Brand Value:</strong> Premium customers pay over generic<br>
+                        <strong>Customer Loyalty:</strong> Repeat purchase behavior<br>
+                        <strong>Market Valuation:</strong> Comparable brand sales multiples<br>
+                        <strong>Licensing Potential:</strong> Brand extension revenue</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-graduation-cap"></i> Human Capital</h4>
+                        <p><strong>Key Personnel:</strong> Irreplaceable talent valuation<br>
+                        <strong>Contracts:</strong> Long-term agreements, non-compete<br>
+                        <strong>Knowledge Assets:</strong> Proprietary expertise<br>
+                        <strong>Team Productivity:</strong> Output per employee metrics</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-link"></i> Customer Relationships</h4>
+                        <p><strong>Customer Lists:</strong> Valuation based on lifetime value<br>
+                        <strong>Contracts:</strong> Long-term customer agreements<br>
+                        <strong>Retention Rate:</strong> Customer stickiness indicator<br>
+                        <strong>Churn Analysis:</strong> Loss rate and predictability</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-cogs"></i> Software & Technology</h4>
+                        <p><strong>Source Code:</strong> Proprietary development value<br>
+                        <strong>Databases:</strong> Data asset valuation<br>
+                        <strong>Algorithms:</strong> Patentable or trade secret methods<br>
+                        <strong>Tech Stack:</strong> Infrastructure and tools value</p>
+                    </div>
+                    <div class="blockchain-node">
+                        <h4><i class="fas fa-file-contract"></i> Licenses & Permits</h4>
+                        <p><strong>Operating Licenses:</strong> Required to do business<br>
+                        <strong>Professional Licenses:</strong> Individual certifications<br>
+                        <strong>Broadcasting Rights:</strong> Media distribution rights<br>
+                        <strong>Government Contracts:</strong> Exclusive supply agreements</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Intangible Asset Valuation Methods</h5>
+                <div class="investment-strategy">
+                    <div class="strategy-card">
+                        <h5>Cost Approach</h5>
+                        <div class="description">Reproduction cost of creating the asset from scratch.</div>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>R&D investment + time</li>
+                            <li>Market acquisition cost</li>
+                            <li>Less accumulated amortization</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Market Approach</h5>
+                        <div class="description">Comparable transactions and market multiples.</div>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Recent M&A prices</li>
+                            <li>Licensing deals</li>
+                            <li>Revenue/EBITDA multiples</li>
+                        </ul>
+                    </div>
+                    <div class="strategy-card">
+                        <h5>Income Approach</h5>
+                        <div class="description">Present value of future cash flows from the asset.</div>
+                        <ul class="features-list" style="margin-top: 0.75rem; font-size: 0.85rem;">
+                            <li>Royalty relief method</li>
+                            <li>DCF of incremental earnings</li>
+                            <li>License fee analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consolidated Asset Dashboard -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-chart-pie"></i> Consolidated Net Worth Statement
+            </div>
+            <p>Comprehensive view of all asset classes and liabilities for total wealth calculation.</p>
+            
+            <div style="margin-top: 1.5rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Assets by Category</h5>
+                <table style="width: 100%; color: #cbd5e1; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #d4af37;">
+                            <th style="padding: 1rem; text-align: left; color: #d4af37;">Asset Category</th>
+                            <th style="padding: 1rem; text-align: right; color: #d4af37;">Value (USD)</th>
+                            <th style="padding: 1rem; text-align: right; color: #d4af37;">% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="padding: 1rem;"><strong>Liquid Assets</strong></td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Cash & Savings</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">45,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">8%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Stocks & ETFs</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">150,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">28%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Cryptocurrencies</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">85,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">16%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="padding: 1rem;"><strong>Real Assets</strong></td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Real Estate</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">250,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">47%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Vehicles & Equipment</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">35,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">7%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155;">
+                            <td style="padding: 1rem;"><strong>Intangible Assets</strong></td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                            <td style="padding: 1rem; text-align: right;">-</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 0.75rem 1rem 0.75rem 2rem;">Business Equity</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">120,000</td>
+                            <td style="padding: 0.75rem 1rem; text-align: right;">23%</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid #d4af37;">
+                            <td style="padding: 1rem; font-weight: 700;">Total Assets</td>
+                            <td style="padding: 1rem; text-align: right; font-weight: 700;">530,000</td>
+                            <td style="padding: 1rem; text-align: right; font-weight: 700;">100%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <h5 style="color: #d4af37; margin-bottom: 1rem;">Liabilities</h5>
+                <table style="width: 100%; color: #cbd5e1; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #d4af37;">
+                            <th style="padding: 1rem; text-align: left; color: #d4af37;">Liability Type</th>
+                            <th style="padding: 1rem; text-align: right; color: #d4af37;">Amount (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 1rem;">Mortgage (Real Estate)</td>
+                            <td style="padding: 1rem; text-align: right;">120,000</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 1rem;">Car Loans</td>
+                            <td style="padding: 1rem; text-align: right;">15,000</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #334155; background: rgba(212, 175, 55, 0.05);">
+                            <td style="padding: 1rem;">Credit Card Debt</td>
+                            <td style="padding: 1rem; text-align: right;">3,500</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid #d4af37;">
+                            <td style="padding: 1rem; font-weight: 700;">Total Liabilities</td>
+                            <td style="padding: 1rem; text-align: right; font-weight: 700;">138,500</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid #4ade80;">
+                            <td style="padding: 1rem; font-weight: 700;">Net Worth</td>
+                            <td style="padding: 1rem; text-align: right; font-weight: 700; color: #4ade80;">391,500</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Educational Resources -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-book"></i> Advanced Financial Education
+            </div>
+            <div class="features-list">
+                <li><strong>Derivatives Masterclass:</strong> Complete guide to options, futures, and exotic derivatives</li>
+                <li><strong>Real Estate Investment Analysis:</strong> Valuation methods, cap rates, and due diligence</li>
+                <li><strong>Intangible Asset Valuation:</strong> IP, brands, and human capital assessment</li>
+                <li><strong>Financial Modeling:</strong> DCF models, sensitivity analysis, scenario planning</li>
+                <li><strong>Portfolio Theory:</strong> CAPM, efficient frontier, asset allocation optimization</li>
+                <li><strong>Risk Management:</strong> VaR, stress testing, hedge strategies</li>
+                <li><strong>Tax Strategy:</strong> Tax-loss harvesting, entity structure optimization</li>
+                <li><strong>Complex Financial Systems:</strong> Integration of multiple asset classes and strategies</li>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Blockchain Dashboard Script -->
+    <script src="/public/js/blockchain-dashboard.js"></script>
+</body>
+</html>

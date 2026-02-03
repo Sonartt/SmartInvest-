@@ -2595,6 +2595,643 @@ app.get('/api/ads/admin/stats', adminAuth, async (req, res) => {
   }
 });
 
+// ============= BLOCKCHAIN INVESTMENT DASHBOARD API =============
+
+// Premium endpoint: Get blockchain market data (NSE, Crypto prices)
+app.get('/api/blockchain/market-data', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return current market data (mock data for now, can be connected to live APIs)
+    const marketData = {
+      success: true,
+      data: {
+        nseIndex: '2,050.45',
+        marketCap: '$45.2B',
+        listedCompanies: 67,
+        cryptoPrices: {
+          BTC: '$42,500',
+          ETH: '$2,250',
+          MATIC: '$0.85',
+          SOL: '$105',
+          ADA: '$0.75',
+          XRP: '$2.15'
+        },
+        lastUpdated: new Date().toISOString()
+      }
+    };
+    
+    res.json(marketData);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get derivatives analysis
+app.get('/api/blockchain/derivatives', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    const strategies = [
+      {
+        id: 1,
+        name: 'Bull Call Spread',
+        type: 'option-spread',
+        maxProfit: 'Limited',
+        maxLoss: 'Net premium paid',
+        breakeven: 'Long call strike + net premium',
+        riskLevel: 'medium',
+        volatility: 'neutral'
+      },
+      {
+        id: 2,
+        name: 'Iron Condor',
+        type: 'income-strategy',
+        maxProfit: 'Net credit received',
+        maxLoss: 'Width of spreads - credit',
+        breakeven: '2 breakevens',
+        riskLevel: 'high',
+        volatility: 'neutral'
+      },
+      {
+        id: 3,
+        name: 'LEAPS Call',
+        type: 'long-term-option',
+        maxProfit: 'Unlimited',
+        maxLoss: 'Premium paid',
+        breakeven: 'Strike + premium',
+        riskLevel: 'high',
+        volatility: 'long'
+      }
+    ];
+    
+    res.json({ success: true, strategies });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get property data
+app.get('/api/blockchain/properties', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    const properties = [
+      {
+        id: 1,
+        name: 'Residential Property - Nairobi',
+        type: 'residential',
+        purchasePrice: 250000,
+        currentValue: 280000,
+        annualMaintenance: 5000,
+        rentalIncome: 18000,
+        roi: '5.2%',
+        capRate: '5.8%'
+      },
+      {
+        id: 2,
+        name: 'Vehicle - Toyota Land Cruiser',
+        type: 'vehicle',
+        purchasePrice: 45000,
+        currentValue: 38000,
+        annualDepreciation: 6200,
+        annualMaintenance: 3500,
+        depreciationRate: '13.8%'
+      },
+      {
+        id: 3,
+        name: 'Office Equipment',
+        type: 'equipment',
+        purchasePrice: 12000,
+        currentValue: 8400,
+        usefulLife: 5,
+        yearsRemaining: 2,
+        annualDepreciation: 2400
+      }
+    ];
+    
+    res.json({ success: true, properties });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets
+app.get('/api/blockchain/intangible-assets', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    const assets = [
+      {
+        id: 1,
+        name: 'SmartInvest Brand',
+        type: 'brand-equity',
+        estimatedValue: 120000,
+        valuationMethod: 'market-comparable',
+        yearAcquired: 2019,
+        annualGrowth: '8.5%'
+      },
+      {
+        id: 2,
+        name: 'Patent - Investment Algorithm',
+        type: 'patent',
+        estimatedValue: 75000,
+        expirationDate: '2034',
+        protectionRegions: ['Kenya', 'East Africa'],
+        royaltyPotential: '12000/year'
+      },
+      {
+        id: 3,
+        name: 'Customer Database',
+        type: 'customer-relationships',
+        estimatedValue: 85000,
+        numberOfCustomers: 2450,
+        customerLifetimeValue: 45000,
+        retentionRate: '82%'
+      },
+      {
+        id: 4,
+        name: 'Trading Algorithm Source Code',
+        type: 'software',
+        estimatedValue: 95000,
+        developmentCost: 150000,
+        yearsToBreakeven: 2,
+        competitiveAdvantage: 'high'
+      }
+    ];
+    
+    res.json({ success: true, assets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get NSE forum threads
+app.get('/api/blockchain/forum-threads', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return forum threads (mock data for now)
+    const threads = [
+      {
+        id: 1,
+        title: 'NSE Index Reaches All-Time High',
+        replies: 156,
+        views: 1234,
+        postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        category: 'market-news'
+      },
+      {
+        id: 2,
+        title: 'Best Dividend Stocks in Kenya 2024',
+        replies: 89,
+        views: 892,
+        postedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        category: 'stock-analysis'
+      },
+      {
+        id: 3,
+        title: 'Banking Sector Performance Analysis',
+        replies: 234,
+        views: 2456,
+        postedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        category: 'sector-analysis'
+      },
+      {
+        id: 4,
+        title: 'Fundamental Analysis: Safaricom\'s Growth Prospects',
+        replies: 167,
+        views: 1890,
+        postedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        category: 'stock-analysis'
+      },
+      {
+        id: 5,
+        title: 'Portfolio Diversification Strategy for NSE',
+        replies: 145,
+        views: 1567,
+        postedAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        category: 'strategy'
+      }
+    ];
+    
+    res.json({ success: true, threads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Analytics: Track blockchain dashboard views
+app.post('/api/analytics/blockchain-dashboard', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    
+    // Log analytics event (can be saved to file or database)
+    const analyticsEvent = {
+      event: 'blockchain-dashboard-view',
+      email: email.toLowerCase(),
+      timestamp: new Date().toISOString(),
+      userAgent: req.headers['user-agent']
+    };
+    
+    // In production, save this to analytics database
+    console.log('Analytics:', analyticsEvent);
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Premium endpoint: Get financial derivatives information
+app.get('/api/blockchain/derivatives', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return derivatives data
+    const derivatives = {
+      success: true,
+      data: {
+        futures: {
+          description: 'Standardized contracts for future delivery',
+          types: ['Perpetual Futures', 'Quarterly Futures', 'Spot Futures'],
+          leverage: 'Up to 100x',
+          risks: ['Liquidation Risk', 'Funding Rates', 'Execution Risk'],
+          examples: ['BTC/USDT Perpetual', 'ETH Quarterly Futures']
+        },
+        options: {
+          description: 'Right to buy (call) or sell (put) at fixed price',
+          strategies: ['Covered Calls', 'Protective Puts', 'Spreads', 'Straddles', 'Iron Condor'],
+          greeks: {
+            delta: 'Rate of change with underlying price',
+            gamma: 'Rate of change of delta',
+            theta: 'Time decay',
+            vega: 'Volatility sensitivity',
+            rho: 'Interest rate sensitivity'
+          },
+          leverage: 'Varies by strategy'
+        },
+        swaps: {
+          description: 'Exchange of cash flows between parties',
+          types: ['Interest Rate Swaps', 'Basis Swaps', 'Tenor Swaps', 'Currency Swaps'],
+          counterpartyRisk: 'Significant',
+          marketSize: '$500+ Trillion notional'
+        },
+        forwards: {
+          description: 'Customized contracts between two parties',
+          advantages: ['Flexible terms', 'Customizable', 'No exchange fees'],
+          disadvantages: ['Counterparty risk', 'Illiquid', 'Settlement risk'],
+          types: ['Currency Forwards', 'Commodity Forwards', 'Equity Forwards']
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(derivatives);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get real assets and property data
+app.get('/api/blockchain/properties', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return property data
+    const properties = {
+      success: true,
+      data: {
+        realEstate: {
+          assetTypes: ['Residential', 'Commercial', 'Industrial', 'Mixed-Use'],
+          expectedYield: '6-12%',
+          liquidityPeriod: '3-12 months',
+          maintenanceCosts: '1-2% of property value annually',
+          taxBenefits: ['Depreciation', 'Mortgage Interest', 'Property Tax Deduction'],
+          factors: ['Location', 'Market Conditions', 'Interest Rates', 'Tenant Quality']
+        },
+        commodities: {
+          types: ['Precious Metals', 'Energy', 'Agriculture', 'Livestock'],
+          trading: ['Spot Market', 'Futures Contracts', 'ETFs'],
+          storageConsiderations: 'Physical assets require secure storage',
+          insurance: 'Essential for valuable commodities',
+          volatility: 'High - subject to supply/demand shocks'
+        },
+        naturalResources: {
+          types: ['Timber', 'Mining', 'Agriculture', 'Water Rights'],
+          timeline: '5-40 years for returns',
+          esgConsiderations: 'Environmental compliance critical',
+          regulatoryRisks: 'Government permits, environmental approval',
+          maintenance: 'Active asset management required'
+        },
+        infrastructure: {
+          types: ['Toll Roads', 'Airports', 'Utilities', 'Telecommunications'],
+          expectedYield: '4-8%',
+          cashFlow: 'Stable long-term contracts',
+          capitalRequired: '$100M+ typically',
+          maintenance: 'Continuous capital expenditure required'
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(properties);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Calculate maintenance costs
+app.post('/api/blockchain/maintenance-costs', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { assetValue, assetType, maintenanceRate, capitalExpenditure } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!assetValue || !assetType) {
+      return res.status(400).json({ error: 'assetValue and assetType required' });
+    }
+    
+    // Calculate maintenance costs
+    const rate = maintenanceRate || (assetType === 'realEstate' ? 0.015 : assetType === 'equipment' ? 0.10 : 0.05);
+    const annualMaintenance = assetValue * rate;
+    const capEx = capitalExpenditure || (assetValue * 0.05);
+    const emergencyReserve = (annualMaintenance + capEx) * 0.25;
+    const totalAnnualCost = annualMaintenance + capEx + emergencyReserve;
+    const totalMonthly = totalAnnualCost / 12;
+    
+    const result = {
+      success: true,
+      calculation: {
+        assetValue: assetValue,
+        assetType: assetType,
+        maintenanceRate: (rate * 100).toFixed(2) + '%',
+        annualMaintenance: annualMaintenance.toFixed(2),
+        capitalExpenditure: capEx.toFixed(2),
+        emergencyReserve: emergencyReserve.toFixed(2),
+        totalAnnualCost: totalAnnualCost.toFixed(2),
+        monthlyAllocation: totalMonthly.toFixed(2),
+        percentageOfValue: ((totalAnnualCost / assetValue) * 100).toFixed(2) + '%'
+      },
+      recommendations: {
+        maintenanceSchedule: 'Quarterly preventive, with annual deep inspection',
+        budgeting: `Set aside $${totalMonthly.toFixed(2)} monthly for maintenance`,
+        documentation: 'Maintain detailed maintenance records for asset value preservation',
+        insurance: 'Ensure adequate coverage for unexpected repairs'
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets information
+app.get('/api/blockchain/intangible-assets', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return intangible assets data
+    const intangibles = {
+      success: true,
+      data: {
+        patents: {
+          description: 'Exclusive rights to inventions',
+          protectionPeriod: '20 years from filing date',
+          valuationMethods: ['Relief from Royalty', 'Cost Approach', 'Income Approach'],
+          maintenanceCosts: 'Ongoing patent fees required',
+          risks: ['Obsolescence', 'Invalidation', 'Infringement litigation']
+        },
+        trademarks: {
+          description: 'Brand name and logo rights',
+          protectionPeriod: 'Potentially indefinite with renewals (7-10 years)',
+          valuationBasis: ['Brand Recognition', 'Customer Loyalty', 'Premium Pricing'],
+          maintenanceCosts: 'Renewal and enforcement costs',
+          value: 'Percentage of revenue attributed to brand premium'
+        },
+        copyrights: {
+          description: 'Ownership of creative works',
+          protectionPeriod: 'Life of author + 70 years',
+          assetTypes: ['Software', 'Music', 'Books', 'Film', 'Artwork'],
+          revenueStreams: ['Licensing', 'Royalties', 'Direct Sales'],
+          risks: ['Piracy', 'Format Obsolescence', 'Copyright Expiration']
+        },
+        softwareAndIP: {
+          description: 'Digital intellectual property',
+          valuationFactors: ['User Base', 'Market Position', 'Technology Moat', 'Licensing Revenue'],
+          maintenanceCosts: 'Continuous updates and security patches',
+          risks: ['Competitive threats', 'Technology disruption', 'Cybersecurity']
+        },
+        goodwill: {
+          description: 'Business value beyond tangible assets',
+          valuationTime: 'Established during acquisitions',
+          components: ['Customer Base', 'Reputation', 'Relationships', 'Management Team'],
+          accountingTreatment: 'Amortized over useful life or tested for impairment',
+          risks: ['Key person dependencies', 'Customer concentration', 'Market changes']
+        },
+        customerRelationships: {
+          description: 'Value of established customer base',
+          metrics: ['Customer Lifetime Value', 'Churn Rate', 'Retention Cost'],
+          valuationApproach: 'Based on discounted future cash flows from customers',
+          managementFocus: 'Retention and expansion strategies'
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(intangibles);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get financial methodologies and frameworks
+app.get('/api/blockchain/financial-methodologies', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return methodologies
+    const methodologies = {
+      success: true,
+      data: {
+        riskMetrics: {
+          valueAtRisk: {
+            abbreviation: 'VaR',
+            description: 'Maximum loss at given confidence level over time period',
+            calculation: 'Percentile of loss distribution',
+            application: 'Regulatory capital requirements, risk monitoring'
+          },
+          expectedShortfall: {
+            abbreviation: 'ES/CVaR',
+            description: 'Average loss when VaR threshold exceeded',
+            advantage: 'Captures tail risk better than VaR',
+            application: 'More rigorous risk assessment'
+          },
+          stressTest: {
+            description: 'Portfolio impact under extreme scenarios',
+            scenarios: ['Market Crash', 'Rate Spike', 'Volatility Explosion', 'Liquidity Crisis'],
+            frequency: 'Quarterly or monthly'
+          }
+        },
+        portfolioTheories: {
+          modernPortfolioTheory: {
+            foundation: 'Markowitz mean-variance optimization',
+            principle: 'Diversification reduces risk',
+            output: 'Efficient frontier of optimal portfolios',
+            limitation: 'Assumes normal distribution, historical volatility'
+          },
+          riskParityApproach: {
+            principle: 'Equal risk contribution from each asset',
+            advantage: 'Better risk-adjusted returns historically',
+            leverage: 'Often uses leverage to achieve returns',
+            rebalancing: 'Dynamic based on volatility changes'
+          },
+          blackLittermanModel: {
+            enhancement: 'Incorporates investor views with market equilibrium',
+            advantage: 'More intuitive adjustments than pure mean-variance',
+            process: 'Prior (market) + Views = Posterior allocation',
+            confidence: 'Weighted by conviction in views'
+          }
+        },
+        valuationModels: {
+          discountedCashFlow: {
+            principle: 'Asset value = PV of future cash flows',
+            discount: 'Weighted Average Cost of Capital (WACC)',
+            advantage: 'Theoretically sound, fundamental approach',
+            limitation: 'Sensitive to terminal value assumptions'
+          },
+          relativeValuation: {
+            methods: ['P/E Multiple', 'EV/EBITDA', 'Price/Book', 'Price/Sales'],
+            advantage: 'Market-based, less dependent on assumptions',
+            limitation: 'Requires comparable companies'
+          },
+          optionPricing: {
+            blackScholes: 'Closed-form solution for European options',
+            binomial: 'Flexible for American options and complex instruments',
+            monteCarlo: 'For complex derivatives and path-dependent payoffs'
+          }
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(methodologies);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Export app for Vercel serverless
 module.exports = app;
 
