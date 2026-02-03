@@ -11,26 +11,161 @@ This document outlines all required environment variables and configuration file
 - **`appsettings.Development.json`** - .NET development configuration
 - **`appsettings.Production.json`** - .NET production configuration
 
+## Quick Setup
+
+1. **Copy the example file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Update payment credentials:**
+   - Set your M-Pesa API keys
+   - Configure platform payment number
+   - Set admin credentials
+
+3. **Configure payment systems:**
+   - Enable/disable features as needed
+   - Adjust pricing for your region
+   - Set fee structures
+
 ## Environment Variables
 
 ### Core Application
-```
+```env
 PORT=3000                    # Server port
 NODE_ENV=development        # Environment mode (development/production)
 LOG_LEVEL=info             # Logging level (debug/info/warn/error)
+BASE_URL=https://smartinvest.vercel.app  # Production URL
+APP_URL=http://localhost:3000            # Application URL
+```
+
+### Payment Platform Configuration
+```env
+# Main platform payment number (receives all payments)
+PLATFORM_MPESA_NUMBER=0114383762
+PLATFORM_PAYMENT_NAME=SmartInvest Africa
+```
+
+### P2P Payment System
+```env
+# Enable/Disable P2P
+P2P_ENABLED=true
+P2P_MIN_AMOUNT=1
+P2P_MAX_AMOUNT=100000
+P2P_PLATFORM_NUMBER=0114383762
+
+# Dynamic Tiered Fee Structure
+P2P_FEE_TIER1_MAX=10          # Up to $10
+P2P_FEE_TIER1_FLAT=0.50       # $0.50 flat fee
+P2P_FEE_TIER1_PERCENT=5       # + 5%
+
+P2P_FEE_TIER2_MAX=50          # $10 - $50
+P2P_FEE_TIER2_FLAT=1.00
+P2P_FEE_TIER2_PERCENT=4
+
+P2P_FEE_TIER3_MAX=100         # $50 - $100
+P2P_FEE_TIER3_FLAT=2.00
+P2P_FEE_TIER3_PERCENT=3
+
+P2P_FEE_TIER4_MAX=500         # $100 - $500
+P2P_FEE_TIER4_FLAT=3.00
+P2P_FEE_TIER4_PERCENT=2.5
+
+# Over $500
+P2P_FEE_TIER5_FLAT=5.00
+P2P_FEE_TIER5_PERCENT=2
+```
+
+### Affiliate Program
+```env
+# Enable/Disable Affiliate Program
+AFFILIATE_ENABLED=true
+AFFILIATE_MIN_WITHDRAWAL=10
+
+# Commission Rates (percentage of P2P fees)
+AFFILIATE_COMMISSION_BRONZE=10    # 10%
+AFFILIATE_COMMISSION_SILVER=15    # 15%
+AFFILIATE_COMMISSION_GOLD=20      # 20%
+
+# Auto Premium Access for Affiliates
+AFFILIATE_AUTO_PREMIUM=true
+AFFILIATE_PREMIUM_DURATION_DAYS=365
+```
+
+### Ads Payment System
+```env
+# Enable/Disable Ads System
+ADS_ENABLED=true
+ADS_PLATFORM_NUMBER=0114383762
+ADS_ADMIN_APPROVAL_REQUIRED=true
+ADS_DEFAULT_DISPLAY_DURATION=10000  # 10 seconds
+
+# Banner Ads Pricing (USD)
+ADS_BANNER_DAY=5
+ADS_BANNER_WEEK=30
+ADS_BANNER_MONTH=100
+ADS_BANNER_QUARTER=250
+ADS_BANNER_YEAR=900
+
+# Featured Listings Pricing (USD)
+ADS_FEATURED_DAY=10
+ADS_FEATURED_WEEK=60
+ADS_FEATURED_MONTH=200
+ADS_FEATURED_QUARTER=500
+ADS_FEATURED_YEAR=1800
+
+# Popup Ads Pricing (USD)
+ADS_POPUP_DAY=15
+ADS_POPUP_WEEK=90
+ADS_POPUP_MONTH=300
+ADS_POPUP_QUARTER=750
+ADS_POPUP_YEAR=2500
+
+# Sponsored Content Pricing (USD)
+ADS_SPONSORED_WEEK=100
+ADS_SPONSORED_MONTH=350
+ADS_SPONSORED_QUARTER=900
+ADS_SPONSORED_YEAR=3000
+
+# Video Ads Pricing (USD)
+ADS_VIDEO_DAY=20
+ADS_VIDEO_WEEK=120
+ADS_VIDEO_MONTH=400
+ADS_VIDEO_QUARTER=1000
+ADS_VIDEO_YEAR=3500
+```
+
+### Premium Subscriptions
+```env
+PREMIUM_ENABLED=true
+PREMIUM_MONTHLY_PRICE=9.99
+PREMIUM_ANNUAL_PRICE=99.99
+PREMIUM_PLATFORM_NUMBER=0114383762
+```
+
+### Currency Exchange Rates
+```env
+EXCHANGE_RATE_KES_USD=0.0065
+EXCHANGE_RATE_USD_KES=130
+EXCHANGE_RATE_USD_NGN=750
+EXCHANGE_RATE_USD_GHS=12
+EXCHANGE_RATE_USD_ZAR=18.5
 ```
 
 ### JWT & Security
-```
+```env
 JWT_SECRET=your_key_32_chars_min    # JWT signing key (minimum 32 chars)
-ALLOWED_ORIGINS=origin1,origin2     # CORS allowed origins
-ENABLE_SECURITY_HEADERS=true        # Enable security headers
+SESSION_SECRET=your_session_secret_here
+BCRYPT_ROUNDS=10
+CORS_ENABLED=true
+CORS_ORIGIN=*
+RATE_LIMIT_ENABLED=true
 RATE_LIMIT_WINDOW_MS=900000         # Rate limit window (15 min default)
 RATE_LIMIT_MAX_REQUESTS=100         # Max requests per window
 ```
 
 ### M-Pesa Payment Integration
-```
+```env
 MPESA_ENV=sandbox                          # Environment (sandbox/production)
 MPESA_CONSUMER_KEY=your_key               # Daraja consumer key
 MPESA_CONSUMER_SECRET=your_secret         # Daraja consumer secret
@@ -41,13 +176,16 @@ MPESA_PAYBILL=your_paybill                # Paybill number (if using)
 MPESA_ACCOUNT_REF=SmartInvest             # Account reference
 MPESA_CALLBACK_URL=https://domain/callback # Callback URL
 MPESA_CALLBACK_SECRET=your_secret         # Callback authentication
-MPESA_POCHI_NAME=SmartInvest              # Pochi account name
-MPESA_POCHI_CALLBACK=https://domain/pochi # Pochi callback URL
 MPESA_DEBUG=false                         # Debug mode
+
+# M-Pesa Pochi La Biashara
+MPESA_POCHI_NAME=SmartInvest
+MPESA_POCHI_NUMBER=0114383762
+MPESA_POCHI_CALLBACK=https://domain/pochi
 ```
 
 ### Third-Party Payment Processors
-```
+```env
 # PayPal
 PAYPAL_CLIENT_ID=your_client_id
 PAYPAL_CLIENT_SECRET=your_secret
