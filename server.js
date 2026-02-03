@@ -8,13 +8,19 @@ const rateLimit = require('express-rate-limit');
 const contentAPI = require('./api/content-management');
 const subManager = require('./api/subscription-manager');
 const shareLinkService = require('./services/share-link-service');
-const { blockIP, unblockIP, getClientIP, isIPBlocked, logSecurityEvent } = require('./middleware/security');
+const { blockIP, unblockIP, getClientIP, isIPBlocked, logSecurityEvent, securityHeaders } = require('./middleware/security');
 
 const app = express();
 app.use(cors());
+app.use(securityHeaders);
 // SECURITY FIX #4: Add request size limits to prevent DOS
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// Rate limiters
+const authLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 25, standardHeaders: true, legacyHeaders: false });
+const paymentLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 15, standardHeaders: true, legacyHeaders: false });
+const downloadLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
 // Basic auth for admin routes if ADMIN_USER is set
 // SECURITY FIX #1: Enforce admin authentication always
@@ -80,7 +86,7 @@ async function getMpesaAuth() {
 }
 
 // MPESA STK Push (simplified for Daraja sandbox)
-app.post('/api/pay/mpesa', async (req, res) => {
+app.post('/api/pay/mpesa', paymentLimiter, async (req, res) => {
   try {
     // Default to 1000 KES if amount not provided
     const { phone, accountReference } = req.body || {};
@@ -158,7 +164,7 @@ async function getPaypalToken() {
   return d.access_token;
 }
 
-app.post('/api/pay/paypal/create-order', async (req, res) => {
+app.post('/api/pay/paypal/create-order', paymentLimiter, async (req, res) => {
   try {
     const token = await getPaypalToken();
     const url = process.env.PAYPAL_ENV === 'production'
@@ -207,17 +213,21 @@ const EmailService = require('./services/email-service');
 
 // Initialize email service with Gmail credentials
 const emailService = new EmailService();
-emailService.initialize({
-  email: process.env.SMTP_USER || 'smartinvestsi254@gmail.com',
-  password: process.env.SMTP_PASS || 'SmartInvest254.com',
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false
-}).then(() => {
-  console.log('✅ Email service initialized');
-}).catch(err => {
-  console.error('❌ Email service initialization error:', err.message);
-});
+if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  emailService.initialize({
+    email: process.env.SMTP_USER,
+    password: process.env.SMTP_PASS,
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true'
+  }).then(() => {
+    console.log('✅ Email service initialized');
+  }).catch(err => {
+    console.error('❌ Email service initialization error:', err.message);
+  });
+} else {
+  console.warn('⚠️ Email service not initialized: SMTP_USER/SMTP_PASS not set');
+}
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -341,6 +351,43 @@ function normalizePhone(value) {
   return digits;
 }
 
+function isValidEmail(value) {
+  const email = String(value || '').trim();
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isStrongPassword(value) {
+  const pwd = String(value || '');
+  if (pwd.length < 10) return false;
+  if (!/[A-Z]/.test(pwd)) return false;
+  if (!/[a-z]/.test(pwd)) return false;
+  if (!/\d/.test(pwd)) return false;
+  if (!/[^A-Za-z0-9]/.test(pwd)) return false;
+  return true;
+}
+
+function isValidPhone(value) {
+  const digits = normalizePhone(value);
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function isValidCountry(value) {
+  const country = String(value || '').trim();
+  return country.length >= 2 && country.length <= 64;
+}
+
+function isValidName(value) {
+  const name = String(value || '').trim();
+  return name.length >= 2 && name.length <= 80;
+}
+
+function isSafeText(value, maxLen = 200) {
+  const text = String(value || '').trim();
+  if (text.length > maxLen) return false;
+  return !/[<>]/.test(text);
+}
+
 function findContactConflict(users, { email, mobileNumber, phone }, currentUserId = null) {
   const targetEmail = normalizeEmail(email);
   const targetPhone = normalizePhone(mobileNumber || phone);
@@ -378,10 +425,11 @@ function setWalletBalance(user, amount) {
   user.amount = normalized;
 }
 
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
     const { email, password, acceptTerms, mobileNumber, paymentMethod, taxInfo, country, fullName } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
     if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
 
     const referralToken = req.body.referralToken || req.body.affiliateToken || req.body.ref || null;
@@ -488,10 +536,11 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
     const users = readUsers();
     const normalizedEmail = normalizeEmail(email);
     const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
@@ -560,7 +609,10 @@ app.get('/api/admin/users', adminAuth, (req, res) => {
     // Return user data without password hashes
     const safeUsers = users.map(u => {
       const { passwordHash, ...safeData } = u;
-      return safeData;
+      return {
+        ...safeData,
+        subscriptionDetails: subManager.getUserSubscription ? subManager.getUserSubscription(u.id) : null
+      };
     });
     return res.json({ success: true, users: safeUsers });
   } catch (err) {
@@ -806,10 +858,11 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
 });
 
 // Manual KCB Bank Transfer (simple flow)
-app.post('/api/pay/kcb/manual', (req, res) => {
+app.post('/api/pay/kcb/manual', paymentLimiter, (req, res) => {
   try {
     const { name, email, amount, reference } = req.body;
     if (!name || !email || !amount) return res.status(400).json({ error: 'name, email and amount required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
 
     const users = readUsers();
     const normalizedEmail = normalizeEmail(email);
@@ -1034,7 +1087,12 @@ app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
     return res.json({ success: true });
   } catch (e) { console.error('delete file error', e.message); return res.status(500).json({ error: e.message }); }
 });
+      if (!isStrongPassword(password)) return res.status(400).json({ error: 'password must be at least 10 characters and include upper, lower, number, and symbol' });
 
+      if (fullName && !isValidName(fullName)) return res.status(400).json({ error: 'invalid full name' });
+      if (mobileNumber && !isValidPhone(mobileNumber)) return res.status(400).json({ error: 'invalid mobile number' });
+      if (country && !isValidCountry(country)) return res.status(400).json({ error: 'invalid country' });
+      if (paymentMethod && !isSafeText(paymentMethod, 40)) return res.status(400).json({ error: 'invalid payment method' });
 // NOTE: The demo `/api/purchase` endpoint was removed. Integrate real payment providers and
 // grant purchases via provider webhooks or admin grants. This improves security by avoiding
 // client-side simulated purchases.
@@ -1295,6 +1353,9 @@ app.post('/api/messages', messageLimiter, express.json(), (req, res) => {
     sendNotificationMail({ subject: 'New site message', text: `${entry.name} wrote: ${entry.message}`, html: `<p><strong>${entry.name}</strong>: ${entry.message}</p>` });
     return res.json({ success: true, message: entry });
   } catch (e) { console.error('post message error', e.message); return res.status(500).json({ error: e.message }); }
+        if (!isValidPhone(phone)) return res.status(400).json({ error: 'invalid phone' });
+        if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid amount' });
+        if (accountReference && !isSafeText(accountReference, 64)) return res.status(400).json({ error: 'invalid account reference' });
 });
 
 // User: list only their own messages (requires email)
@@ -1364,7 +1425,7 @@ app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
 });
 
 // Public: request download token (email must match a purchase)
-app.post('/api/download/request', express.json(), (req, res) => {
+app.post('/api/download/request', downloadLimiter, express.json(), (req, res) => {
   try {
     if (isIPBlocked(getClientIP(req))) {
       logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
@@ -1608,6 +1669,9 @@ app.get('/api/admin/users-export', adminAuth, (req, res) => {
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
     })).join('\n');
     
+          if (!isValidName(name)) return res.status(400).json({ error: 'invalid name' });
+          if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) return res.status(400).json({ error: 'invalid amount' });
+          if (reference && !isSafeText(reference, 80)) return res.status(400).json({ error: 'invalid reference' });
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="users-export.csv"');
     res.send(csv);
@@ -1621,6 +1685,7 @@ app.get('/api/admin/users-export', adminAuth, (req, res) => {
 app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
   try {
     const userId = req.params.userId;
+    const { reason, hard } = req.body || {};
     const users = readUsers();
     const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
     
@@ -1633,10 +1698,22 @@ app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
       return res.status(403).json({ error: 'Cannot delete primary admin account' });
     }
     
-    const deletedUser = users.splice(userIndex, 1)[0];
+    if (hard === true) {
+      const deletedUser = users.splice(userIndex, 1)[0];
+      writeUsers(users);
+      return res.json({ success: true, message: 'User deleted', user: { id: deletedUser.id, email: deletedUser.email } });
+    }
+
+    users[userIndex].deleted = true;
+    users[userIndex].deletedAt = new Date().toISOString();
+    users[userIndex].deleteReason = reason || 'No reason provided';
     writeUsers(users);
-    
-    return res.json({ success: true, message: 'User deleted', user: { id: deletedUser.id, email: deletedUser.email } });
+
+    if (subManager.deleteUser) {
+      subManager.deleteUser(users[userIndex].id, reason);
+    }
+
+    return res.json({ success: true, message: 'User soft-deleted', user: { id: users[userIndex].id, email: users[userIndex].email } });
   } catch (err) {
     console.error('delete user error', err.message);
     return res.status(500).json({ error: err.message });
@@ -1952,59 +2029,6 @@ app.post('/api/admin/subscriptions/:subId/revoke', adminAuth, (req, res) => {
   }
 });
 
-// Get all users (ADMIN ONLY)
-app.get('/api/admin/users', adminAuth, (req, res) => {
-  try {
-    const filters = {};
-    if (req.query.isPremium !== undefined) {
-      filters.isPremium = req.query.isPremium === 'true';
-    }
-
-    const users = subManager.getAllUsers(filters);
-    return res.json({ success: true, users });
-  } catch (err) {
-    console.error('[ADMIN] Get users error:', err.message);
-    return res.status(500).json({ error: 'Failed to retrieve users' });
-  }
-});
-
-// Update user (ADMIN ONLY)
-app.put('/api/admin/users/:userId', adminAuth, (req, res) => {
-  try {
-    const { name, phone, location, taxId } = req.body;
-    
-    const result = subManager.updateUser(req.params.userId, {
-      name, phone, location, taxId
-    });
-
-    if (result.error) {
-      return res.status(400).json(result);
-    }
-
-    return res.json({ success: true, user: result });
-  } catch (err) {
-    console.error('[ADMIN] Update user error:', err.message);
-    return res.status(500).json({ error: 'Failed to update user' });
-  }
-});
-
-// Delete user (ADMIN ONLY) - Soft delete
-app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
-  try {
-    const { reason } = req.body;
-    
-    const result = subManager.deleteUser(req.params.userId, reason);
-    if (result.error) {
-      return res.status(400).json(result);
-    }
-
-    console.log(`[ADMIN] User ${req.params.userId} deleted. Reason: ${reason}`);
-    return res.json(result);
-  } catch (err) {
-    console.error('[ADMIN] Delete user error:', err.message);
-    return res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 

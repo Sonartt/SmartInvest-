@@ -11,6 +11,9 @@ name: Deprecated - Jekyll Workflow Disabled
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   info:
     runs-on: ubuntu-latest
