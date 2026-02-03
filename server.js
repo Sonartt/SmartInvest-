@@ -972,7 +972,11 @@ function writeAccessViolations(data){
 
 function logAccessViolation(req, details = {}){
   try {
+    const MAX_WARNINGS = Number(process.env.ACCESS_VIOLATION_LIMIT) || 3;
+    const WINDOW_MS = Number(process.env.ACCESS_VIOLATION_WINDOW_MS) || (24 * 60 * 60 * 1000);
+    const BLOCK_DURATION_MS = Number(process.env.ACCESS_VIOLATION_BLOCK_MS) || (24 * 60 * 60 * 1000);
     const ip = getClientIP(req);
+    const now = Date.now();
     const entry = {
       id: uuidv4(),
       at: new Date().toISOString(),
@@ -983,17 +987,37 @@ function logAccessViolation(req, details = {}){
       email: details.email || '',
       fileId: details.fileId || '',
       reason: details.reason || 'access_denied',
-      status: 'pending'
+      status: 'pending',
+      warning: true
     };
     const store = readAccessViolations();
     store.violations = store.violations || [];
     store.violations.push(entry);
+
+    const recent = store.violations.filter(v =>
+      v.ip === ip &&
+      v.reason === entry.reason &&
+      (now - new Date(v.at).getTime()) <= WINDOW_MS
+    );
+
+    const remaining = Math.max(0, MAX_WARNINGS - recent.length);
+
+    if (recent.length >= MAX_WARNINGS) {
+      blockIP(ip, BLOCK_DURATION_MS, 'Repeated access violations');
+      entry.status = 'blocked';
+      entry.warning = false;
+      entry.action = 'auto-block';
+      entry.blockedUntil = new Date(now + BLOCK_DURATION_MS).toISOString();
+    }
+
     if (store.violations.length > 5000) store.violations = store.violations.slice(-5000);
     writeAccessViolations(store);
     logSecurityEvent('access-violation', ip, { reason: entry.reason, path: entry.path, email: entry.email, fileId: entry.fileId });
+    return { warning: entry.warning, blocked: entry.status === 'blocked', remaining };
   } catch (e) {
     console.error('logAccessViolation error', e.message);
   }
+  return { warning: true, blocked: false, remaining: 0 };
 }
 
 // Admin: delete file metadata and file
@@ -1054,15 +1078,23 @@ function requirePaidUser(req, res, next) {
     }
     const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
     if (!email) {
-      logAccessViolation(req, { reason: 'missing_email', fileId: '', email: '' });
-      return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email=' });
+      const warn = logAccessViolation(req, { reason: 'missing_email', fileId: '', email: '' });
+      return res.status(402).json({
+        error: 'Payment required: include purchaser email in x-user-email header or ?email=',
+        warning: warn.warning,
+        remainingAttempts: warn.remaining
+      });
     }
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
     const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
     if (!ok) {
-      logAccessViolation(req, { reason: 'purchase_not_found', email: e, fileId: '' });
-      return res.status(402).json({ error: 'No purchases found for this email' });
+      const warn = logAccessViolation(req, { reason: 'purchase_not_found', email: e, fileId: '' });
+      return res.status(402).json({
+        error: 'No purchases found for this email',
+        warning: warn.warning,
+        remainingAttempts: warn.remaining
+      });
     }
     req.purchaserEmail = e;
     return next();
@@ -1352,8 +1384,12 @@ app.post('/api/download/request', express.json(), (req, res) => {
       const purchases = readPurchases();
       const ok = purchases.find(p => p.fileId === fileId && p.email === normalizedEmail);
       if (!ok) {
-        logAccessViolation(req, { reason: 'purchase_not_found', email: normalizedEmail, fileId });
-        return res.status(402).json({ error: 'purchase not found' });
+        const warn = logAccessViolation(req, { reason: 'purchase_not_found', email: normalizedEmail, fileId });
+        return res.status(402).json({
+          error: 'purchase not found',
+          warning: warn.warning,
+          remainingAttempts: warn.remaining
+        });
       }
     }
     const tokens = readTokens();
