@@ -7,11 +7,15 @@ router.post('/generate', async (req, res) => {
   try {
     const { type, productId, contentId, expiryDays, maxUses } = req.body;
     
-    if (!type || !['product', 'referral', 'content'].includes(type)) {
+    if (!type || !['product', 'referral', 'content', 'affiliate'].includes(type)) {
       return res.status(400).json({ error: 'Invalid share link type' });
     }
 
     const userId = req.userId || req.body.userId; // From auth middleware or request
+
+    if (type === 'affiliate' && !userId) {
+      return res.status(400).json({ error: 'userId is required for affiliate links' });
+    }
     
     const shareLink = await shareLinkService.generateShareLink(type, {
       userId,
@@ -52,6 +56,8 @@ router.get('/:token', async (req, res) => {
         ? `/products.html?id=${link.productId}`
         : link.type === 'content' && link.contentId
         ? `/content/${link.contentId}`
+        : link.type === 'affiliate'
+        ? `/signup.html?ref=${encodeURIComponent(link.token)}`
         : '/'
     });
   } catch (error) {

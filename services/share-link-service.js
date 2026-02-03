@@ -33,9 +33,11 @@ class ShareLinkService {
       userId: options.userId,
       productId: options.productId,
       contentId: options.contentId,
-      type: type, // 'product', 'referral', 'content'
+      type: type, // 'product', 'referral', 'content', 'affiliate'
       clicks: 0,
-      maxUses: options.maxUses || null
+      maxUses: options.maxUses || null,
+      conversions: 0,
+      conversionEvents: []
     };
 
     links.push(shareLink);
@@ -77,6 +79,34 @@ class ShareLinkService {
     const links = await this.loadLinks();
     const filteredLinks = links.filter(l => l.id !== linkId);
     await this.saveLinks(filteredLinks);
+  }
+
+  async getLink(linkId) {
+    const links = await this.loadLinks();
+    return links.find(l => l.id === linkId || l.token === linkId) || null;
+  }
+
+  async recordConversion(linkId, payload = {}) {
+    const links = await this.loadLinks();
+    const link = links.find(l => l.id === linkId || l.token === linkId);
+
+    if (!link) {
+      return { error: 'link_not_found' };
+    }
+
+    link.conversions = Number(link.conversions || 0) + 1;
+    if (!Array.isArray(link.conversionEvents)) {
+      link.conversionEvents = [];
+    }
+    link.conversionEvents.unshift({
+      id: crypto.randomBytes(8).toString('hex'),
+      at: new Date().toISOString(),
+      payload
+    });
+
+    link.conversionEvents = link.conversionEvents.slice(0, 50);
+    await this.saveLinks(links);
+    return { success: true, link };
   }
 }
 

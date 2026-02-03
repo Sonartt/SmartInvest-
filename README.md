@@ -4,6 +4,23 @@ SmartInvest Africa is a comprehensive web application focused on democratizing i
 
 ## 🌟 New Live Features
 
+### � P2P Payment System (NEW!)
+- **Peer-to-peer money transfers** with $5 USD transaction cost
+- **Platform number**: 0114383762 (receives all transaction fees)
+- **Multi-currency support**: USD, KES, NGN, GHS, ZAR
+- **All users have access** to P2P transfers
+- **M-Pesa integration** for instant payments
+- **Transaction tracking** and history
+
+### 🎯 Affiliate Program (NEW!)
+- **Three-tier system**: Bronze (10%), Silver (15%), Gold (20%)
+- **Automatic premium access** for all affiliates
+- **Commission on P2P transactions**: $0.50 - $1.00 per transaction
+- **Withdrawal system**: Minimum $10 USD
+- **Referral tracking** and management
+- **Advanced dashboard** with analytics
+- **Premium calculator access** included
+
 ### 💬 Live Chat Support
 - **Floating chat widget** on all pages
 - **Real-time messaging** with admin email notifications
@@ -29,6 +46,8 @@ SmartInvest Africa is a comprehensive web application focused on democratizing i
 
 - **Landing Page**: Investment Academy, Insights, Tools, SME funding readiness, Community, and Contact
 - **Payment Integration**: M-Pesa, PayPal, and KCB Bank manual transfers
+- **P2P Transfers**: Send money peer-to-peer with $5 transaction fee
+- **Affiliate Program**: Earn commissions and get premium access
 - **File Marketplace**: Upload, manage, and sell digital resources
 - **Share Links**: Generate shareable product links with tracking and expiration
 - **Premium File Management**: Admin-only file uploads for premium users (100MB limit)
@@ -37,15 +56,54 @@ SmartInvest Africa is a comprehensive web application focused on democratizing i
 - **Accessibility & SEO**: WCAG compliant with comprehensive SEO optimization
 - **Investment Calculator**: Standalone tool for investment and insurance projections
 
+## 💰 P2P Payment Details
+
+### Transaction Costs
+- **Base Amount**: What recipient receives
+- **Transaction Fee**: $5 USD (goes to 0114383762)
+- **Total**: Base + $5
+
+### Example
+```
+Sending $10:
+- Recipient receives: $10.00
+- Transaction fee:    $5.00
+- You pay total:      $15.00
+```
+
+### Affiliate Commission
+When using an affiliate code:
+- Bronze tier: Earns $0.50 (10% of $5)
+- Silver tier: Earns $0.75 (15% of $5)
+- Gold tier: Earns $1.00 (20% of $5)
+
+## 🎁 Affiliate Program Benefits
+
+All affiliates receive:
+- ✅ Automatic premium calculator access
+- ✅ Commission on referred P2P transactions
+- ✅ Personal affiliate dashboard
+- ✅ Withdrawal system (min $10)
+- ✅ Referral tracking
+- ✅ Tier progression (Bronze → Silver → Gold)
+
 ## 📞 Contact Information
 
 - **Website Email**: smartinvestsi254@gmail.com
 - **Admin Email**: delijah5415@gmail.com
 - **Admin Name**: ELIJAH DANIEL
-- **Phone**: 0731856995 / 0114383762
+- **Phone**: 0731856995 / 0114383762 (Platform P2P Number)
 - **WhatsApp**: [Chat with us](https://wa.me/254731856995)
 - **Location**: Nairobi, Kenya
 - **Hours**: Mon-Fri, 9am-6pm EAT
+
+## 🔗 Quick Access
+
+- **User Dashboard**: `/dashboard.html` (includes P2P payment button)
+- **Affiliate Dashboard**: `/affiliate-dashboard.html`
+- **P2P Documentation**: `/P2P_AFFILIATE_DOCUMENTATION.md`
+- **Quick Start Guide**: `/P2P_AFFILIATE_QUICKSTART.md`
+- **Implementation Summary**: `/P2P_AFFILIATE_IMPLEMENTATION.md`
 
 ## 🔐 Admin Access
 

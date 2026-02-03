@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const contentAPI = require('./api/content-management');
 const subManager = require('./api/subscription-manager');
+const shareLinkService = require('./services/share-link-service');
 
 const app = express();
 app.use(cors());
@@ -183,6 +184,7 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
+const WALLET_TRANSFERS_FILE = './data/wallet-transfers.json';
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -290,8 +292,40 @@ function readUsers() {
   }
 }
 
+function readWalletTransfers() {
+  try {
+    if (!fs.existsSync(WALLET_TRANSFERS_FILE)) {
+      fs.writeFileSync(WALLET_TRANSFERS_FILE, JSON.stringify([], null, 2));
+    }
+    const raw = fs.readFileSync(WALLET_TRANSFERS_FILE, 'utf8');
+    return JSON.parse(raw || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeWalletTransfers(transfers) {
+  fs.writeFileSync(WALLET_TRANSFERS_FILE, JSON.stringify(transfers, null, 2));
+}
+
 function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getWalletBalance(user) {
+  const raw = user && (user.walletBalance ?? user.amount ?? 0);
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setWalletBalance(user, amount) {
+  const normalized = Number(amount) || 0;
+  user.walletBalance = normalized;
+  user.amount = normalized;
 }
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -299,6 +333,8 @@ app.post('/api/auth/signup', async (req, res) => {
     const { email, password, acceptTerms, mobileNumber, paymentMethod, taxInfo, country, fullName } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
+
+    const referralToken = req.body.referralToken || req.body.affiliateToken || req.body.ref || null;
 
     const users = readUsers();
     if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -316,6 +352,15 @@ app.post('/api/auth/signup', async (req, res) => {
                      'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
     
+    let referralLink = null;
+    if (referralToken) {
+      try {
+        referralLink = await shareLinkService.getLink(referralToken);
+      } catch (e) {
+        referralLink = null;
+      }
+    }
+
     const user = { 
       id: userId,
       email: email.toLowerCase(), 
@@ -333,10 +378,14 @@ app.post('/api/auth/signup', async (req, res) => {
         verified: false
       },
       amount: 0,
+      walletBalance: 0,
       isPremium: false,
       premiumGrantedAt: null,
       premiumGrantedBy: null,
       isAdmin: false,
+      referralToken: referralLink ? referralLink.token : null,
+      referralType: referralLink ? referralLink.type : null,
+      referredBy: referralLink ? referralLink.userId : null,
       createdAt: new Date().toISOString(),
       lastLoginAt: null,
       registrationIp: ipAddress,
@@ -345,6 +394,19 @@ app.post('/api/auth/signup', async (req, res) => {
     };
     users.push(user);
     writeUsers(users);
+
+    if (referralLink && (referralLink.type === 'affiliate' || referralLink.type === 'referral')) {
+      try {
+        await shareLinkService.recordConversion(referralLink.token, {
+          newUserId: user.id,
+          newUserEmail: user.email,
+          referralType: referralLink.type,
+          referrerUserId: referralLink.userId
+        });
+      } catch (e) {
+        console.warn('referral conversion tracking failed:', e.message);
+      }
+    }
     
     // Send welcome email with terms and conditions
     console.log(`📧 Sending welcome email to ${email}...`);
@@ -1852,6 +1914,304 @@ app.use('/api/social-media', socialMediaAPI);
 app.put('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
 app.post('/api/admin/social-media/update-all', adminAuth, socialMediaAPI);
 app.delete('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+
+// ============================================================================
+// P2P PAYMENT SYSTEM & AFFILIATE PROGRAM
+// ============================================================================
+const p2pSystem = require('./api/p2p-payment-system');
+const affiliateSystem = require('./api/affiliate-system');
+const adsSystem = require('./api/ads-payment-system');
+
+// P2P Payment Endpoints (LIVE)
+app.post('/api/p2p/initiate', express.json(), async (req, res) => {
+  try {
+    const result = await p2pSystem.initiateP2PPayment(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/p2p/complete', express.json(), async (req, res) => {
+  try {
+    const { reference, mpesaReceipt } = req.body;
+    const result = await p2pSystem.completeP2PTransaction(reference, mpesaReceipt);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/p2p/transactions/:phone', async (req, res) => {
+  try {
+    const transactions = await p2pSystem.getUserTransactions(req.params.phone, req.query.email);
+    res.json({ success: true, transactions });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/p2p/admin/transactions', adminAuth, async (req, res) => {
+  try {
+    const transactions = await p2pSystem.getAllTransactions(req.query);
+    res.json({ success: true, transactions });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/p2p/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await p2pSystem.getTransactionStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Affiliate Program Endpoints
+app.post('/api/affiliate/register', express.json(), async (req, res) => {
+  try {
+    const result = await affiliateSystem.registerAffiliate(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/dashboard/:code', async (req, res) => {
+  try {
+    const dashboard = await affiliateSystem.getAffiliateDashboard(req.params.code);
+    res.json(dashboard);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/commissions/:code', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const commissions = await affiliateSystem.getCommissionsHistory(req.params.code, limit);
+    res.json(commissions);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/withdraw', express.json(), async (req, res) => {
+  try {
+    const { affiliateCode, amount, method } = req.body;
+    const result = await affiliateSystem.requestWithdrawal(affiliateCode, amount, method);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/admin/process-withdrawal', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { affiliateCode, withdrawalId, status } = req.body;
+    const result = await affiliateSystem.processWithdrawal(affiliateCode, withdrawalId, status);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/admin/all', adminAuth, async (req, res) => {
+  try {
+    const affiliates = await affiliateSystem.getAllAffiliates(req.query);
+    res.json({ success: true, affiliates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/upgrade-tier/:code', express.json(), async (req, res) => {
+  try {
+    const result = await affiliateSystem.upgradeAffiliateTier(req.params.code);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// ADS PAYMENT SYSTEM (LIVE)
+// ============================================================================
+
+// Get ad packages and pricing
+app.get('/api/ads/packages', async (req, res) => {
+  try {
+    const packagesInfo = {
+      banner: {
+        name: 'Banner Ad',
+        positions: ['top', 'bottom', 'sidebar'],
+        pricing: { day: 5, week: 30, month: 100, quarter: 250, year: 900 },
+        dimensions: '728x90 or 300x250'
+      },
+      featured: {
+        name: 'Featured Listing',
+        positions: ['homepage', 'category'],
+        pricing: { day: 10, week: 60, month: 200, quarter: 500, year: 1800 },
+        features: ['Top placement', 'Highlighted border', 'Priority display']
+      },
+      popup: {
+        name: 'Popup Ad',
+        positions: ['entry', 'exit'],
+        pricing: { day: 15, week: 90, month: 300, quarter: 750, year: 2500 },
+        frequency: 'Once per session'
+      },
+      sponsored: {
+        name: 'Sponsored Content',
+        positions: ['blog', 'insights', 'tools'],
+        pricing: { week: 100, month: 350, quarter: 900, year: 3000 },
+        features: ['Full article', 'Author byline', 'Social sharing']
+      },
+      video: {
+        name: 'Video Ad',
+        positions: ['pre-roll', 'mid-roll'],
+        pricing: { day: 20, week: 120, month: 400, quarter: 1000, year: 3500 },
+        duration: 'Up to 30 seconds'
+      }
+    };
+    res.json({ success: true, packages: packagesInfo });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Calculate ad cost
+app.post('/api/ads/calculate-cost', express.json(), async (req, res) => {
+  try {
+    const { packageType, duration, quantity } = req.body;
+    const cost = await adsSystem.calculateAdCost(packageType, duration, quantity);
+    res.json({ success: true, cost });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Initiate ad payment (LIVE)
+app.post('/api/ads/initiate-payment', express.json(), async (req, res) => {
+  try {
+    const result = await adsSystem.initiateAdPayment(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Complete ad payment (LIVE)
+app.post('/api/ads/complete-payment', express.json(), async (req, res) => {
+  try {
+    const { reference, mpesaReceipt } = req.body;
+    const result = await adsSystem.completeAdPayment(reference, mpesaReceipt);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Get active ads for display
+app.get('/api/ads/active', async (req, res) => {
+  try {
+    const position = req.query.position;
+    const ads = await adsSystem.getActiveAds(position);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get user's ads
+app.get('/api/ads/my-ads', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'] || req.query.email;
+    if (!userEmail) {
+      return res.status(400).json({ success: false, error: 'Email required' });
+    }
+    const ads = await adsSystem.getAdvertiserAds(userEmail);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get user's ad payments
+app.get('/api/ads/my-payments', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'] || req.query.email;
+    if (!userEmail) {
+      return res.status(400).json({ success: false, error: 'Email required' });
+    }
+    const allPayments = await adsSystem.getAllPayments();
+    const userPayments = allPayments.filter(p => p.advertiser.email === userEmail);
+    res.json({ success: true, payments: userPayments });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Record ad impression
+app.post('/api/ads/impression/:adId', async (req, res) => {
+  try {
+    await adsSystem.recordImpression(req.params.adId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Record ad click
+app.post('/api/ads/click/:adId', async (req, res) => {
+  try {
+    await adsSystem.recordClick(req.params.adId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get advertiser's ads
+app.get('/api/ads/advertiser/:email', async (req, res) => {
+  try {
+    const ads = await adsSystem.getAdvertiserAds(req.params.email);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Approve ad
+app.post('/api/ads/admin/approve/:adId', adminAuth, async (req, res) => {
+  try {
+    const result = await adsSystem.approveAd(req.params.adId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Get all ad payments
+app.get('/api/ads/admin/payments', adminAuth, async (req, res) => {
+  try {
+    const payments = await adsSystem.getAllPayments(req.query);
+    res.json({ success: true, payments });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Get ads statistics
+app.get('/api/ads/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await adsSystem.getAdsStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Export app for Vercel serverless
 module.exports = app;
