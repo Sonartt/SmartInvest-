@@ -70,6 +70,31 @@ function isAdminRequest(req) {
 
 const PORT = process.env.PORT || 3000;
 
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS) || 15000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = UPSTREAM_TIMEOUT_MS) {
+  if (typeof AbortController === 'undefined') {
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function readResponsePayload(res) {
+  const text = await res.text();
+  if (!text) return { parsed: null, text: '' };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch (e) {
+    return { parsed: null, text };
+  }
+}
+
 // Helper: get OAuth token for M-Pesa (Daraja)
 async function getMpesaAuth() {
   const key = process.env.MPESA_CONSUMER_KEY;
@@ -79,10 +104,13 @@ async function getMpesaAuth() {
   const url = process.env.MPESA_ENV === 'production'
     ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
-  const res = await fetch(url, { headers: { Authorization: `Basic ${basic}` } });
-  if (!res.ok) throw new Error('Failed to get M-Pesa token');
-  const data = await res.json();
-  return data.access_token;
+  const res = await fetchWithTimeout(url, { headers: { Authorization: `Basic ${basic}` } });
+  const { parsed, text } = await readResponsePayload(res);
+  if (!res.ok) {
+    const reason = parsed?.error_description || parsed?.error || text || 'Failed to get M-Pesa token';
+    throw new Error(`Failed to get M-Pesa token (${res.status}): ${reason}`);
+  }
+  return parsed?.access_token;
 }
 
 // MPESA STK Push (simplified for Daraja sandbox)
@@ -126,21 +154,31 @@ app.post('/api/pay/mpesa', paymentLimiter, async (req, res) => {
     // Log outgoing request (mask sensitive fields)
     logMpesa({ stage: 'request', endpoint, body: maskMpesaBody(body) });
 
-    const mpRes = await fetch(endpoint, {
+    const mpRes = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
     // Read raw response for logging and parsing
-    const raw = await mpRes.text();
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch (e) { /* not JSON */ }
-    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : raw, parsed: parsed || undefined });
+    const { parsed, text } = await readResponsePayload(mpRes);
+    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : text, parsed: parsed || undefined });
 
-    return res.json({ success: true, data: parsed || raw });
+    if (!mpRes.ok) {
+      return res.status(502).json({
+        success: false,
+        error: parsed?.errorMessage || parsed?.error || 'M-Pesa request failed',
+        status: mpRes.status,
+        data: parsed || text
+      });
+    }
+
+    return res.json({ success: true, data: parsed || text });
   } catch (err) {
     console.error('mpesa error', err.message);
+    if (err && err.name === 'AbortError') {
+      return res.status(504).json({ error: 'M-Pesa request timed out' });
+    }
     return res.status(500).json({ error: err.message });
   }
 });
@@ -154,14 +192,17 @@ async function getPaypalToken() {
   const url = process.env.PAYPAL_ENV === 'production'
     ? 'https://api-m.paypal.com/v1/oauth2/token'
     : 'https://api-m.sandbox.paypal.com/v1/oauth2/token';
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=client_credentials'
   });
-  if (!res.ok) throw new Error('Failed to get PayPal token');
-  const d = await res.json();
-  return d.access_token;
+  const { parsed, text } = await readResponsePayload(res);
+  if (!res.ok) {
+    const reason = parsed?.error_description || parsed?.error || text || 'Failed to get PayPal token';
+    throw new Error(`Failed to get PayPal token (${res.status}): ${reason}`);
+  }
+  return parsed?.access_token;
 }
 
 app.post('/api/pay/paypal/create-order', paymentLimiter, async (req, res) => {
@@ -186,16 +227,28 @@ app.post('/api/pay/paypal/create-order', paymentLimiter, async (req, res) => {
         cancel_url: process.env.PAYPAL_CANCEL_URL || 'https://example.com/paypal/cancel'
       }
     };
-    const r = await fetch(url, {
+    const r = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(purchase)
     });
-    const data = await r.json();
-    const approve = (data.links||[]).find(l=>l.rel==='approve')?.href;
+    const { parsed, text } = await readResponsePayload(r);
+    const data = parsed || { raw: text };
+    if (!r.ok) {
+      return res.status(502).json({
+        success: false,
+        error: data?.message || data?.name || 'PayPal order creation failed',
+        status: r.status,
+        data
+      });
+    }
+    const approve = (data.links || []).find(l => l.rel === 'approve')?.href;
     return res.json({ success: true, data, approveUrl: approve });
   } catch (err) {
     console.error('paypal error', err.message);
+    if (err && err.name === 'AbortError') {
+      return res.status(504).json({ error: 'PayPal request timed out' });
+    }
     return res.status(500).json({ error: err.message });
   }
 });

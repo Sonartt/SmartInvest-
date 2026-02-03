@@ -204,13 +204,24 @@ class P2PPaymentInterface {
     statusDiv.innerHTML = '<div class="p2p-loading">Processing payment...</div>';
 
     try {
-      const response = await fetch(`${this.apiBase}/initiate`, {
+      const response = await p2pFetchWithTimeout(`${this.apiBase}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
-      const data = await response.json();
+      const { parsed, text } = await p2pSafeJson(response);
+      const data = parsed || { raw: text };
+
+      if (!response.ok) {
+        statusDiv.innerHTML = `
+          <div class="p2p-error">
+            <h3>❌ Payment Failed</h3>
+            <p>${data?.error || data?.message || data?.raw || 'Payment request failed'}</p>
+          </div>
+        `;
+        return;
+      }
 
       if (data.success) {
         statusDiv.innerHTML = `
@@ -242,7 +253,7 @@ class P2PPaymentInterface {
       statusDiv.innerHTML = `
         <div class="p2p-error">
           <h3>❌ Error</h3>
-          <p>${error.message}</p>
+          <p>${error?.name === 'AbortError' ? 'Request timed out. Please try again.' : error.message}</p>
         </div>
       `;
     }
@@ -270,8 +281,10 @@ class P2PPaymentInterface {
   async getTransactionHistory(phone, email = null) {
     try {
       const url = `${this.apiBase}/transactions/${phone}${email ? `?email=${email}` : ''}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const response = await p2pFetchWithTimeout(url);
+      const { parsed, text } = await p2pSafeJson(response);
+      const data = parsed || { raw: text };
+      if (!response.ok) return [];
       
       if (data.success) {
         return data.transactions;
@@ -453,6 +466,28 @@ class P2PPaymentInterface {
       }
     `;
     document.head.appendChild(style);
+  }
+}
+
+const P2P_REQUEST_TIMEOUT_MS = 15000;
+
+async function p2pFetchWithTimeout(url, options = {}, timeoutMs = P2P_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function p2pSafeJson(res) {
+  const text = await res.text();
+  if (!text) return { parsed: null, text: '' };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch (e) {
+    return { parsed: null, text };
   }
 }
 
