@@ -3232,6 +3232,359 @@ app.get('/api/blockchain/financial-methodologies', async (req, res) => {
   }
 });
 
+// Premium endpoint: Get financial methodologies and frameworks
+app.get('/api/blockchain/financial-methodologies', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return methodologies
+    const methodologies = {
+      success: true,
+      data: {
+        riskMetrics: {
+          valueAtRisk: {
+            abbreviation: 'VaR',
+            description: 'Maximum loss at given confidence level over time period',
+            calculation: 'Percentile of loss distribution',
+            application: 'Regulatory capital requirements, risk monitoring'
+          },
+          expectedShortfall: {
+            abbreviation: 'ES/CVaR',
+            description: 'Average loss when VaR threshold exceeded',
+            advantage: 'Captures tail risk better than VaR',
+            application: 'More rigorous risk assessment'
+          },
+          stressTest: {
+            description: 'Portfolio impact under extreme scenarios',
+            scenarios: ['Market Crash', 'Rate Spike', 'Volatility Explosion', 'Liquidity Crisis'],
+            frequency: 'Quarterly or monthly'
+          }
+        },
+        portfolioTheories: {
+          modernPortfolioTheory: {
+            foundation: 'Markowitz mean-variance optimization',
+            principle: 'Diversification reduces risk',
+            output: 'Efficient frontier of optimal portfolios',
+            limitation: 'Assumes normal distribution, historical volatility'
+          },
+          riskParityApproach: {
+            principle: 'Equal risk contribution from each asset',
+            advantage: 'Better risk-adjusted returns historically',
+            leverage: 'Often uses leverage to achieve returns',
+            rebalancing: 'Dynamic based on volatility changes'
+          },
+          blackLittermanModel: {
+            enhancement: 'Incorporates investor views with market equilibrium',
+            advantage: 'More intuitive adjustments than pure mean-variance',
+            process: 'Prior (market) + Views = Posterior allocation',
+            confidence: 'Weighted by conviction in views'
+          }
+        },
+        valuationModels: {
+          discountedCashFlow: {
+            principle: 'Asset value = PV of future cash flows',
+            discount: 'Weighted Average Cost of Capital (WACC)',
+            advantage: 'Theoretically sound, fundamental approach',
+            limitation: 'Sensitive to terminal value assumptions'
+          },
+          relativeValuation: {
+            methods: ['P/E Multiple', 'EV/EBITDA', 'Price/Book', 'Price/Sales'],
+            advantage: 'Market-based, less dependent on assumptions',
+            limitation: 'Requires comparable companies'
+          },
+          optionPricing: {
+            blackScholes: 'Closed-form solution for European options',
+            binomial: 'Flexible for American options and complex instruments',
+            monteCarlo: 'For complex derivatives and path-dependent payoffs'
+          }
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(methodologies);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get portfolio risk metrics (VaR, Sharpe ratio, etc.)
+app.get('/api/blockchain/risk-metrics', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return risk metrics data
+    const riskMetrics = {
+      success: true,
+      data: {
+        valueAtRisk: {
+          '95%': -2.15,  // 95% VaR
+          '99%': -3.42   // 99% VaR
+        },
+        expectedShortfall: {
+          '95%': -3.05,
+          '99%': -4.28
+        },
+        sharpeRatio: 0.75,
+        sortinoRatio: 1.12,
+        treynorRatio: 0.65,
+        beta: 0.95,
+        correlation: {
+          stocks: 1.0,
+          bonds: -0.15,
+          commodities: 0.05,
+          crypto: 0.45
+        },
+        volatility: 0.12,
+        maxDrawdown: -0.18,
+        recoveryTime: 6 // months
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(riskMetrics);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get derivatives pricing model (Black-Scholes)
+app.post('/api/blockchain/derivatives/pricing', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { spotPrice, strikePrice, timeToExpiry, riskFreeRate, volatility, optionType } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!spotPrice || !strikePrice || !timeToExpiry || !volatility) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    // Simple Black-Scholes implementation
+    const d1 = (Math.log(spotPrice / strikePrice) + (riskFreeRate + Math.pow(volatility, 2) / 2) * timeToExpiry) / (volatility * Math.sqrt(timeToExpiry));
+    const d2 = d1 - volatility * Math.sqrt(timeToExpiry);
+    
+    const N = (x) => 0.5 * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))));
+    
+    const callPrice = spotPrice * N(d1) - strikePrice * Math.exp(-riskFreeRate * timeToExpiry) * N(d2);
+    const putPrice = strikePrice * Math.exp(-riskFreeRate * timeToExpiry) * N(-d2) - spotPrice * N(-d1);
+    
+    const result = {
+      success: true,
+      pricing: {
+        spotPrice: spotPrice,
+        strikePrice: strikePrice,
+        callPrice: callPrice.toFixed(4),
+        putPrice: putPrice.toFixed(4),
+        timeToExpiry: timeToExpiry,
+        volatility: (volatility * 100).toFixed(2) + '%'
+      },
+      greeks: {
+        delta: N(d1).toFixed(4),
+        gamma: (N(d1) / (spotPrice * volatility * Math.sqrt(timeToExpiry))).toFixed(6),
+        theta: (-spotPrice * N(d1) * volatility / (2 * Math.sqrt(timeToExpiry))).toFixed(4),
+        vega: (spotPrice * N(d1) * Math.sqrt(timeToExpiry) / 100).toFixed(4),
+        rho: (strikePrice * timeToExpiry * Math.exp(-riskFreeRate * timeToExpiry) * N(d2) / 100).toFixed(4)
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Property document upload/management
+app.post('/api/blockchain/properties/document', adminAuth, async (req, res) => {
+  try {
+    const { propertyId, documentType, documentName } = req.body;
+    
+    if (!propertyId || !documentType) {
+      return res.status(400).json({ error: 'propertyId and documentType required' });
+    }
+    
+    // Document management response (file upload would happen here)
+    const result = {
+      success: true,
+      message: 'Document registered',
+      document: {
+        id: Date.now().toString(),
+        propertyId: propertyId,
+        type: documentType,
+        name: documentName || 'Document_' + Date.now(),
+        uploadedAt: new Date().toISOString(),
+        url: `/documents/${propertyId}/${Date.now()}`
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets amortization schedule
+app.post('/api/blockchain/intangible-assets/amortization', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { assetValue, usefulLife, assetType, acquisitionDate } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!assetValue || !usefulLife) {
+      return res.status(400).json({ error: 'assetValue and usefulLife required' });
+    }
+    
+    // Calculate amortization schedule
+    const straightLineExpense = assetValue / usefulLife;
+    const schedule = [];
+    
+    for (let year = 1; year <= usefulLife; year++) {
+      schedule.push({
+        year: year,
+        annualExpense: straightLineExpense.toFixed(2),
+        cumulativeExpense: (straightLineExpense * year).toFixed(2),
+        bookValue: (assetValue - straightLineExpense * year).toFixed(2)
+      });
+    }
+    
+    res.json({
+      success: true,
+      asset: {
+        type: assetType || 'Intangible Asset',
+        acquisitionValue: assetValue,
+        usefulLife: usefulLife,
+        acquisitionDate: acquisitionDate || new Date().toISOString()
+      },
+      amortizationSchedule: schedule,
+      annualExpense: straightLineExpense.toFixed(2)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium tier management: Get premium benefits
+app.get('/api/blockchain/premium-benefits', async (req, res) => {
+  try {
+    const tiers = {
+      success: true,
+      tiers: {
+        basic: {
+          name: 'Basic Premium',
+          price: 2999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'Advanced calculators (15+ tools)',
+            'Market analysis reports (weekly)',
+            'Portfolio tracking (real-time)',
+            'Expert chat support',
+            'Exclusive investment opportunities',
+            'Community access'
+          ],
+          limits: {
+            portfolios: 1,
+            documents: 100,
+            reports: 4
+          }
+        },
+        pro: {
+          name: 'Professional Premium',
+          price: 7999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'All Basic features',
+            'Unlimited calculators',
+            'Daily market analysis',
+            'Risk metrics (VaR, Sharpe ratio)',
+            'Derivatives pricing (Black-Scholes)',
+            'Property management tools',
+            'Intangible assets tracking',
+            'API access (500 calls/month)',
+            'Priority support'
+          ],
+          limits: {
+            portfolios: 5,
+            documents: 1000,
+            reports: 52,
+            apiCalls: 500
+          }
+        },
+        enterprise: {
+          name: 'Enterprise Premium',
+          price: 29999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'All Professional features',
+            'Unlimited API calls',
+            'Custom risk models',
+            'Portfolio optimization',
+            'Team collaboration',
+            'Dedicated account manager',
+            'Custom reporting',
+            'Advanced tax strategies',
+            'Advisor consultation hours (10/month)'
+          ],
+          limits: {
+            portfolios: 'Unlimited',
+            documents: 'Unlimited',
+            reports: 'Unlimited',
+            apiCalls: 'Unlimited',
+            users: 10
+          }
+        }
+      }
+    };
+    
+    res.json(tiers);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Export app for Vercel serverless
 module.exports = app;
 
