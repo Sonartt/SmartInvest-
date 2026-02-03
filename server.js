@@ -2230,6 +2230,7 @@ const productFilesAPI = require('./api/product-files-api');
 const userSearchAPI = require('./api/user-search-api');
 const liveEmailAPI = require('./api/live-email-api');
 const socialMediaAPI = require('./api/social-media-api');
+const comprehensiveAPI = require('./api/comprehensive-api');
 
 app.use('/api/share', shareLinkAPI);
 app.use('/api/admin/product-files', adminAuth, productFilesAPI);
@@ -2238,6 +2239,9 @@ app.use('/api/email', liveEmailAPI);
 app.use('/api/social-media', socialMediaAPI);
 app.put('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
 app.post('/api/admin/social-media/update-all', adminAuth, socialMediaAPI);
+
+// Smart Invest Intelligent Features API Routes
+app.use('/api', comprehensiveAPI);
 app.delete('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
 
 // ============================================================================
