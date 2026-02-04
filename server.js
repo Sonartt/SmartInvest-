@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const contentAPI = require('./api/content-management');
 const subManager = require('./api/subscription-manager');
 const shareLinkService = require('./services/share-link-service');
+const chatAPIRouter = require('./api/chat-api-enhanced');
 const { blockIP, unblockIP, getClientIP, isIPBlocked, logSecurityEvent, securityHeaders } = require('./middleware/security');
 
 const app = express();
@@ -3579,6 +3580,9 @@ app.get('/api/blockchain/premium-benefits', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// Chat Support API Routes
+app.use('/api/chat', chatAPIRouter);
 
 // Export app for Vercel serverless
 module.exports = app;
