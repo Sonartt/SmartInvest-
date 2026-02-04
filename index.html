@@ -58,6 +58,212 @@
                 letter-spacing: -0.01em;
             }
 
+            /* ============================================
+               RECOMMENDATION #1-12: Enhanced Form Styles
+               ============================================ */
+            
+            /* Mobile Responsive Forms - Prevents iOS zoom */
+            @media (max-width: 768px) {
+                input, select, textarea {
+                    font-size: 16px !important;
+                }
+            }
+
+            /* Placeholder Styling - Better Contrast */
+            ::placeholder {
+                color: #64748B;
+                opacity: 1;
+            }
+            ::-webkit-input-placeholder {
+                color: #64748B;
+                opacity: 1;
+            }
+            ::-moz-placeholder {
+                color: #64748B;
+                opacity: 1;
+            }
+
+            /* Autofill Styling - Maintains Corporate Colors */
+            input:-webkit-autofill,
+            input:-webkit-autofill:hover,
+            input:-webkit-autofill:focus,
+            input:-webkit-autofill:active {
+                -webkit-box-shadow: 0 0 0 30px white inset !important;
+                -webkit-text-fill-color: #1E293B !important;
+                transition: background-color 5000s ease-in-out 0s;
+            }
+
+            /* Form Validation States */
+            input:invalid:not(:placeholder-shown),
+            select:invalid:not(:placeholder-shown),
+            textarea:invalid:not(:placeholder-shown) {
+                border-color: #DC2626 !important;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23DC2626'%3E%3Cpath d='M8 1l7 13H1z'/%3E%3Ctext x='8' y='11' text-anchor='middle' font-size='10' fill='white'%3E!%3C/text%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                padding-right: 40px;
+            }
+
+            input:valid:not(:placeholder-shown),
+            select:valid:not(:placeholder-shown) {
+                border-color: #059669;
+            }
+
+            /* Error Message Styling */
+            .input-error-message {
+                color: #DC2626;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+                display: none;
+                animation: slideDown 0.2s ease;
+            }
+
+            input:invalid:not(:placeholder-shown) ~ .input-error-message {
+                display: block;
+            }
+
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-4px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Loading State for Forms */
+            .form-loading {
+                position: relative;
+                pointer-events: none;
+                opacity: 0.6;
+            }
+
+            .form-loading::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: rgba(255, 255, 255, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10;
+            }
+
+            .spinner {
+                border: 3px solid #E2E8F0;
+                border-top: 3px solid #1E40AF;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            /* Enhanced Focus States - Accessibility */
+            input:focus-visible,
+            select:focus-visible,
+            textarea:focus-visible,
+            button:focus-visible {
+                outline: 3px solid #3B82F6;
+                outline-offset: 2px;
+            }
+
+            /* Password Strength Indicator */
+            .password-strength {
+                height: 4px;
+                background: #E2E8F0;
+                border-radius: 2px;
+                margin-top: 8px;
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .password-strength-bar {
+                height: 100%;
+                width: 0;
+                transition: all 0.3s ease;
+            }
+
+            .password-strength-bar.weak {
+                width: 33%;
+                background: #DC2626;
+            }
+
+            .password-strength-bar.medium {
+                width: 66%;
+                background: #D97706;
+            }
+
+            .password-strength-bar.strong {
+                width: 100%;
+                background: #059669;
+            }
+
+            /* Consistent Button Styling Guide */
+            .btn-primary-cta {
+                background: linear-gradient(135deg, #6D28D9, #5B21B6);
+                color: white;
+                border: none;
+            }
+
+            .btn-primary-cta:hover {
+                background: linear-gradient(135deg, #5B21B6, #4C1D95);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
+            }
+
+            .btn-secondary {
+                background: #2563EB;
+                color: white;
+                border: none;
+            }
+
+            .btn-secondary:hover {
+                background: #1D4ED8;
+            }
+
+            .btn-success {
+                background: #059669;
+                color: white;
+                border: none;
+            }
+
+            .btn-success:hover {
+                background: #047857;
+            }
+
+            .btn-danger {
+                background: #DC2626;
+                color: white;
+                border: none;
+            }
+
+            .btn-danger:hover {
+                background: #B91C1C;
+            }
+
+            /* Accessibility: Skip to Main Content */
+            .skip-to-main {
+                position: absolute;
+                top: -40px;
+                left: 0;
+                background: #1E40AF;
+                color: white;
+                padding: 8px 16px;
+                text-decoration: none;
+                z-index: 100;
+            }
+
+            .skip-to-main:focus {
+                top: 0;
+            }
+
             /* Payment Toast Notification System */
             .payment-toast-container {
                 position: fixed;
@@ -470,6 +676,19 @@
             .card-hover:hover {
                 transform: translateY(-10px) scale(1.02);
                 box-shadow: 0 15px 35px rgba(124, 58, 237, 0.2);
+            }
+
+            /* Screen Reader Only Class - Accessibility */
+            .sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border-width: 0;
             }
 
             /* Gradient Text */
@@ -1052,6 +1271,397 @@
                     padding: 0.875rem 1.5rem;
                     font-size: 0.9rem;
                 }
+            }
+
+            /* ============================================
+               ACCESSIBILITY & VALIDATION IMPROVEMENTS
+               ============================================ */
+
+            /* Placeholder Text Styling - Better Contrast (WCAG AA) */
+            input::placeholder,
+            textarea::placeholder,
+            select {
+                color: #64748B; /* Slate 500 for better visibility */
+                opacity: 1;
+            }
+
+            /* Improved Focus States for All Form Elements */
+            input:focus,
+            textarea:focus,
+            select:focus {
+                border-color: #3B82F6 !important;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+                outline: none;
+            }
+
+            /* WCAG AA - Invalid/Error State Styling */
+            input:invalid:not(:placeholder-shown),
+            textarea:invalid:not(:placeholder-shown) {
+                border-color: #DC2626 !important;
+                background-color: #FEF2F2;
+            }
+
+            input:invalid:not(:placeholder-shown):focus,
+            textarea:invalid:not(:placeholder-shown):focus {
+                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+            }
+
+            /* Success State - Green border for valid inputs */
+            input:valid:not(:placeholder-shown),
+            textarea:valid:not(:placeholder-shown) {
+                border-color: #059669;
+                background-color: #F0FDF4;
+            }
+
+            input:valid:not(:placeholder-shown):focus {
+                box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1) !important;
+            }
+
+            /* Browser Auto-fill Override - Maintain Brand Colors */
+            input:-webkit-autofill,
+            input:-webkit-autofill:hover,
+            input:-webkit-autofill:focus,
+            input:-webkit-autofill:active {
+                -webkit-box-shadow: 0 0 0 30px white inset !important;
+                -webkit-text-fill-color: #1E293B !important;
+                box-shadow: 0 0 0 30px white inset !important;
+            }
+
+            /* Transition for Auto-fill */
+            input:-webkit-autofill {
+                -webkit-transition: background-color 5000s ease-in-out 0s;
+                transition: background-color 5000s ease-in-out 0s;
+            }
+
+            /* ============================================
+               MOBILE RESPONSIVENESS IMPROVEMENTS
+               ============================================ */
+
+            /* Mobile: Larger font size prevents zoom on input focus (iOS) */
+            @media (max-width: 768px) {
+                input,
+                textarea,
+                select {
+                    font-size: 16px; /* Prevents iOS auto-zoom */
+                }
+
+                /* Increase touch target size on mobile */
+                button,
+                input[type="button"],
+                input[type="submit"],
+                input[type="reset"] {
+                    min-height: 44px;
+                    min-width: 44px;
+                }
+
+                /* Better spacing for mobile forms */
+                .form-group {
+                    margin-bottom: 1.5rem;
+                }
+            }
+
+            /* ============================================
+               LOADING & SUBMISSION STATES
+               ============================================ */
+
+            /* Loading spinner for forms */
+            .form-loading {
+                position: relative;
+                opacity: 0.6;
+                pointer-events: none;
+            }
+
+            .form-loading::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: rgba(255, 255, 255, 0.7);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10;
+            }
+
+            /* Loading button state */
+            button:disabled,
+            button.loading {
+                opacity: 0.6;
+                cursor: not-allowed;
+                pointer-events: none;
+            }
+
+            button.loading::after {
+                content: ' ...';
+                animation: dots 1.5s steps(4, end) infinite;
+            }
+
+            @keyframes dots {
+                0%, 20% { content: ' '; }
+                40% { content: ' .'; }
+                60% { content: ' ..'; }
+                80%, 100% { content: ' ...'; }
+            }
+
+            /* Success message styling */
+            .form-success {
+                background-color: #F0FDF4;
+                border: 2px solid #059669;
+                color: #065F46;
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                animation: slideInDown 0.3s ease-out;
+            }
+
+            /* Error message styling */
+            .form-error {
+                background-color: #FEF2F2;
+                border: 2px solid #DC2626;
+                color: #991B1B;
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                animation: slideInDown 0.3s ease-out;
+            }
+
+            @keyframes slideInDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ============================================
+               BUTTON STYLING GUIDELINES & VARIANTS
+               ============================================ */
+
+            /* Primary Button - Purple (Main CTA) */
+            .btn-primary,
+            button.btn-primary,
+            input[type="submit"]:not([class]) {
+                background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%);
+                color: white;
+                border: 2px solid #6D28D9;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, #5B21B6 0%, #6D28D9 100%);
+                box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
+                transform: translateY(-2px);
+            }
+
+            .btn-primary:active {
+                transform: translateY(0);
+            }
+
+            /* Secondary Button - Blue */
+            .btn-secondary,
+            button.btn-secondary {
+                background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+                color: white;
+                border: 2px solid #2563EB;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .btn-secondary:hover {
+                background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+                transform: translateY(-2px);
+            }
+
+            /* Success Button - Green */
+            .btn-success,
+            button.btn-success {
+                background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+                color: white;
+                border: 2px solid #059669;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .btn-success:hover {
+                background: linear-gradient(135deg, #047857 0%, #059669 100%);
+                box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+                transform: translateY(-2px);
+            }
+
+            /* Danger Button - Red */
+            .btn-danger,
+            button.btn-danger {
+                background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+                color: white;
+                border: 2px solid #DC2626;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .btn-danger:hover {
+                background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%);
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+                transform: translateY(-2px);
+            }
+
+            /* Outline/Ghost Button */
+            .btn-outline,
+            button.btn-outline {
+                background: transparent;
+                color: #2563EB;
+                border: 2px solid #2563EB;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .btn-outline:hover {
+                background: #EFF6FF;
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+            }
+
+            /* ============================================
+               DARK MODE SUPPORT (CSS Variables)
+               ============================================ */
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --corporate-light: #1E293B;
+                    --corporate-text: #F1F5F9;
+                    --corporate-border: #475569;
+                }
+
+                body.dark-mode {
+                    background-color: #0F172A;
+                    color: #F1F5F9;
+                }
+
+                body.dark-mode input,
+                body.dark-mode textarea,
+                body.dark-mode select {
+                    background-color: #1E293B;
+                    color: #F1F5F9;
+                    border-color: #475569;
+                }
+
+                body.dark-mode input:focus,
+                body.dark-mode textarea:focus,
+                body.dark-mode select:focus {
+                    border-color: #60A5FA;
+                }
+
+                body.dark-mode input::placeholder,
+                body.dark-mode textarea::placeholder {
+                    color: #94A3B8;
+                }
+
+                body.dark-mode input:-webkit-autofill,
+                body.dark-mode input:-webkit-autofill:hover,
+                body.dark-mode input:-webkit-autofill:focus {
+                    -webkit-box-shadow: 0 0 0 30px #1E293B inset !important;
+                    -webkit-text-fill-color: #F1F5F9 !important;
+                }
+
+                body.dark-mode .form-error {
+                    background-color: rgba(220, 38, 38, 0.1);
+                    border-color: #EF4444;
+                    color: #FCA5A5;
+                }
+
+                body.dark-mode .form-success {
+                    background-color: rgba(5, 150, 105, 0.1);
+                    border-color: #10B981;
+                    color: #6EE7B7;
+                }
+            }
+
+            /* ============================================
+               ERROR MESSAGE & VALIDATION DISPLAY
+               ============================================ */
+
+            /* Error message next to input */
+            .error-message {
+                color: #DC2626;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+                display: none;
+            }
+
+            input.error ~ .error-message,
+            textarea.error ~ .error-message {
+                display: block;
+            }
+
+            /* Required field indicator */
+            .required::after {
+                content: ' *';
+                color: #DC2626;
+                font-weight: bold;
+            }
+
+            /* ============================================
+               FORM INPUT MASKING & FORMATTING
+               ============================================ */
+
+            /* Phone number input styling */
+            input[type="tel"] {
+                letter-spacing: 0.05em;
+                font-family: 'Monaco', 'Courier New', monospace;
+            }
+
+            /* Currency input styling */
+            input[type="number"][data-currency]::before {
+                content: attr(data-currency);
+            }
+
+            /* Password strength indicator */
+            .password-strength {
+                height: 4px;
+                background-color: #E5E7EB;
+                border-radius: 4px;
+                margin-top: 0.5rem;
+                overflow: hidden;
+            }
+
+            .password-strength-bar {
+                height: 100%;
+                width: 0%;
+                transition: width 0.3s ease;
+                border-radius: 4px;
+            }
+
+            .password-strength.weak .password-strength-bar {
+                width: 33%;
+                background-color: #DC2626;
+            }
+
+            .password-strength.medium .password-strength-bar {
+                width: 66%;
+                background-color: #F59E0B;
+            }
+
+            .password-strength.strong .password-strength-bar {
+                width: 100%;
+                background-color: #059669;
             }
         </style>
 </head>
@@ -2987,30 +3597,44 @@
         <h2 class="text-3xl font-bold mb-6 text-center text-purple-600">User Sign In</h2>
 
         <form onsubmit="demoLogin(event)" class="space-y-4">
-          <input
-            id="loginEmail"
-            type="email"
-            placeholder="Email"
-            required
-            class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
-          />
+          <div>
+            <label for="loginEmail" class="sr-only">Email Address</label>
+            <input
+              id="loginEmail"
+              type="email"
+              placeholder="Email"
+              required
+              aria-required="true"
+              aria-label="Email address for login"
+              autocomplete="email"
+              class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
+            />
+            <div class="input-error-message">Please enter a valid email address</div>
+          </div>
 
           <div class="relative">
+            <label for="loginPassword" class="sr-only">Password</label>
             <input
               id="loginPassword"
               type="password"
               placeholder="Password"
               required
-              class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
+              aria-required="true"
+              aria-label="Password for login"
+              autocomplete="current-password"
+              minlength="8"
+              class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
             />
             <button
               type="button"
               onclick="togglePasswordVisibility('loginPassword')"
               class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 transition text-lg"
               title="Show/Hide password"
+              aria-label="Toggle password visibility"
             >
-              <span id="loginPasswordToggle">🔒</span>
+              <span id="loginPasswordToggle" aria-hidden="true">🔒</span>
             </button>
+            <div class="input-error-message">Password must be at least 8 characters</div>
           </div>
 
           <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition">Sign In</button>
@@ -3019,18 +3643,45 @@
         <hr class="my-6">
 
         <h3 class="text-xl font-semibold mb-4 text-center">Create an account</h3>
-        <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4">
-            <input id="signupEmail" type="email" placeholder="Email" required class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white" />
+        <form id="signupForm" onsubmit="handleSignup(event)" class="space-y-4" aria-label="Sign up form">
+            <div>
+              <label for="signupEmail" class="sr-only">Email Address</label>
+              <input
+                id="signupEmail"
+                type="email"
+                placeholder="Email"
+                required
+                aria-required="true"
+                aria-label="Email address for new account"
+                autocomplete="email"
+                class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
+              />
+              <div class="input-error-message">Please enter a valid email address</div>
+            </div>
             <div class="relative">
-              <input id="signupPassword" type="password" placeholder="Password" required class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white" />
+              <label for="signupPassword" class="sr-only">Create Password</label>
+              <input
+                id="signupPassword"
+                type="password"
+                placeholder="Password (min 8 characters)"
+                required
+                aria-required="true"
+                aria-label="Create password for new account"
+                aria-describedby="signupPasswordStrength"
+                autocomplete="new-password"
+                minlength="8"
+                class="w-full border-2 border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-purple-600 text-gray-900 bg-white"
+              />
               <button
                 type="button"
                 onclick="togglePasswordVisibility('signupPassword')"
                 class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 transition text-lg"
                 title="Show/Hide password"
+                aria-label="Toggle password visibility"
               >
-                <span id="signupPasswordToggle">🔒</span>
+                <span id="signupPasswordToggle" aria-hidden="true">🔒</span>
               </button>
+              <div class="input-error-message">Password must be at least 8 characters with letters and numbers</div>
             </div>
             <div class="flex items-start gap-2">
                 <input id="acceptTerms" type="checkbox" class="mt-1" />
@@ -3050,26 +3701,34 @@
           <p class="text-slate-300 text-sm">Authorized Personnel Only</p>
         </div>
 
-        <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="space-y-4" aria-label="Administrator login form">
           <div>
-            <label class="block text-slate-300 text-sm font-semibold mb-2">Admin Email</label>
+            <label for="adminEmail" class="block text-slate-300 text-sm font-semibold mb-2">Admin Email</label>
             <input
               id="adminEmail"
               type="email"
               placeholder="admin@smartinvest.com"
               required
+              aria-required="true"
+              aria-label="Administrator email address"
+              autocomplete="email"
               class="w-full border-2 border-slate-600 bg-slate-700 text-white rounded px-4 py-3 focus:outline-none focus:border-blue-500 transition"
             />
+            <div class="input-error-message text-red-400">Please enter a valid admin email address</div>
           </div>
 
           <div>
-            <label class="block text-slate-300 text-sm font-semibold mb-2">Password</label>
+            <label for="adminPassword" class="block text-slate-300 text-sm font-semibold mb-2">Password</label>
             <div class="relative">
               <input
                 id="adminPassword"
                 type="password"
                 placeholder="Enter admin password"
                 required
+                aria-required="true"
+                aria-label="Administrator password"
+                autocomplete="current-password"
+                minlength="8"
                 class="w-full border-2 border-slate-600 bg-slate-700 text-white rounded px-4 py-3 focus:outline-none focus:border-blue-500 transition"
               />
               <button
@@ -3077,9 +3736,11 @@
                 onclick="togglePasswordVisibility('adminPassword')"
                 class="absolute right-3 top-3 text-slate-400 hover:text-white transition text-lg"
                 title="Show/Hide password"
+                aria-label="Toggle admin password visibility"
               >
-                <span id="adminPasswordToggle">🔒</span>
+                <span id="adminPasswordToggle" aria-hidden="true">🔒</span>
               </button>
+              <div class="input-error-message text-red-400">Password must be at least 8 characters</div>
             </div>
           </div>
 
@@ -4764,6 +5425,391 @@
         }
       }
     }
+
+    // ============================================
+    // RECOMMENDATIONS: Enhanced Form Features
+    // ============================================
+
+    // Phone Number Input Masking
+    function formatPhoneNumber(input) {
+      let value = input.value.replace(/\D/g, '');
+      
+      if (value.startsWith('254')) {
+        // Format: +254 712 345 678
+        if (value.length > 3) value = value.slice(0, 3) + ' ' + value.slice(3);
+        if (value.length > 7) value = value.slice(0, 7) + ' ' + value.slice(7);
+        if (value.length > 11) value = value.slice(0, 11) + ' ' + value.slice(11);
+        input.value = '+' + value.slice(0, 15);
+      } else if (value.startsWith('0')) {
+        // Format: 0712 345 678
+        if (value.length > 4) value = value.slice(0, 4) + ' ' + value.slice(4);
+        if (value.length > 8) value = value.slice(0, 8) + ' ' + value.slice(8);
+        input.value = value.slice(0, 12);
+      } else {
+        input.value = value.slice(0, 10);
+      }
+    }
+
+    // Currency Input Formatting
+    function formatCurrency(input) {
+      let value = input.value.replace(/[^0-9.]/g, '');
+      const parts = value.split('.');
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      if (parts[1] && parts[1].length > 2) {
+        value = parts[0] + '.' + parts[1].slice(0, 2);
+      }
+      input.value = value;
+    }
+
+    // Real-time Email Validation
+    function validateEmail(input) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(input.value);
+      
+      if (input.value && !isValid) {
+        input.setCustomValidity('Please enter a valid email address');
+      } else {
+        input.setCustomValidity('');
+      }
+      return isValid;
+    }
+
+    // Password Strength Checker
+    function checkPasswordStrength(password) {
+      let strength = 0;
+      
+      if (password.length >= 8) strength++;
+      if (password.length >= 12) strength++;
+      if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+      if (/[0-9]/.test(password)) strength++;
+      if (/[^A-Za-z0-9]/.test(password)) strength++;
+      
+      if (strength <= 2) return 'weak';
+      if (strength <= 3) return 'medium';
+      return 'strong';
+    }
+
+    function updatePasswordStrength(inputId, strengthBarId) {
+      const input = document.getElementById(inputId);
+      const strengthBar = document.getElementById(strengthBarId);
+      
+      if (input && strengthBar) {
+        const strength = checkPasswordStrength(input.value);
+        strengthBar.className = 'password-strength-bar ' + strength;
+        
+        // Update ARIA label for accessibility
+        input.setAttribute('aria-describedby', 'password-strength-' + strength);
+      }
+    }
+
+    // Form Loading State Toggle
+    function setFormLoading(formElement, isLoading) {
+      if (isLoading) {
+        formElement.classList.add('form-loading');
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        spinner.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11;';
+        formElement.appendChild(spinner);
+        
+        // Disable all inputs and buttons
+        formElement.querySelectorAll('input, button, select, textarea').forEach(el => {
+          el.disabled = true;
+        });
+      } else {
+        formElement.classList.remove('form-loading');
+        const spinner = formElement.querySelector('.spinner');
+        if (spinner) spinner.remove();
+        
+        // Re-enable all inputs and buttons
+        formElement.querySelectorAll('input, button, select, textarea').forEach(el => {
+          el.disabled = false;
+        });
+      }
+    }
+
+    // Auto-apply phone masking to all phone inputs
+    document.addEventListener('DOMContentLoaded', function() {
+      // Phone number masking
+      const phoneInputs = document.querySelectorAll('input[type="tel"], input[id*="phone" i], input[id*="Phone"]');
+      phoneInputs.forEach(input => {
+        input.addEventListener('input', () => formatPhoneNumber(input));
+      });
+
+      // Currency formatting
+      const currencyInputs = document.querySelectorAll('input[id*="amount" i], input[id*="Amount"], input[id*="price" i]');
+      currencyInputs.forEach(input => {
+        if (input.type === 'text') {
+          input.addEventListener('blur', () => formatCurrency(input));
+        }
+      });
+
+      // Email validation
+      const emailInputs = document.querySelectorAll('input[type="email"]');
+      emailInputs.forEach(input => {
+        input.addEventListener('blur', () => validateEmail(input));
+        input.addEventListener('input', () => {
+          if (input.value) validateEmail(input);
+        });
+      });
+
+      // Password strength indicators
+      const passwordInputs = document.querySelectorAll('input[type="password"][id*="Password"]');
+      passwordInputs.forEach(input => {
+        // Add strength bar if doesn't exist
+        const strengthBarId = input.id + 'Strength';
+        if (!document.getElementById(strengthBarId)) {
+          const strengthBar = document.createElement('div');
+          strengthBar.className = 'password-strength';
+          strengthBar.innerHTML = `<div id="${strengthBarId}" class="password-strength-bar"></div>`;
+          input.parentElement.appendChild(strengthBar);
+        }
+        
+        input.addEventListener('input', () => {
+          updatePasswordStrength(input.id, strengthBarId);
+        });
+      });
+
+      // Add skip to main content link for accessibility
+      if (!document.querySelector('.skip-to-main')) {
+        const skipLink = document.createElement('a');
+        skipLink.href = '#main-content';
+        skipLink.className = 'skip-to-main';
+        skipLink.textContent = 'Skip to main content';
+        document.body.insertBefore(skipLink, document.body.firstChild);
+      }
+
+      // Add main content ID if doesn't exist
+      const mainContent = document.querySelector('main') || document.querySelector('[role="main"]');
+      if (mainContent && !mainContent.id) {
+        mainContent.id = 'main-content';
+      }
+    });
+
+    // Enhanced form submission handlers with loading states
+    const originalDemoLogin = window.demoLogin;
+    if (typeof demoLogin === 'function') {
+      window.demoLogin = function(event) {
+        event.preventDefault();
+        const form = event.target;
+        setFormLoading(form, true);
+        
+        setTimeout(() => {
+          if (originalDemoLogin) {
+            originalDemoLogin.call(this, event);
+          }
+          setFormLoading(form, false);
+        }, 500);
+      };
+    }
+
+    // ============================================
+    // Dark Mode Toggle
+    // ============================================
+    function toggleDarkMode() {
+      const isDarkMode = document.body.classList.toggle('dark-mode');
+      localStorage.setItem('smartinvest-dark-mode', isDarkMode);
+      
+      // Update system preference
+      if (isDarkMode) {
+        document.documentElement.style.colorScheme = 'dark';
+      } else {
+        document.documentElement.style.colorScheme = 'light';
+      }
+    }
+
+    // Initialize dark mode based on user preference or system preference
+    function initializeDarkMode() {
+      const savedPreference = localStorage.getItem('smartinvest-dark-mode');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedPreference !== null) {
+        if (savedPreference === 'true') {
+          document.body.classList.add('dark-mode');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      } else if (prefersDark) {
+        document.body.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    }
+
+    // Call on page load
+    window.addEventListener('load', initializeDarkMode);
+
+    // ============================================
+    // Keyboard Navigation & Accessibility
+    // ============================================
+    
+    // Trap focus within modals
+    function trapFocusInModal(modalElement) {
+      const focusableElements = modalElement.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      
+      modalElement.addEventListener('keydown', function(e) {
+        if (e.key !== 'Tab') return;
+        
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusable) {
+            lastFocusable.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocusable) {
+            firstFocusable.focus();
+            e.preventDefault();
+          }
+        }
+      });
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const openModal = document.querySelector('[role="dialog"]:not(.hidden)');
+        if (openModal) {
+          openModal.classList.add('hidden');
+        }
+      }
+    });
+
+    // ============================================
+    // Form Accessibility Enhancements
+    // ============================================
+    
+    // Add ARIA labels and descriptions to forms
+    document.addEventListener('DOMContentLoaded', function() {
+      // Find all required fields and mark them
+      document.querySelectorAll('input[required], textarea[required], select[required]').forEach(field => {
+        const label = document.querySelector(`label[for="${field.id}"]`);
+        if (label && !label.classList.contains('required')) {
+          label.classList.add('required');
+        }
+        
+        // Add ARIA required attribute
+        field.setAttribute('aria-required', 'true');
+      });
+
+      // Add ARIA labels to password strength indicators
+      document.querySelectorAll('.password-strength').forEach(bar => {
+        bar.setAttribute('role', 'progressbar');
+        bar.setAttribute('aria-label', 'Password strength');
+        bar.setAttribute('aria-valuemin', '0');
+        bar.setAttribute('aria-valuemax', '100');
+      });
+
+      // Add live region for form error messages
+      const errorContainer = document.createElement('div');
+      errorContainer.setAttribute('role', 'region');
+      errorContainer.setAttribute('aria-live', 'polite');
+      errorContainer.setAttribute('aria-atomic', 'true');
+      errorContainer.id = 'form-error-messages';
+      errorContainer.style.display = 'none';
+      document.body.appendChild(errorContainer);
+    });
+
+    // Announce error messages to screen readers
+    function announceError(message) {
+      const announcer = document.getElementById('form-error-messages');
+      if (announcer) {
+        announcer.textContent = message;
+        announcer.style.display = 'block';
+        setTimeout(() => {
+          announcer.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // ============================================
+    // Input Validation & Feedback
+    // ============================================
+
+    // Real-time form validation with visual feedback
+    function setupFormValidation(formElement) {
+      if (!formElement) return;
+
+      formElement.querySelectorAll('input, textarea, select').forEach(field => {
+        field.addEventListener('blur', function() {
+          validateField(this);
+        });
+
+        field.addEventListener('input', function() {
+          if (this.classList.contains('error')) {
+            validateField(this);
+          }
+        });
+      });
+
+      // Form submission validation
+      formElement.addEventListener('submit', function(e) {
+        let isValid = true;
+        const errors = [];
+
+        this.querySelectorAll('input[required], textarea[required], select[required]').forEach(field => {
+          if (!validateField(field)) {
+            isValid = false;
+            errors.push(field.name || field.id || 'Unknown field');
+          }
+        });
+
+        if (!isValid) {
+          e.preventDefault();
+          announceError(`Please fix the following fields: ${errors.join(', ')}`);
+        }
+      });
+    }
+
+    // Validate individual field
+    function validateField(field) {
+      let isValid = true;
+      const errorMsg = field.parentElement.querySelector('.error-message');
+
+      if (field.hasAttribute('required') && !field.value.trim()) {
+        isValid = false;
+        if (errorMsg) errorMsg.textContent = 'This field is required';
+      } else if (field.type === 'email' && field.value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(field.value)) {
+          isValid = false;
+          if (errorMsg) errorMsg.textContent = 'Please enter a valid email address';
+        }
+      } else if (field.type === 'tel' && field.value) {
+        const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+        if (!phoneRegex.test(field.value.replace(/\D/g, ''))) {
+          isValid = false;
+          if (errorMsg) errorMsg.textContent = 'Please enter a valid phone number';
+        }
+      } else if (field.type === 'password' && field.value) {
+        if (field.value.length < 6) {
+          isValid = false;
+          if (errorMsg) errorMsg.textContent = 'Password must be at least 6 characters';
+        }
+      }
+
+      // Update visual feedback
+      if (isValid) {
+        field.classList.remove('error');
+        field.classList.add('valid');
+        if (errorMsg) errorMsg.textContent = '';
+      } else {
+        field.classList.add('error');
+        field.classList.remove('valid');
+      }
+
+      return isValid;
+    }
+
+    // Initialize form validation on all forms
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('form').forEach(form => {
+        setupFormValidation(form);
+      });
+    });
     </script>
 
   <script src="/public/js/live-chat-widget.js"></script>

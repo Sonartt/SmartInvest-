@@ -14,6 +14,129 @@
     .info-box { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
     .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
     .result-card { background: #f0fdf4; border: 2px solid #22c55e; padding: 1rem; margin: 0.5rem 0; border-radius: 6px; }
+
+    /* Mobile responsiveness - prevent iOS zoom */
+    @media (max-width: 768px) {
+      input, select, textarea {
+        font-size: 16px !important;
+        min-height: 44px;
+      }
+      button {
+        min-height: 44px;
+      }
+    }
+
+    /* Placeholder styling */
+    input::placeholder,
+    textarea::placeholder {
+      color: #64748B;
+      opacity: 1;
+    }
+
+    /* Auto-fill styling */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 30px white inset !important;
+      -webkit-text-fill-color: #1E293B !important;
+    }
+
+    /* Focus states */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #3B82F6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+
+    /* Validation states */
+    input:invalid:not(:placeholder-shown) {
+      border-color: #DC2626 !important;
+      background-color: #FEF2F2;
+    }
+
+    input:valid:not(:placeholder-shown) {
+      border-color: #059669 !important;
+    }
+
+    /* Error message styling */
+    .error-message {
+      color: #DC2626;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    input.error ~ .error-message {
+      display: block;
+    }
+
+    /* Loading state */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* Success/Error notifications */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideInRight 0.3s ease-out;
+      max-width: 400px;
+      z-index: 1000;
+    }
+
+    .toast.success {
+      background-color: #F0FDF4;
+      border: 2px solid #059669;
+      color: #065F46;
+    }
+
+    .toast.error {
+      background-color: #FEF2F2;
+      border: 2px solid #DC2626;
+      color: #991B1B;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* Tab styling with focus indicator */
+    .tab {
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tab:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body class="p-6 bg-gray-50">
@@ -1372,6 +1495,9 @@ $qs('#load_scenarios').addEventListener('click', loadScenarios);
 document.querySelector('.tab[data-tab="investment"]').click();
 
 // expose helper for external load
+
+// Include accessibility enhancements
+|// ============================================|// ACCESSIBILITY & VALIDATION ENHANCEMENTS|// ============================================||// Real-time input validation|function setupValidation() {|  document.querySelectorAll('input[type="number"]').forEach(input => {|    input.addEventListener('blur', function() {|      validateNumberInput(this);|    });||    input.addEventListener('input', function() {|      if (this.classList.contains('error')) {|        validateNumberInput(this);|      }|    });|  });|}||// Validate number inputs|function validateNumberInput(input) {|  const min = input.getAttribute('min');|  const max = input.getAttribute('max');|  let isValid = true;||  const value = parseFloat(input.value);|  |  if (isNaN(value) && input.value !== '') {|    input.classList.add('error');|    showErrorMessage(input, 'Please enter a valid number');|    return false;|  }||  if (min !== null && value < parseFloat(min)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must be at least ${min}`);|    isValid = false;|  } else if (max !== null && value > parseFloat(max)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must not exceed ${max}`);|    isValid = false;|  } else {|    input.classList.remove('error');|    hideErrorMessage(input);|  }||  return isValid;|}||// Show error message below input|function showErrorMessage(input, message) {|  let errorMsg = input.nextElementSibling;|  if (!errorMsg || !errorMsg.classList.contains('error-message')) {|    errorMsg = document.createElement('div');|    errorMsg.className = 'error-message';|    input.parentElement.appendChild(errorMsg);|  }|  errorMsg.textContent = message;|}||// Hide error message|function hideErrorMessage(input) {|  const errorMsg = input.nextElementSibling;|  if (errorMsg && errorMsg.classList.contains('error-message')) {|    errorMsg.textContent = '';|  }|}||// Accessibility: Add ARIA labels to all inputs|function addAccessibilityLabels() {|  document.querySelectorAll('.grid > div > input, .grid > div > select').forEach(input => {|    const label = input.previousElementSibling;|    if (label && label.tagName === 'LABEL') {|      input.setAttribute('aria-label', label.textContent.trim());|    }|  });||  // Add ARIA to tab buttons|  document.querySelectorAll('.tab').forEach(tab => {|    tab.setAttribute('role', 'button');|    tab.setAttribute('aria-pressed', tab.classList.contains('bg-blue-600'));|  });|}||// Initialize enhancements on page load|document.addEventListener('DOMContentLoaded', function() {|  setupValidation();|  addAccessibilityLabels();|});||// Keyboard navigation for tabs|document.addEventListener('keydown', function(e) {|  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;|  |  const activeTab = document.querySelector('.tab[data-tab]:focus');|  if (!activeTab) return;||  const tabs = Array.from(document.querySelectorAll('.tab[data-tab]'));|  const currentIndex = tabs.indexOf(activeTab);|  let nextIndex;||  if (e.key === 'ArrowRight') {|    nextIndex = (currentIndex + 1) % tabs.length;|  } else {|    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;|  }||  tabs[nextIndex].focus();|  tabs[nextIndex].click();|});|
 window._loadScenarios = loadScenarios;
 </script>
 </body>
@@ -2463,6 +2589,9 @@ $qs('#load_scenarios').addEventListener('click', loadScenarios);
 document.querySelector('.tab[data-tab="investment"]').click();
 
 // expose helper for external load
+
+// Include accessibility enhancements
+|// ============================================|// ACCESSIBILITY & VALIDATION ENHANCEMENTS|// ============================================||// Real-time input validation|function setupValidation() {|  document.querySelectorAll('input[type="number"]').forEach(input => {|    input.addEventListener('blur', function() {|      validateNumberInput(this);|    });||    input.addEventListener('input', function() {|      if (this.classList.contains('error')) {|        validateNumberInput(this);|      }|    });|  });|}||// Validate number inputs|function validateNumberInput(input) {|  const min = input.getAttribute('min');|  const max = input.getAttribute('max');|  let isValid = true;||  const value = parseFloat(input.value);|  |  if (isNaN(value) && input.value !== '') {|    input.classList.add('error');|    showErrorMessage(input, 'Please enter a valid number');|    return false;|  }||  if (min !== null && value < parseFloat(min)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must be at least ${min}`);|    isValid = false;|  } else if (max !== null && value > parseFloat(max)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must not exceed ${max}`);|    isValid = false;|  } else {|    input.classList.remove('error');|    hideErrorMessage(input);|  }||  return isValid;|}||// Show error message below input|function showErrorMessage(input, message) {|  let errorMsg = input.nextElementSibling;|  if (!errorMsg || !errorMsg.classList.contains('error-message')) {|    errorMsg = document.createElement('div');|    errorMsg.className = 'error-message';|    input.parentElement.appendChild(errorMsg);|  }|  errorMsg.textContent = message;|}||// Hide error message|function hideErrorMessage(input) {|  const errorMsg = input.nextElementSibling;|  if (errorMsg && errorMsg.classList.contains('error-message')) {|    errorMsg.textContent = '';|  }|}||// Accessibility: Add ARIA labels to all inputs|function addAccessibilityLabels() {|  document.querySelectorAll('.grid > div > input, .grid > div > select').forEach(input => {|    const label = input.previousElementSibling;|    if (label && label.tagName === 'LABEL') {|      input.setAttribute('aria-label', label.textContent.trim());|    }|  });||  // Add ARIA to tab buttons|  document.querySelectorAll('.tab').forEach(tab => {|    tab.setAttribute('role', 'button');|    tab.setAttribute('aria-pressed', tab.classList.contains('bg-blue-600'));|  });|}||// Initialize enhancements on page load|document.addEventListener('DOMContentLoaded', function() {|  setupValidation();|  addAccessibilityLabels();|});||// Keyboard navigation for tabs|document.addEventListener('keydown', function(e) {|  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;|  |  const activeTab = document.querySelector('.tab[data-tab]:focus');|  if (!activeTab) return;||  const tabs = Array.from(document.querySelectorAll('.tab[data-tab]'));|  const currentIndex = tabs.indexOf(activeTab);|  let nextIndex;||  if (e.key === 'ArrowRight') {|    nextIndex = (currentIndex + 1) % tabs.length;|  } else {|    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;|  }||  tabs[nextIndex].focus();|  tabs[nextIndex].click();|});|
 window._loadScenarios = loadScenarios;
 </script>
 </body>

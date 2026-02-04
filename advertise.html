@@ -114,7 +114,25 @@
       font-family: inherit;
       background-color: #FFFFFF;
       color: #1E293B;
+      transition: all 0.2s ease;
     }
+
+    /* Mobile responsiveness - prevent zoom on input focus */
+    @media (max-width: 768px) {
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        font-size: 16px;
+      }
+    }
+
+    /* Placeholder styling */
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: #64748B;
+      opacity: 1;
+    }
+
     .form-group textarea {
       min-height: 100px;
       resize: vertical;
@@ -124,6 +142,46 @@
     .form-group textarea:focus {
       outline: none;
       border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Validation states */
+    .form-group input:invalid:not(:placeholder-shown),
+    .form-group textarea:invalid:not(:placeholder-shown) {
+      border-color: #DC2626;
+      background-color: #FEF2F2;
+    }
+
+    .form-group input:invalid:not(:placeholder-shown):focus,
+    .form-group textarea:invalid:not(:placeholder-shown):focus {
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+
+    .form-group input:valid:not(:placeholder-shown),
+    .form-group textarea:valid:not(:placeholder-shown) {
+      border-color: #059669;
+      background-color: #F0FDF4;
+    }
+
+    /* Auto-fill styling */
+    .form-group input:-webkit-autofill,
+    .form-group input:-webkit-autofill:hover,
+    .form-group input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 30px white inset !important;
+      -webkit-text-fill-color: #1E293B !important;
+    }
+
+    /* Error message styling */
+    .error-message {
+      color: #DC2626;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    .form-group input.error ~ .error-message,
+    .form-group textarea.error ~ .error-message {
+      display: block;
     }
     
     .cost-summary {
