@@ -1140,12 +1140,7 @@ app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
     return res.json({ success: true });
   } catch (e) { console.error('delete file error', e.message); return res.status(500).json({ error: e.message }); }
 });
-      if (!isStrongPassword(password)) return res.status(400).json({ error: 'password must be at least 10 characters and include upper, lower, number, and symbol' });
 
-      if (fullName && !isValidName(fullName)) return res.status(400).json({ error: 'invalid full name' });
-      if (mobileNumber && !isValidPhone(mobileNumber)) return res.status(400).json({ error: 'invalid mobile number' });
-      if (country && !isValidCountry(country)) return res.status(400).json({ error: 'invalid country' });
-      if (paymentMethod && !isSafeText(paymentMethod, 40)) return res.status(400).json({ error: 'invalid payment method' });
 // NOTE: The demo `/api/purchase` endpoint was removed. Integrate real payment providers and
 // grant purchases via provider webhooks or admin grants. This improves security by avoiding
 // client-side simulated purchases.

@@ -71,7 +71,7 @@ const cacheManager = {
   get: function(key) {
     try {
       const cached = localStorage.getItem(key);
-      if (!cached) {
+      i inf (!cached) {
         performanceMetrics.cacheMisses++;
         return null;
       }

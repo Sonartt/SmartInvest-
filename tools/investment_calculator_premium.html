@@ -30,8 +30,13 @@
     </div>
     <div id="admin_modal" class="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow hidden z-50 w-11/12 max-w-md">
       <h3 class="font-semibold mb-2">Admin credentials</h3>
-      <input id="admin_user" class="w-full border rounded p-2 mb-2" placeholder="Admin user">
-      <input id="admin_pass" type="password" class="w-full border rounded p-2 mb-3" placeholder="Password">
+      <input id="admin_user" class="w-full border-2 border-gray-300 rounded p-2 mb-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" placeholder="Admin user">
+      <div class="relative">
+        <input id="admin_pass" type="password" class="w-full border-2 border-gray-300 rounded p-2 mb-3 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" placeholder="Password">
+        <button type="button" onclick="togglePasswordVisibility('admin_pass')" class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 text-lg" title="Show/Hide password">
+          <span id="admin_passToggle">🔒</span>
+        </button>
+      </div>
       <div class="flex justify-end gap-2"><button id="admin_cancel" class="px-3 py-1 rounded bg-gray-200">Cancel</button><button id="admin_ok" class="px-3 py-1 rounded bg-blue-600 text-white">OK</button></div>
     </div>
 
@@ -68,19 +73,19 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Initial amount</label>
-            <input id="inv_initial" type="number" class="w-full border rounded p-2" value="1000">
+            <input id="inv_initial" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
           </div>
           <div>
             <label class="block text-sm">Monthly contribution</label>
-            <input id="inv_monthly" type="number" class="w-full border rounded p-2" value="100">
+            <input id="inv_monthly" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
           </div>
           <div>
             <label class="block text-sm">Annual rate (%)</label>
-            <input id="inv_rate" type="number" class="w-full border rounded p-2" value="6">
+            <input id="inv_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
           </div>
           <div>
             <label class="block text-sm">Years</label>
-            <input id="inv_years" type="number" class="w-full border rounded p-2" value="10">
+            <input id="inv_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -96,19 +101,19 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Loan amount</label>
-            <input id="loan_amount" type="number" class="w-full border rounded p-2" value="50000">
+            <input id="loan_amount" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="50000">
           </div>
           <div>
             <label class="block text-sm">Annual rate (%)</label>
-            <input id="loan_rate" type="number" class="w-full border rounded p-2" value="8">
+            <input id="loan_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8">
           </div>
           <div>
             <label class="block text-sm">Years</label>
-            <input id="loan_years" type="number" class="w-full border rounded p-2" value="5">
+            <input id="loan_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
           </div>
           <div>
             <label class="block text-sm">Payments per year</label>
-            <input id="loan_freq" type="number" class="w-full border rounded p-2" value="12">
+            <input id="loan_freq" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -128,30 +133,30 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Coverage amount</label>
-            <input id="ins_coverage" type="number" class="w-full border rounded p-2" value="100000">
+            <input id="ins_coverage" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
           </div>
           <div>
             <label class="block text-sm">Base rate (% per year)</label>
-            <input id="ins_rate" type="number" class="w-full border rounded p-2" value="1">
+            <input id="ins_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
           </div>
           <div>
             <label class="block text-sm">Age</label>
-            <input id="ins_age" type="number" class="w-full border rounded p-2" value="35">
+            <input id="ins_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="35">
           </div>
           <div>
             <label class="block text-sm">Term (years)</label>
-            <input id="ins_term" type="number" class="w-full border rounded p-2" value="20">
+            <input id="ins_term" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="20">
           </div>
           <div>
             <label class="block text-sm">Gender</label>
-            <select id="ins_gender" class="w-full border rounded p-2">
+            <select id="ins_gender" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="M">Male</option>
               <option value="F">Female</option>
             </select>
           </div>
           <div>
             <label class="block text-sm">Health Status</label>
-            <select id="ins_health" class="w-full border rounded p-2">
+            <select id="ins_health" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="excellent">Excellent</option>
               <option value="good" selected>Good</option>
               <option value="fair">Fair</option>
@@ -176,23 +181,23 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Face Value (Par)</label>
-            <input id="bond_face" type="number" class="w-full border rounded p-2" value="1000">
+            <input id="bond_face" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
           </div>
           <div>
             <label class="block text-sm">Coupon Rate (%)</label>
-            <input id="bond_coupon" type="number" class="w-full border rounded p-2" value="5">
+            <input id="bond_coupon" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
           </div>
           <div>
             <label class="block text-sm">Years to Maturity</label>
-            <input id="bond_years" type="number" class="w-full border rounded p-2" value="10">
+            <input id="bond_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
           </div>
           <div>
             <label class="block text-sm">Market Yield/YTM (%)</label>
-            <input id="bond_yield" type="number" class="w-full border rounded p-2" value="6">
+            <input id="bond_yield" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
           </div>
           <div>
             <label class="block text-sm">Payments per Year</label>
-            <select id="bond_freq" class="w-full border rounded p-2">
+            <select id="bond_freq" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="1">Annual</option>
               <option value="2" selected>Semi-Annual</option>
               <option value="4">Quarterly</option>
@@ -216,35 +221,35 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Current Age</label>
-            <input id="ret_age" type="number" class="w-full border rounded p-2" value="30">
+            <input id="ret_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
           </div>
           <div>
             <label class="block text-sm">Retirement Age</label>
-            <input id="ret_retire_age" type="number" class="w-full border rounded p-2" value="65">
+            <input id="ret_retire_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="65">
           </div>
           <div>
             <label class="block text-sm">Current Savings</label>
-            <input id="ret_current" type="number" class="w-full border rounded p-2" value="50000">
+            <input id="ret_current" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="50000">
           </div>
           <div>
             <label class="block text-sm">Monthly Contribution</label>
-            <input id="ret_monthly" type="number" class="w-full border rounded p-2" value="500">
+            <input id="ret_monthly" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500">
           </div>
           <div>
             <label class="block text-sm">Annual Return (%)</label>
-            <input id="ret_return" type="number" class="w-full border rounded p-2" value="7">
+            <input id="ret_return" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="7">
           </div>
           <div>
             <label class="block text-sm">Employer Match (%)</label>
-            <input id="ret_match" type="number" class="w-full border rounded p-2" value="3">
+            <input id="ret_match" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
           </div>
           <div>
             <label class="block text-sm">Inflation Rate (%)</label>
-            <input id="ret_inflation" type="number" class="w-full border rounded p-2" value="2.5">
+            <input id="ret_inflation" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2.5">
           </div>
           <div>
             <label class="block text-sm">Life Expectancy</label>
-            <input id="ret_life" type="number" class="w-full border rounded p-2" value="85">
+            <input id="ret_life" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="85">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -264,7 +269,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Annuity Type</label>
-            <select id="act_type" class="w-full border rounded p-2">
+            <select id="act_type" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="immediate">Immediate Annuity</option>
               <option value="deferred">Deferred Annuity</option>
               <option value="life">Life Annuity</option>
@@ -273,23 +278,23 @@
           </div>
           <div>
             <label class="block text-sm">Payment Amount</label>
-            <input id="act_payment" type="number" class="w-full border rounded p-2" value="1000">
+            <input id="act_payment" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
           </div>
           <div>
             <label class="block text-sm">Interest Rate (%)</label>
-            <input id="act_rate" type="number" class="w-full border rounded p-2" value="4">
+            <input id="act_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4">
           </div>
           <div>
             <label class="block text-sm">Number of Periods</label>
-            <input id="act_periods" type="number" class="w-full border rounded p-2" value="20">
+            <input id="act_periods" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="20">
           </div>
           <div>
             <label class="block text-sm">Age (for life annuity)</label>
-            <input id="act_age" type="number" class="w-full border rounded p-2" value="65">
+            <input id="act_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="65">
           </div>
           <div>
             <label class="block text-sm">Deferral Period (years)</label>
-            <input id="act_defer" type="number" class="w-full border rounded p-2" value="0">
+            <input id="act_defer" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -309,23 +314,23 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Portfolio Value</label>
-            <input id="risk_value" type="number" class="w-full border rounded p-2" value="100000">
+            <input id="risk_value" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
           </div>
           <div>
             <label class="block text-sm">Expected Return (%)</label>
-            <input id="risk_return" type="number" class="w-full border rounded p-2" value="8">
+            <input id="risk_return" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8">
           </div>
           <div>
             <label class="block text-sm">Standard Deviation (%)</label>
-            <input id="risk_std" type="number" class="w-full border rounded p-2" value="15">
+            <input id="risk_std" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="15">
           </div>
           <div>
             <label class="block text-sm">Risk-Free Rate (%)</label>
-            <input id="risk_rf" type="number" class="w-full border rounded p-2" value="3">
+            <input id="risk_rf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
           </div>
           <div>
             <label class="block text-sm">Confidence Level (%)</label>
-            <select id="risk_conf" class="w-full border rounded p-2">
+            <select id="risk_conf" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="90">90%</option>
               <option value="95" selected>95%</option>
               <option value="99">99%</option>
@@ -333,15 +338,15 @@
           </div>
           <div>
             <label class="block text-sm">Time Horizon (days)</label>
-            <input id="risk_days" type="number" class="w-full border rounded p-2" value="1">
+            <input id="risk_days" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
           </div>
           <div>
             <label class="block text-sm">Beta (vs Market)</label>
-            <input id="risk_beta" type="number" class="w-full border rounded p-2" value="1.2" step="0.1">
+            <input id="risk_beta" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.2" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Market Return (%)</label>
-            <input id="risk_market" type="number" class="w-full border rounded p-2" value="10">
+            <input id="risk_market" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -361,42 +366,42 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Initial Investment</label>
-            <input id="bus_initial" type="number" class="w-full border rounded p-2" value="100000">
+            <input id="bus_initial" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
           </div>
           <div>
             <label class="block text-sm">Discount Rate (%)</label>
-            <input id="bus_rate" type="number" class="w-full border rounded p-2" value="10">
+            <input id="bus_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
           </div>
           <div class="col-span-2">
             <label class="block text-sm">Annual Cash Flows (comma-separated)</label>
-            <input id="bus_cashflows" type="text" class="w-full border rounded p-2" value="25000,30000,35000,40000,45000" placeholder="e.g., 25000,30000,35000">
+            <input id="bus_cashflows" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25000,30000,35000,40000,45000" placeholder="e.g., 25000,30000,35000">
           </div>
         </div>
         <h3 class="font-semibold mb-3 mt-4">Financial Ratios</h3>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Current Assets</label>
-            <input id="bus_curr_assets" type="number" class="w-full border rounded p-2" value="150000">
+            <input id="bus_curr_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="150000">
           </div>
           <div>
             <label class="block text-sm">Current Liabilities</label>
-            <input id="bus_curr_liab" type="number" class="w-full border rounded p-2" value="80000">
+            <input id="bus_curr_liab" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="80000">
           </div>
           <div>
             <label class="block text-sm">Total Assets</label>
-            <input id="bus_tot_assets" type="number" class="w-full border rounded p-2" value="500000">
+            <input id="bus_tot_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
           </div>
           <div>
             <label class="block text-sm">Total Liabilities</label>
-            <input id="bus_tot_liab" type="number" class="w-full border rounded p-2" value="200000">
+            <input id="bus_tot_liab" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="200000">
           </div>
           <div>
             <label class="block text-sm">Revenue</label>
-            <input id="bus_revenue" type="number" class="w-full border rounded p-2" value="300000">
+            <input id="bus_revenue" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="300000">
           </div>
           <div>
             <label class="block text-sm">Net Income</label>
-            <input id="bus_netincome" type="number" class="w-full border rounded p-2" value="45000">
+            <input id="bus_netincome" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="45000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -416,30 +421,30 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Total Assets</label>
-            <input id="aud_assets" type="number" class="w-full border rounded p-2" value="5000000">
+            <input id="aud_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5000000">
           </div>
           <div>
             <label class="block text-sm">Total Revenue</label>
-            <input id="aud_revenue" type="number" class="w-full border rounded p-2" value="3000000">
+            <input id="aud_revenue" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3000000">
           </div>
           <div>
             <label class="block text-sm">Pre-tax Income</label>
-            <input id="aud_income" type="number" class="w-full border rounded p-2" value="450000">
+            <input id="aud_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="450000">
           </div>
           <div>
             <label class="block text-sm">Materiality % (of base)</label>
-            <input id="aud_mat_pct" type="number" class="w-full border rounded p-2" value="5" step="0.5">
+            <input id="aud_mat_pct" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.5">
           </div>
         </div>
         <h3 class="font-semibold mb-3 mt-4">Sample Size Determination</h3>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Population Size</label>
-            <input id="aud_pop" type="number" class="w-full border rounded p-2" value="10000">
+            <input id="aud_pop" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10000">
           </div>
           <div>
             <label class="block text-sm">Confidence Level (%)</label>
-            <select id="aud_conf" class="w-full border rounded p-2">
+            <select id="aud_conf" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="90">90%</option>
               <option value="95" selected>95%</option>
               <option value="99">99%</option>
@@ -447,11 +452,11 @@
           </div>
           <div>
             <label class="block text-sm">Margin of Error (%)</label>
-            <input id="aud_margin" type="number" class="w-full border rounded p-2" value="5">
+            <input id="aud_margin" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
           </div>
           <div>
             <label class="block text-sm">Expected Error Rate (%)</label>
-            <input id="aud_error" type="number" class="w-full border rounded p-2" value="2">
+            <input id="aud_error" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -471,43 +476,43 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Home Price</label>
-            <input id="re_price" type="number" class="w-full border rounded p-2" value="350000">
+            <input id="re_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="350000">
           </div>
           <div>
             <label class="block text-sm">Down Payment</label>
-            <input id="re_down" type="number" class="w-full border rounded p-2" value="70000">
+            <input id="re_down" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="70000">
           </div>
           <div>
             <label class="block text-sm">Interest Rate (%)</label>
-            <input id="re_rate" type="number" class="w-full border rounded p-2" value="6.5" step="0.01">
+            <input id="re_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6.5" step="0.01">
           </div>
           <div>
             <label class="block text-sm">Term (Years)</label>
-            <input id="re_years" type="number" class="w-full border rounded p-2" value="30">
+            <input id="re_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
           </div>
           <div>
             <label class="block text-sm">Annual Property Tax</label>
-            <input id="re_tax" type="number" class="w-full border rounded p-2" value="4200">
+            <input id="re_tax" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4200">
           </div>
           <div>
             <label class="block text-sm">Annual Insurance</label>
-            <input id="re_ins" type="number" class="w-full border rounded p-2" value="1200">
+            <input id="re_ins" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1200">
           </div>
           <div>
             <label class="block text-sm">PMI Rate (% of loan)</label>
-            <input id="re_pmi" type="number" class="w-full border rounded p-2" value="0.8" step="0.1">
+            <input id="re_pmi" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.8" step="0.1">
           </div>
           <div>
             <label class="block text-sm">HOA (Monthly)</label>
-            <input id="re_hoa" type="number" class="w-full border rounded p-2" value="0">
+            <input id="re_hoa" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0">
           </div>
           <div>
             <label class="block text-sm">Monthly Income</label>
-            <input id="re_income" type="number" class="w-full border rounded p-2" value="8000">
+            <input id="re_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8000">
           </div>
           <div>
             <label class="block text-sm">Monthly Debt Payments</label>
-            <input id="re_debts" type="number" class="w-full border rounded p-2" value="600">
+            <input id="re_debts" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -519,19 +524,19 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Monthly Rent</label>
-            <input id="re_rent" type="number" class="w-full border rounded p-2" value="2500">
+            <input id="re_rent" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2500">
           </div>
           <div>
             <label class="block text-sm">Vacancy Rate (%)</label>
-            <input id="re_vacancy" type="number" class="w-full border rounded p-2" value="5" step="0.5">
+            <input id="re_vacancy" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.5">
           </div>
           <div>
             <label class="block text-sm">Monthly Operating Expenses</label>
-            <input id="re_expenses" type="number" class="w-full border rounded p-2" value="600">
+            <input id="re_expenses" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600">
           </div>
           <div>
             <label class="block text-sm">Closing Costs</label>
-            <input id="re_closing" type="number" class="w-full border rounded p-2" value="8000">
+            <input id="re_closing" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -549,30 +554,30 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Filing Status</label>
-            <select id="tax_status" class="w-full border rounded p-2">
+            <select id="tax_status" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
               <option value="single">Single</option>
               <option value="married">Married Filing Jointly</option>
             </select>
           </div>
           <div>
             <label class="block text-sm">Annual Income</label>
-            <input id="tax_income" type="number" class="w-full border rounded p-2" value="120000">
+            <input id="tax_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="120000">
           </div>
           <div>
             <label class="block text-sm">Deductions</label>
-            <input id="tax_deductions" type="number" class="w-full border rounded p-2" value="14000">
+            <input id="tax_deductions" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="14000">
           </div>
           <div>
             <label class="block text-sm">State Tax Rate (%)</label>
-            <input id="tax_state" type="number" class="w-full border rounded p-2" value="5" step="0.1">
+            <input id="tax_state" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Short-Term Capital Gains</label>
-            <input id="tax_stcg" type="number" class="w-full border rounded p-2" value="3000">
+            <input id="tax_stcg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3000">
           </div>
           <div>
             <label class="block text-sm">Long-Term Capital Gains</label>
-            <input id="tax_ltcg" type="number" class="w-full border rounded p-2" value="6000">
+            <input id="tax_ltcg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -590,23 +595,23 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2">
             <label class="block text-sm">Expected Returns (comma-separated, %)</label>
-            <input id="pf_returns" type="text" class="w-full border rounded p-2" value="8,10,6">
+            <input id="pf_returns" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8,10,6">
           </div>
           <div class="col-span-2">
             <label class="block text-sm">Volatilities (comma-separated, %)</label>
-            <input id="pf_vols" type="text" class="w-full border rounded p-2" value="12,18,8">
+            <input id="pf_vols" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12,18,8">
           </div>
           <div class="col-span-2">
             <label class="block text-sm">Correlation Matrix (rows separated by ; )</label>
-            <input id="pf_corr" type="text" class="w-full border rounded p-2" value="1,0.2,0.1;0.2,1,0.3;0.1,0.3,1">
+            <input id="pf_corr" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1,0.2,0.1;0.2,1,0.3;0.1,0.3,1">
           </div>
           <div>
             <label class="block text-sm">Risk-Free Rate (%)</label>
-            <input id="pf_rf" type="number" class="w-full border rounded p-2" value="3" step="0.1">
+            <input id="pf_rf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Grid Step</label>
-            <input id="pf_step" type="number" class="w-full border rounded p-2" value="0.05" step="0.01">
+            <input id="pf_step" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.05" step="0.01">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -624,31 +629,31 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Current FCF</label>
-            <input id="dcf_fcf" type="number" class="w-full border rounded p-2" value="500000">
+            <input id="dcf_fcf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
           </div>
           <div>
             <label class="block text-sm">Forecast Years</label>
-            <input id="dcf_years" type="number" class="w-full border rounded p-2" value="5">
+            <input id="dcf_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
           </div>
           <div>
             <label class="block text-sm">Growth Rate (%)</label>
-            <input id="dcf_growth" type="number" class="w-full border rounded p-2" value="8" step="0.1">
+            <input id="dcf_growth" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Discount Rate (WACC, %)</label>
-            <input id="dcf_wacc" type="number" class="w-full border rounded p-2" value="10" step="0.1">
+            <input id="dcf_wacc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Terminal Growth (%)</label>
-            <input id="dcf_terminal" type="number" class="w-full border rounded p-2" value="3" step="0.1">
+            <input id="dcf_terminal" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Net Debt</label>
-            <input id="dcf_debt" type="number" class="w-full border rounded p-2" value="800000">
+            <input id="dcf_debt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="800000">
           </div>
           <div>
             <label class="block text-sm">Shares Outstanding</label>
-            <input id="dcf_shares" type="number" class="w-full border rounded p-2" value="1000000">
+            <input id="dcf_shares" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -666,27 +671,27 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Spot Price (S)</label>
-            <input id="opt_spot" type="number" class="w-full border rounded p-2" value="100">
+            <input id="opt_spot" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
           </div>
           <div>
             <label class="block text-sm">Strike (K)</label>
-            <input id="opt_strike" type="number" class="w-full border rounded p-2" value="105">
+            <input id="opt_strike" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="105">
           </div>
           <div>
             <label class="block text-sm">Time to Expiry (years)</label>
-            <input id="opt_time" type="number" class="w-full border rounded p-2" value="0.5" step="0.01">
+            <input id="opt_time" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.5" step="0.01">
           </div>
           <div>
             <label class="block text-sm">Risk-Free Rate (%)</label>
-            <input id="opt_rate" type="number" class="w-full border rounded p-2" value="4" step="0.1">
+            <input id="opt_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Volatility (%)</label>
-            <input id="opt_vol" type="number" class="w-full border rounded p-2" value="25" step="0.1">
+            <input id="opt_vol" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Underlying at Expiry</label>
-            <input id="opt_expiry_price" type="number" class="w-full border rounded p-2" value="110">
+            <input id="opt_expiry_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="110">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -704,50 +709,50 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">NOI / EBITDA</label>
-            <input id="cr_noi" type="number" class="w-full border rounded p-2" value="250000">
+            <input id="cr_noi" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="250000">
           </div>
           <div>
             <label class="block text-sm">Annual Debt Service</label>
-            <input id="cr_debt" type="number" class="w-full border rounded p-2" value="180000">
+            <input id="cr_debt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="180000">
           </div>
           <div>
             <label class="block text-sm">Target DSCR</label>
-            <input id="cr_target" type="number" class="w-full border rounded p-2" value="1.25" step="0.01">
+            <input id="cr_target" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.25" step="0.01">
           </div>
           <div>
             <label class="block text-sm">Interest Expense</label>
-            <input id="cr_interest" type="number" class="w-full border rounded p-2" value="60000">
+            <input id="cr_interest" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="60000">
           </div>
         </div>
         <h3 class="font-semibold mb-3 mt-4">Altman Z-Score Inputs</h3>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Working Capital</label>
-            <input id="cr_wc" type="number" class="w-full border rounded p-2" value="80000">
+            <input id="cr_wc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="80000">
           </div>
           <div>
             <label class="block text-sm">Retained Earnings</label>
-            <input id="cr_re" type="number" class="w-full border rounded p-2" value="120000">
+            <input id="cr_re" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="120000">
           </div>
           <div>
             <label class="block text-sm">EBIT</label>
-            <input id="cr_ebit" type="number" class="w-full border rounded p-2" value="150000">
+            <input id="cr_ebit" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="150000">
           </div>
           <div>
             <label class="block text-sm">Market Value of Equity</label>
-            <input id="cr_mve" type="number" class="w-full border rounded p-2" value="600000">
+            <input id="cr_mve" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600000">
           </div>
           <div>
             <label class="block text-sm">Total Liabilities</label>
-            <input id="cr_tl" type="number" class="w-full border rounded p-2" value="500000">
+            <input id="cr_tl" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
           </div>
           <div>
             <label class="block text-sm">Sales</label>
-            <input id="cr_sales" type="number" class="w-full border rounded p-2" value="900000">
+            <input id="cr_sales" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="900000">
           </div>
           <div>
             <label class="block text-sm">Total Assets</label>
-            <input id="cr_ta" type="number" class="w-full border rounded p-2" value="1100000">
+            <input id="cr_ta" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1100000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -765,23 +770,23 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Starting Age</label>
-            <input id="lt_age" type="number" class="w-full border rounded p-2" value="30">
+            <input id="lt_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
           </div>
           <div>
             <label class="block text-sm">Max Age</label>
-            <input id="lt_max" type="number" class="w-full border rounded p-2" value="100">
+            <input id="lt_max" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
           </div>
           <div>
             <label class="block text-sm">Makeham A</label>
-            <input id="lt_a" type="number" class="w-full border rounded p-2" value="0.0005" step="0.0001">
+            <input id="lt_a" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.0005" step="0.0001">
           </div>
           <div>
             <label class="block text-sm">Gompertz B</label>
-            <input id="lt_b" type="number" class="w-full border rounded p-2" value="0.00003" step="0.00001">
+            <input id="lt_b" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.00003" step="0.00001">
           </div>
           <div>
             <label class="block text-sm">Gompertz C</label>
-            <input id="lt_c" type="number" class="w-full border rounded p-2" value="1.08" step="0.01">
+            <input id="lt_c" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.08" step="0.01">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -799,39 +804,39 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Purchase Price</label>
-            <input id="lb_price" type="number" class="w-full border rounded p-2" value="32000">
+            <input id="lb_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="32000">
           </div>
           <div>
             <label class="block text-sm">Down Payment</label>
-            <input id="lb_down" type="number" class="w-full border rounded p-2" value="4000">
+            <input id="lb_down" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4000">
           </div>
           <div>
             <label class="block text-sm">Loan Rate (%)</label>
-            <input id="lb_rate" type="number" class="w-full border rounded p-2" value="6" step="0.1">
+            <input id="lb_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Loan Term (Years)</label>
-            <input id="lb_years" type="number" class="w-full border rounded p-2" value="5">
+            <input id="lb_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
           </div>
           <div>
             <label class="block text-sm">Lease Payment (Monthly)</label>
-            <input id="lb_lease" type="number" class="w-full border rounded p-2" value="380">
+            <input id="lb_lease" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="380">
           </div>
           <div>
             <label class="block text-sm">Lease Increase (%/yr)</label>
-            <input id="lb_lease_inc" type="number" class="w-full border rounded p-2" value="2" step="0.1">
+            <input id="lb_lease_inc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Annual Maintenance (Buy)</label>
-            <input id="lb_maint" type="number" class="w-full border rounded p-2" value="800">
+            <input id="lb_maint" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="800">
           </div>
           <div>
             <label class="block text-sm">Residual Value (%)</label>
-            <input id="lb_residual" type="number" class="w-full border rounded p-2" value="45" step="1">
+            <input id="lb_residual" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="45" step="1">
           </div>
           <div>
             <label class="block text-sm">Discount Rate (%)</label>
-            <input id="lb_disc" type="number" class="w-full border rounded p-2" value="6" step="0.1">
+            <input id="lb_disc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6" step="0.1">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -850,19 +855,19 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Principal</label>
-            <input id="crp_principal" type="number" class="w-full border rounded p-2" value="5000">
+            <input id="crp_principal" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5000">
           </div>
           <div>
             <label class="block text-sm">APY (%)</label>
-            <input id="crp_apy" type="number" class="w-full border rounded p-2" value="8" step="0.1">
+            <input id="crp_apy" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Years</label>
-            <input id="crp_years" type="number" class="w-full border rounded p-2" value="2">
+            <input id="crp_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2">
           </div>
           <div>
             <label class="block text-sm">Compounds / Year</label>
-            <input id="crp_comp" type="number" class="w-full border rounded p-2" value="12">
+            <input id="crp_comp" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -874,15 +879,15 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Daily Revenue</label>
-            <input id="crp_rev" type="number" class="w-full border rounded p-2" value="15">
+            <input id="crp_rev" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="15">
           </div>
           <div>
             <label class="block text-sm">Power Cost (Daily)</label>
-            <input id="crp_cost" type="number" class="w-full border rounded p-2" value="6">
+            <input id="crp_cost" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
           </div>
           <div>
             <label class="block text-sm">Hardware Cost</label>
-            <input id="crp_hw" type="number" class="w-full border rounded p-2" value="1200">
+            <input id="crp_hw" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1200">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -894,7 +899,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Price Change (e.g., 1.5 = +50%)</label>
-            <input id="crp_ratio" type="number" class="w-full border rounded p-2" value="1.5" step="0.01">
+            <input id="crp_ratio" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.5" step="0.01">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -912,27 +917,27 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">System Cost</label>
-            <input id="gr_cost" type="number" class="w-full border rounded p-2" value="18000">
+            <input id="gr_cost" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="18000">
           </div>
           <div>
             <label class="block text-sm">Annual Savings</label>
-            <input id="gr_savings" type="number" class="w-full border rounded p-2" value="2200">
+            <input id="gr_savings" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2200">
           </div>
           <div>
             <label class="block text-sm">Degradation (%/yr)</label>
-            <input id="gr_deg" type="number" class="w-full border rounded p-2" value="0.5" step="0.1">
+            <input id="gr_deg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.5" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Discount Rate (%)</label>
-            <input id="gr_disc" type="number" class="w-full border rounded p-2" value="5" step="0.1">
+            <input id="gr_disc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Analysis Years</label>
-            <input id="gr_years" type="number" class="w-full border rounded p-2" value="25">
+            <input id="gr_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25">
           </div>
           <div>
             <label class="block text-sm">Incentives</label>
-            <input id="gr_incentives" type="number" class="w-full border rounded p-2" value="2000">
+            <input id="gr_incentives" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -950,23 +955,23 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm">Estate Value</label>
-            <input id="es_value" type="number" class="w-full border rounded p-2" value="6500000">
+            <input id="es_value" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6500000">
           </div>
           <div>
             <label class="block text-sm">Exemption Amount</label>
-            <input id="es_exempt" type="number" class="w-full border rounded p-2" value="12920000">
+            <input id="es_exempt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12920000">
           </div>
           <div>
             <label class="block text-sm">Estate Tax Rate (%)</label>
-            <input id="es_rate" type="number" class="w-full border rounded p-2" value="40" step="0.1">
+            <input id="es_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="40" step="0.1">
           </div>
           <div>
             <label class="block text-sm">Planned Gifts</label>
-            <input id="es_gifts" type="number" class="w-full border rounded p-2" value="100000">
+            <input id="es_gifts" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
           </div>
           <div>
             <label class="block text-sm">Annual Gift Exclusion</label>
-            <input id="es_excl" type="number" class="w-full border rounded p-2" value="18000">
+            <input id="es_excl" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="18000">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -984,19 +989,19 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2">
             <label class="block text-sm">Data Series (comma-separated)</label>
-            <input id="fc_series" type="text" class="w-full border rounded p-2" value="100,105,98,110,120,130,128,135">
+            <input id="fc_series" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100,105,98,110,120,130,128,135">
           </div>
           <div>
             <label class="block text-sm">Forecast Periods</label>
-            <input id="fc_periods" type="number" class="w-full border rounded p-2" value="1">
+            <input id="fc_periods" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
           </div>
           <div>
             <label class="block text-sm">Moving Avg Window</label>
-            <input id="fc_window" type="number" class="w-full border rounded p-2" value="3">
+            <input id="fc_window" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
           </div>
           <div>
             <label class="block text-sm">Smoothing Alpha</label>
-            <input id="fc_alpha" type="number" class="w-full border rounded p-2" value="0.3" step="0.05">
+            <input id="fc_alpha" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.3" step="0.05">
           </div>
         </div>
         <div class="flex gap-2 mt-4">
@@ -1019,6 +1024,21 @@
 function $qs(sel,root=document){return root.querySelector(sel)}
 function $qa(sel,root=document){return Array.from(root.querySelectorAll(sel))}
 function fmt(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:2})}
+
+// Password visibility toggle
+function togglePasswordVisibility(fieldId) {
+  const field = document.getElementById(fieldId);
+  const toggle = document.getElementById(fieldId + 'Toggle');
+  if (field) {
+    if (field.type === 'password') {
+      field.type = 'text';
+      if (toggle) toggle.textContent = '👁️';
+    } else {
+      field.type = 'password';
+      if (toggle) toggle.textContent = '🔒';
+    }
+  }
+}
 
 // Toast helper
 function showToast(message, type='success'){
