@@ -5812,9 +5812,14 @@
     });
     </script>
 
-  <!-- Modern Chat Support System -->
+  <!-- Chat Systems (Modern + Legacy Fallback) -->
+  <!-- Modern Chat System (Primary) -->
   <script src="/public/js/modern-chat-system.js"></script>
+  <!-- Consolidation Layer (Prevents duplicates, manages both systems) -->
+  <script src="/public/js/chat-consolidation.js"></script>
+  <!-- Legacy Chat Widget (Fallback if modern fails) -->
   <script src="/public/js/live-chat-widget.js"></script>
+  <!-- Social Media Widget -->
   <script src="/public/js/social-media-widget.js"></script>
 </body>
 </html>

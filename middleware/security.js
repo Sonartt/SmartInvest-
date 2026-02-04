@@ -37,10 +37,12 @@ const RATE_LIMIT_CONFIG = {
 // In-memory rate limit storage (use Redis in production)
 const rateLimitStore = new Map();
 const blockedIPs = new Map();
+const warnedIPs = new Map(); // Track warned IPs before blocking
 
 // Paths for persistent storage
 const BLOCKED_IPS_PATH = path.join(__dirname, '../data/blocked-ips.json');
 const SECURITY_LOG_PATH = path.join(__dirname, '../data/security-log.json');
+const WARNED_IPS_PATH = path.join(__dirname, '../data/warned-ips.json');
 
 /**
  * Helper: Read JSON file
@@ -132,19 +134,61 @@ function isIPBlocked(ip) {
 }
 
 /**
- * Block IP address
+ * Warn IP before blocking (3 warnings = block)
+ */
+function warnIP(ip, reason = 'Suspicious activity detected') {
+  if (!warnedIPs.has(ip)) {
+    warnedIPs.set(ip, {
+      count: 1,
+      firstWarning: new Date().toISOString(),
+      lastWarning: new Date().toISOString(),
+      reasons: [reason]
+    });
+  } else {
+    const warning = warnedIPs.get(ip);
+    warning.count += 1;
+    warning.lastWarning = new Date().toISOString();
+    warning.reasons.push(reason);
+  }
+
+  // Log warning
+  logSecurityEvent('ip-warning', ip, { 
+    reason, 
+    warningCount: warnedIPs.get(ip).count,
+    message: `Warning ${warnedIPs.get(ip).count}/3 before IP block`
+  });
+
+  // Persist warnings
+  const persistedWarned = readJSON(WARNED_IPS_PATH, { ips: {} });
+  persistedWarned.ips[ip] = warnedIPs.get(ip);
+  writeJSON(WARNED_IPS_PATH, persistedWarned);
+
+  return warnedIPs.get(ip).count;
+}
+
+/**
+ * Block IP address with warning count check
  */
 function blockIP(ip, duration = null, reason = 'Rate limit exceeded') {
+  // Log warning count before blocking
+  const warningCount = warnedIPs.get(ip)?.count || 0;
+  
   const until = duration ? Date.now() + duration : null;
   
   blockedIPs.set(ip, {
     until,
     reason,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    warningsBeforeBlock: warningCount
   });
 
-  // Log the block
-  logSecurityEvent('ip-blocked', ip, { reason, duration });
+  // Log the block with warning context
+  logSecurityEvent('ip-blocked', ip, { 
+    reason, 
+    duration,
+    warningsBeforeBlock: warningCount,
+    action: 'IP blocked after warnings'
+  });
 
   // Persist if permanent or long-duration
   if (!duration || duration > 3600000) {
@@ -153,10 +197,14 @@ function blockIP(ip, duration = null, reason = 'Rate limit exceeded') {
       until: until ? new Date(until).toISOString() : null,
       permanent: !until,
       reason,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      warningsBeforeBlock: warningCount
     };
     writeJSON(BLOCKED_IPS_PATH, persistentBlocked);
   }
+
+  // Clear warnings after blocking
+  warnedIPs.delete(ip);
 }
 
 /**
@@ -246,21 +294,30 @@ function createRateLimiter(type = 'api') {
         type 
       });
 
-      // Block IP if excessive violations
-      if (record.violations === undefined) {
-        record.violations = 1;
-      } else {
-        record.violations++;
-        if (record.violations >= 3) {
-          blockIP(ip, 3600000, 'Multiple rate limit violations');
-        }
+      // Warn IP before blocking (give 3 chances)
+      const warningCount = warnIP(ip, `Rate limit exceeded on ${type} endpoint`);
+      
+      if (warningCount >= 3) {
+        // Block IP after 3 warnings
+        blockIP(ip, 3600000, 'Multiple rate limit violations after warnings');
+        
+        return res.status(403).json({
+          success: false,
+          error: 'Your IP has been blocked due to excessive rate limit violations.',
+          code: 'IP_BLOCKED',
+          contact: 'support@smartinvest.com'
+        });
       }
 
+      // Return rate limit exceeded with warning info
       const remainingTime = Math.ceil(config.blockDuration / 1000);
       return res.status(429).json({
         success: false,
-        error: `Rate limit exceeded. Blocked for ${remainingTime} seconds.`,
-        retryAfter: remainingTime
+        error: `Rate limit exceeded. Try again in ${remainingTime} seconds.`,
+        retryAfter: remainingTime,
+        warningCount: warningCount,
+        warningMessage: `Warning ${warningCount}/3 - IP will be blocked after 3 warnings`,
+        code: 'RATE_LIMIT_EXCEEDED'
       });
     }
 
@@ -426,6 +483,7 @@ module.exports = {
   requestLogger,
   isIPBlocked,
   blockIP,
+  warnIP,
   unblockIP,
   logSecurityEvent,
   getClientIP
