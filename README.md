@@ -183,6 +183,7 @@ The application will be available at `http://localhost:3000`
 - **[docs/ADMIN_LOGIN_SETUP.md](./docs/ADMIN_LOGIN_SETUP.md)** - Complete admin setup guide
 - **[docs/ADMIN_DASHBOARD_GUIDE.md](./docs/ADMIN_DASHBOARD_GUIDE.md)** - Admin dashboard usage
 - **[ADMIN_ACCESS_GUIDE.md](./ADMIN_ACCESS_GUIDE.md)** - Admin access control
+- **[REDUNDANCY_CONSOLIDATION_REPORT.md](./REDUNDANCY_CONSOLIDATION_REPORT.md)** - Code consolidation & shared utilities
 - **[SECRET_MANAGEMENT.md](./SECRET_MANAGEMENT.md)** - Security best practices
 
 ## 🚀 Deployment

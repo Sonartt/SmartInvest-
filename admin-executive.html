@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Admin Dashboard - SmartInvest</title>
+  <meta name="description" content="Executive admin dashboard for CEO, executive team, and board oversight.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%230c4a6e'/%3E%3Cstop offset='100%25' style='stop-color:%231e3a8a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3Cpath d='M28 54 L42 40 L52 56 L72 32' stroke='%23facc15' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='72' cy='32' r='4' fill='%23facc15'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0b1f2a;
+      --slate: #1f2937;
+      --muted: #5b6b7a;
+      --accent: #0ea5e9;
+      --accent-2: #f59e0b;
+      --surface: #ffffff;
+      --surface-alt: #f8fafc;
+      --stroke: rgba(15, 23, 42, 0.12);
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Source Sans 3", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.16), transparent 45%),
+        radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.18), transparent 40%),
+        linear-gradient(120deg, #e2e8f0 0%, #f8fafc 45%, #f1f5f9 100%);
+      min-height: 100vh;
+      padding: 32px 20px 48px;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: 28px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 20px 28px;
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      animation: slideDown 0.6s ease;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+    }
+
+    .brand h1 {
+      font-family: "Sora", sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #0f172a;
+      background: rgba(14, 165, 233, 0.16);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, #0ea5e9, #2563eb);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-secondary {
+      background: #0f172a;
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--stroke);
+      color: var(--slate);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+    }
+
+    .grid {
+      display: grid;
+      gap: 22px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      border: 1px solid var(--stroke);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      animation: fadeIn 0.6s ease;
+    }
+
+    .card h2 {
+      font-family: "Sora", sans-serif;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-alt);
+    }
+
+    .kpi strong {
+      font-size: 1.6rem;
+      font-family: "Sora", sans-serif;
+      color: var(--slate);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .section-title {
+      font-family: "Sora", sans-serif;
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-alt);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .list-item span {
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #92400e;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .table th,
+    .table td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--stroke);
+    }
+
+    .table th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .highlight {
+      background: linear-gradient(120deg, rgba(14, 165, 233, 0.2), rgba(245, 158, 11, 0.2));
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-weight: 600;
+      color: var(--slate);
+    }
+
+    .notice {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #0f172a;
+      color: #fff;
+      padding: 18px;
+      border-radius: var(--radius-md);
+    }
+
+    .notice span {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .link-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .link-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      background: #f1f5f9;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--slate);
+      font-weight: 600;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .link-card:hover {
+      transform: translateY(-2px);
+      background: #e2e8f0;
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 720px) {
+      header {
+        padding: 18px 20px;
+      }
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="pill">CEO Super Admin</div>
+        <h1>Executive Admin Dashboard</h1>
+        <p>Executive, CEO, and board level oversight with full account governance.</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn btn-outline" href="/admin.html">Admin Operations</a>
+        <a class="btn btn-primary" href="/admin-expanded.html">Executive Console</a>
+        <a class="btn btn-secondary" href="/">Sign Out</a>
+      </div>
+    </header>
+
+    <section class="grid grid-2">
+      <div class="card">
+        <h2>Executive Overview</h2>
+        <p>CEO is the primary admin and manages all accounts associated with the website. Executive access mirrors operational controls while adding board level approvals and governance tracking.</p>
+        <div class="grid grid-3" style="margin-top: 18px;">
+          <div class="kpi">
+            <span>Active Accounts</span>
+            <strong>4,582</strong>
+            <small class="muted">Managed by CEO admin role</small>
+          </div>
+          <div class="kpi">
+            <span>Executive Approvals</span>
+            <strong>18</strong>
+            <small class="muted">Pending board review</small>
+          </div>
+          <div class="kpi">
+            <span>Compliance Score</span>
+            <strong>96%</strong>
+            <small class="muted">Policy alignment</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Governance Signals</h2>
+        <div class="list">
+          <div class="list-item">
+            <span>High impact account changes</span>
+            <span class="badge">3 open</span>
+          </div>
+          <div class="list-item">
+            <span>Fraud monitoring escalations</span>
+            <span class="badge">2 open</span>
+          </div>
+          <div class="list-item">
+            <span>Policy exceptions</span>
+            <span class="badge">1 open</span>
+          </div>
+        </div>
+        <div style="margin-top: 14px;" class="highlight">
+          Executive and BOM access is aligned to admin behaviors for consistent controls and audit trails.
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-2">
+      <div class="card">
+        <h2>Account Governance</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Primary Platform Admin</td>
+              <td>CEO</td>
+              <td>Active</td>
+              <td>Full Control</td>
+            </tr>
+            <tr>
+              <td>Executive Finance</td>
+              <td>CFO</td>
+              <td>Active</td>
+              <td>Review Access</td>
+            </tr>
+            <tr>
+              <td>Board Member A</td>
+              <td>BOM</td>
+              <td>Active</td>
+              <td>Oversight</td>
+            </tr>
+            <tr>
+              <td>Board Member B</td>
+              <td>BOM</td>
+              <td>Pending</td>
+              <td>Approve Access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Board Actions</h2>
+        <div class="list">
+          <div class="list-item">
+            <span>Approve quarterly risk register</span>
+            <span class="badge">due today</span>
+          </div>
+          <div class="list-item">
+            <span>Authorize new product line</span>
+            <span class="badge">review</span>
+          </div>
+          <div class="list-item">
+            <span>Confirm compliance audit scope</span>
+            <span class="badge">pending</span>
+          </div>
+        </div>
+        <div style="margin-top: 16px;" class="notice">
+          <strong>CEO Admin Authority</strong>
+          <span>All account provisioning, role updates, and deactivation approvals route through the CEO admin role.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-2">
+      <div class="card">
+        <h2>Executive Controls</h2>
+        <div class="link-grid">
+          <a class="link-card" href="/admin.html#users">Operations dashboard and user management</a>
+          <a class="link-card" href="/admin-product-files.html">Product files and release approvals</a>
+          <a class="link-card" href="/admin-social-media.html">Brand and communication oversight</a>
+          <a class="link-card" href="/admin-expanded.html#analytics">Enterprise features and content controls</a>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Risk and Compliance</h2>
+        <p>Monitor enterprise risk posture with executive level controls and escalation points aligned to operational workflows.</p>
+        <div class="grid" style="margin-top: 16px;">
+          <div class="list-item">
+            <span>Regulatory compliance coverage</span>
+            <span class="badge">on track</span>
+          </div>
+          <div class="list-item">
+            <span>Critical access review</span>
+            <span class="badge">6 items</span>
+          </div>
+          <div class="list-item">
+            <span>Data retention policy review</span>
+            <span class="badge">quarterly</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Executive Notes</h2>
+      <p>All executive roles use the same admin feature set for consistency. The CEO admin role owns account lifecycle management, and the board receives visibility and approval gates without breaking operational behavior.</p>
+    </section>
+
+    <section class="card">
+      <h2>Shared Consolidated Utilities</h2>
+      <p>To reduce code repetition, common admin functions are consolidated in a shared utility file used across all admin pages. All features and behaviors are preserved.</p>
+      <div class="link-grid" style="margin-top: 14px; font-size: 0.9rem;">
+        <div class="link-card" style="cursor: default; background: #e0f2fe; border-color: #0ea5e9;">
+          <strong>AdminAuthUtils</strong> - Token management, verification, logout
+        </div>
+        <div class="link-card" style="cursor: default; background: #e0f2fe; border-color: #0ea5e9;">
+          <strong>RoleManagementUtils</strong> - Add/remove users from all roles
+        </div>
+        <div class="link-card" style="cursor: default; background: #e0f2fe; border-color: #0ea5e9;">
+          <strong>TabNavigationUtils</strong> - Tab switching with deep-link support
+        </div>
+        <div class="link-card" style="cursor: default; background: #e0f2fe; border-color: #0ea5e9;">
+          <strong>AdminApiUtils</strong> - Fetch with authentication headers
+        </div>
+        <div class="link-card" style="cursor: default; background: #e0f2fe; border-color: #0ea5e9;">
+          <strong>AdminUIUtils</strong> - Stats, badges, notifications
+        </div>
+      </div>
+      <div style="margin-top: 14px; padding: 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.85rem;">
+        Location: <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600;">/public/js/shared-admin-utils.js</code>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Consolidated Admin Features</h2>
+      <p>A single reference list for all admin features to avoid repeated documentation and keep operations aligned.</p>
+      <div class="link-grid" style="margin-top: 14px;">
+        <a class="link-card" href="/admin.html#overview">Overview</a>
+        <a class="link-card" href="/admin.html#users">Users</a>
+        <a class="link-card" href="/admin.html#analytics">Analytics</a>
+        <a class="link-card" href="/admin.html#transactions">Transactions</a>
+        <a class="link-card" href="/admin.html#messages">Messages</a>
+        <a class="link-card" href="/admin.html#transfers">Transfers</a>
+        <a class="link-card" href="/admin.html#access-reviews">Access Reviews</a>
+        <a class="link-card" href="/admin.html#files">Files</a>
+        <a class="link-card" href="/admin.html#products">Products</a>
+        <a class="link-card" href="/admin-product-files.html">File Manager</a>
+        <a class="link-card" href="/admin-social-media.html">Social Media</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Role Assignments & Team</h2>
+      <p>Current role assignments with CEO admin authority and board oversight structure.</p>
+      <div class="grid grid-3" style="margin-top: 16px;">
+        <div class="kpi">
+          <span>CEO Admin</span>
+          <strong id="countCeosAdmin">1</strong>
+          <small class="muted">Super admin role</small>
+        </div>
+        <div class="kpi">
+          <span>Admins</span>
+          <strong id="countAdmin">0</strong>
+          <small class="muted">Platform admins</small>
+        </div>
+        <div class="kpi">
+          <span>Executives</span>
+          <strong id="countExecutive">0</strong>
+          <small class="muted">Executive team</small>
+        </div>
+        <div class="kpi">
+          <span>Board Members</span>
+          <strong id="countBom">0</strong>
+          <small class="muted">BOM oversight</small>
+        </div>
+        <div class="kpi">
+          <span>Investors</span>
+          <strong id="countInvestor">0</strong>
+          <small class="muted">Investment partners</small>
+        </div>
+        <div class="kpi">
+          <span>Prominent Persons</span>
+          <strong id="countProminent">0</strong>
+          <small class="muted">Key stakeholders</small>
+        </div>
+      </div>
+      <div style="margin-top: 16px; padding: 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.85rem;">
+        To manage all roles and add/remove team members, visit the <a href="/admin.html#roles" style="color: #0ea5e9; font-weight: 600;\">Roles & Users tab</a> in the main admin dashboard.
+      </div>
+    </section>
+
+    <div class="footer">SmartInvest executive admin console with CEO managed accounts and board oversight.</div>
+  </div>
+
+  <script>
+    // Display role counts from admin dashboard
+    function updateRoleCounts() {
+      const saved = localStorage.getItem('adminRoleUsers');
+      if (saved) {
+        const roleUsers = JSON.parse(saved);
+        document.getElementById('countCeosAdmin').textContent = (roleUsers['ceos-admin'] || []).length;
+        document.getElementById('countAdmin').textContent = (roleUsers['admin'] || []).length;
+        document.getElementById('countExecutive').textContent = (roleUsers['executive'] || []).length;
+        document.getElementById('countBom').textContent = (roleUsers['bom'] || []).length;
+        document.getElementById('countInvestor').textContent = (roleUsers['investor'] || []).length;
+        document.getElementById('countProminent').textContent = (roleUsers['prominent'] || []).length;
+      }
+    }
+    window.addEventListener('load', updateRoleCounts);
+  </script>
+</body>
+</html>

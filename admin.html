@@ -177,6 +177,12 @@
         <div class="nav-tab" onclick="switchTab('products')">
           <span class="text-xl">📦</span> Products
         </div>
+        <div class="nav-tab" onclick="switchTab('roles')">
+          <span class="text-xl">👑</span> Roles & Users
+        </div>
+        <div class="nav-tab" onclick="window.location.href='/admin-executive.html'">
+          Executive Admin
+        </div>
         <div class="nav-tab" onclick="window.location.href='/admin-product-files.html'">
           <span class="text-xl">📤</span> File Manager
         </div>
@@ -189,6 +195,11 @@
 
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Consolidated Resources Notice -->
+    <div style="margin-bottom: 24px; padding: 12px 16px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 8px; font-size: 0.9rem; color: #1e40af;">
+      <strong>Shared Utilities:</strong> Common admin functions consolidated in <code style="background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">/public/js/shared-admin-utils.js</code> - includes auth, roles, tabs, and API utilities used across all admin pages.
+    </div>
 
     <!-- Overview Tab -->
     <div id="overview" class="tab-content active">
@@ -276,6 +287,26 @@
           </button>
         </div>
       </div>
+
+      <div class="bg-white rounded-lg shadow-lg p-6 dashboard-card animate-on-scroll mt-6">
+        <h2 class="text-xl font-bold mb-2 gradient-text">Consolidated Admin Features</h2>
+        <p class="text-sm text-gray-600 mb-4">Single reference list for all admin features to avoid repetition.</p>
+        <div class="grid md:grid-cols-3 gap-3 text-sm">
+          <a href="#overview" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Overview</a>
+          <a href="#users" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Users</a>
+          <a href="#analytics" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Analytics</a>
+          <a href="#transactions" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Transactions</a>
+          <a href="#messages" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Messages</a>
+          <a href="#transfers" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Transfers</a>
+          <a href="#access-reviews" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Access Reviews</a>
+          <a href="#files" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Files</a>
+          <a href="#products" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Products</a>
+          <a href="#roles" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Roles & Users</a>
+          <a href="/admin-product-files.html" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">File Manager</a>
+          <a href="/admin-social-media.html" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Social Media</a>
+          <a href="/admin-executive.html" class="bg-gray-100 hover:bg-gray-200 px-4 py-3 rounded-lg font-medium transition">Executive Admin</a>
+        </div>
+      </div>
     </div>
 
     <!-- Users Tab -->
@@ -314,13 +345,6 @@
 
     <!-- Messages Tab -->
     <div id="messages" class="tab-content">
-  <!-- Site Messages Section -->
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow mb-6">
-    <h1 class="text-2xl font-bold mb-4">Site Messages</h1>
-    <div class="mb-3 text-sm text-gray-600">Visitors can post messages; only admins may reply.</div>
-    <div id="adminMessages">Loading messages…</div>
-  </div>
-
       <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
         <h2 class="text-2xl font-bold mb-4 text-purple-600">Site Messages</h2>
         <div class="mb-3 text-sm text-gray-600">Visitors can post messages; only admins may reply.</div>
@@ -358,6 +382,87 @@
           <button onclick="loadAccessViolations()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg font-medium transition">🔄 Reload</button>
         </div>
         <div id="accessReviewList">Loading access reviews…</div>
+      </div>
+    </div>
+
+    <!-- Roles & Users Tab -->
+    <div id="roles" class="tab-content">
+      <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-purple-600">Roles & User Management</h2>
+        <p class="text-sm text-gray-600 mb-6">Manage admin roles, executives, CEOs, board members, investors, and prominent persons.</p>
+        
+        <!-- Add User to Role -->
+        <div class="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300 mb-6">
+          <h3 class="font-semibold mb-3">Add User to Role</h3>
+          <form id="addRoleForm" onsubmit="event.preventDefault(); addUserToRole();">
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="block text-sm font-semibold mb-1">Email Address</label>
+                <input id="roleEmail" type="email" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="user@example.com" required/>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-1">Full Name</label>
+                <input id="roleName" type="text" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="John Doe" required/>
+              </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="block text-sm font-semibold mb-1">Role</label>
+                <select id="roleSelect" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" required>
+                  <option value="admin">Admin</option>
+                  <option value="ceos-admin">CEO Admin (Super Admin)</option>
+                  <option value="executive">Executive</option>
+                  <option value="bom">Board Member (BOM)</option>
+                  <option value="investor">Investor</option>
+                  <option value="prominent">Prominent Person</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-1">Department/Organization</label>
+                <input id="roleDept" type="text" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-500" placeholder="e.g., Finance, Operations"/>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="flex items-center text-sm">
+                <input type="checkbox" id="roleActive" checked class="mr-2 w-4 h-4"/>
+                <span class="font-medium">Active immediately</span>
+              </label>
+            </div>
+            <div class="flex gap-2">
+              <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition">Add User to Role</button>
+              <button type="reset" class="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-medium transition">Clear</button>
+            </div>
+            <div id="roleAddStatus" class="text-sm mt-3"></div>
+          </form>
+        </div>
+
+        <!-- Current Roles & Users -->
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">CEO Admin (Super Admin)</h3>
+            <div id="roleCeosAdmin" class="space-y-2 bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200"></div>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">Admins</h3>
+            <div id="roleAdmin" class="space-y-2 bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 min-h-20"></div>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">Executives</h3>
+            <div id="roleExecutive" class="space-y-2 bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 min-h-20"></div>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">Board Members (BOM)</h3>
+            <div id="roleBom" class="space-y-2 bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200 min-h-20"></div>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">Investors</h3>
+            <div id="roleInvestor" class="space-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200 min-h-20"></div>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-3 text-lg">Prominent Persons</h3>
+            <div id="roleProminent" class="space-y-2 bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200 min-h-20"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -482,6 +587,9 @@ function switchTab(tabName, clickedElement) {
   const selectedTab = document.getElementById(tabName);
   if (selectedTab) {
     selectedTab.classList.add('active');
+    if (window.location.hash !== `#${tabName}`) {
+      history.replaceState(null, '', `#${tabName}`);
+    }
   }
   
   // Add active to clicked nav (if element passed) or find by tabName
@@ -495,6 +603,16 @@ function switchTab(tabName, clickedElement) {
     if (clickedTab) clickedTab.classList.add('active');
   }
 }
+
+function activateTabFromHash() {
+  const tabName = window.location.hash.replace('#', '');
+  if (tabName) {
+    switchTab(tabName);
+  }
+}
+
+window.addEventListener('hashchange', activateTabFromHash);
+window.addEventListener('load', activateTabFromHash);
 
 // Refresh All Data
 async function refreshAllData() {
@@ -1127,9 +1245,105 @@ async function takeAccessAction(id, action) {
   }
 }
 
+// ==========================================
+// ROLES & USER MANAGEMENT
+// ==========================================
+
+const roleUsers = {
+  'ceos-admin': [
+    { email: 'delijah5415@gmail.com', name: 'CEO Admin', dept: 'Executive', active: true }
+  ],
+  'admin': [],
+  'executive': [],
+  'bom': [],
+  'investor': [],
+  'prominent': []
+};
+
+function loadRolesToUI() {
+  Object.keys(roleUsers).forEach(role => {
+    const elementId = role === 'ceos-admin' ? 'roleCeosAdmin' : 
+                      role === 'bom' ? 'roleBom' :
+                      role === 'investor' ? 'roleInvestor' :
+                      role === 'prominent' ? 'roleProminent' :
+                      `role${role.charAt(0).toUpperCase() + role.slice(1)}`;
+    const container = document.getElementById(elementId);
+    if (container) {
+      const users = roleUsers[role];
+      if (users.length === 0) {
+        container.innerHTML = '<div class="text-sm text-gray-500 italic">No users assigned yet</div>';
+      } else {
+        container.innerHTML = users.map(u => `
+          <div class="bg-white px-3 py-2 rounded flex justify-between items-center text-sm">
+            <div>
+              <div class="font-medium">${u.name}</div>
+              <div class="text-xs text-gray-600">${u.email}</div>
+              ${u.dept ? `<div class="text-xs text-gray-500">📍 ${u.dept}</div>` : ''}
+            </div>
+            <button onclick="removeUserFromRole('${role}', '${u.email}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">Remove</button>
+          </div>
+        `).join('');
+      }
+    }
+  });
+}
+
+function addUserToRole() {
+  const email = document.getElementById('roleEmail').value.trim();
+  const name = document.getElementById('roleName').value.trim();
+  const role = document.getElementById('roleSelect').value;
+  const dept = document.getElementById('roleDept').value.trim();
+  const active = document.getElementById('roleActive').checked;
+  const statusDiv = document.getElementById('roleAddStatus');
+
+  if (!email || !name) {
+    statusDiv.innerHTML = '<span class="text-red-600 font-medium">Error: Email and name are required</span>';
+    return;
+  }
+
+  // Check for duplicates
+  const isDuplicate = roleUsers[role].some(u => u.email.toLowerCase() === email.toLowerCase());
+  if (isDuplicate) {
+    statusDiv.innerHTML = '<span class="text-red-600 font-medium">Error: User already assigned to this role</span>';
+    return;
+  }
+
+  // Add user
+  roleUsers[role].push({ email, name, dept, active });
+
+  // Save to localStorage for persistence
+  localStorage.setItem('adminRoleUsers', JSON.stringify(roleUsers));
+
+  statusDiv.innerHTML = '<span class="text-green-600 font-medium">✅ User added successfully!</span>';
+  
+  // Reset form
+  document.getElementById('addRoleForm').reset();
+  
+  // Refresh UI
+  loadRolesToUI();
+
+  // Clear status after 3 seconds
+  setTimeout(() => { statusDiv.innerHTML = ''; }, 3000);
+}
+
+function removeUserFromRole(role, email) {
+  if (!confirm(`Remove ${email} from ${role}?`)) return;
+  
+  roleUsers[role] = roleUsers[role].filter(u => u.email !== email);
+  localStorage.setItem('adminRoleUsers', JSON.stringify(roleUsers));
+  loadRolesToUI();
+}
+
+// Load saved roles on startup
+const savedRoles = localStorage.getItem('adminRoleUsers');
+if (savedRoles) {
+  Object.assign(roleUsers, JSON.parse(savedRoles));
+}
+
 // Initialize on page load
 window.addEventListener('load', () => {
   initScrollAnimations();
+  loadRolesToUI();
 });
 
 load();
