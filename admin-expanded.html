@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartInvest Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="wwwroot/css/animations.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    
+    .tab-active {
+      border-block-end: 3px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .form-input {
+      border: 1px solid #d1d5db; /* border-gray-300 */
+      border-radius: 0.375rem; /* rounded */
+      padding-inline-start: 0.75rem; /* px-3 */
+      padding-inline-end: 0.75rem;
+      padding-block-start: 0.5rem; /* py-2 */
+      padding-block-end: 0.5rem;
+      outline: none;
+      transition: box-shadow 0.2s;
+    }
+    .form-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #3b82f6; /* focus:ring-2 focus:ring-blue-500 */
+      border-color: #3b82f6;
+    }
+
+    .btn-primary {
+      background-color: #2563eb; /* bg-blue-600 */
+      color: #fff; /* text-white */
+      padding-inline-start: 1rem; /* px-4 */
+      padding-inline-end: 1rem;
+      padding-block-start: 0.5rem; /* py-2 */
+      padding-block-end: 0.5rem;
+      border-radius: 0.375rem; /* rounded */
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background-color: #1d4ed8; /* hover:bg-blue-700 */
+    }
+
+    .btn-secondary {
+      background-color: #6b7280; /* bg-gray-500 */
+      color: #fff; /* text-white */
+      padding-inline-start: 1rem; /* px-4 */
+      padding-inline-end: 1rem;
+      padding-block-start: 0.5rem; /* py-2 */
+      padding-block-end: 0.5rem;
+      border-radius: 0.375rem; /* rounded */
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background-color: #4b5563; /* hover:bg-gray-600 */
+    }
+
+    .btn-danger {
+      background-color: #dc2626; /* bg-red-600 */
+      color: #fff; /* text-white */
+      padding-inline-start: 1rem; /* px-4 */
+      padding-inline-end: 1rem;
+      padding-block-start: 0.5rem; /* py-2 */
+      padding-block-end: 0.5rem;
+      border-radius: 0.375rem; /* rounded */
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-danger:hover {
+      background-color: #b91c1c; /* hover:bg-red-700 */
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5); /* bg-black/50 */
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 0.5rem; /* rounded-lg */
+      padding: 1.5rem; /* p-6 */
+      inline-size: 100%;
+      max-inline-size: 42rem; /* max-w-2xl */
+      max-block-size: 90vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- Navigation -->
+  <nav class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-blue-600">SmartInvest Admin</h1>
+      <div class="flex items-center gap-4">
+        <span class="text-gray-700">Admin User</span>
+        <button class="btn-secondary text-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-6 rounded-lg shadow fade-in-up">
+        <div class="text-gray-600 text-sm mb-2">Total Courses</div>
+        <div id="coursesCount" class="text-3xl font-bold text-blue-600">0</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow fade-in-up">
+        <div class="text-gray-600 text-sm mb-2">Total Insights</div>
+        <div id="insightsCount" class="text-3xl font-bold text-green-600">0</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow fade-in-up">
+        <div class="text-gray-600 text-sm mb-2">Active Users</div>
+        <div id="activeUsersCount" class="text-3xl font-bold text-purple-600">0</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow fade-in-up">
+        <div class="text-gray-600 text-sm mb-2">Community Members</div>
+        <div id="communityCount" class="text-3xl font-bold text-orange-600">0</div>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="flex border-b border-gray-200 overflow-x-auto">
+        <button class="tab-btn tab-active px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="overview">
+          📊 Overview
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="courses">
+          📚 Courses
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="insights">
+          💡 Insights
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="tools">
+          🛠️ Tools
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="sme">
+          🏢 SME Content
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="community">
+          👥 Community
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="analytics">
+          📈 Analytics
+        </button>
+        <button class="tab-btn px-4 py-3 font-medium text-gray-700 whitespace-nowrap" data-tab="users">
+          👤 Users
+        </button>
+      </div>
+
+      <div class="p-6">
+        <!-- OVERVIEW TAB -->
+        <div id="overview" class="tab-content">
+          <h2 class="text-xl font-bold mb-4">Dashboard Overview</h2>
+          <div class="bg-blue-50 p-4 rounded mb-6 text-sm">
+            <strong>Consolidated Utilities:</strong> Common admin functions (auth, roles, API calls, UI updates) are centralized in <code style="background: #dbeafe; padding: 2px 6px; border-radius: 4px;">/public/js/shared-admin-utils.js</code> to eliminate code duplication while preserving all features and behaviors.
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
+              <h3 class="font-bold text-lg mb-4">Quick Actions</h3>
+              <div class="space-y-2">
+                <button class="w-full btn-primary justify-center" onclick="openModal('addCourse')">+ Add Course</button>
+                <button class="w-full btn-primary justify-center" onclick="openModal('addInsight')">+ Add Insight</button>
+                <button class="w-full btn-primary justify-center" onclick="openModal('addTool')">+ Add Tool</button>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
+              <h3 class="font-bold text-lg mb-4">Recent Activity</h3>
+              <div id="recentActivity" class="space-y-2 text-sm">
+                <p class="text-gray-600">Loading activity...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COURSES TAB -->
+        <div id="courses" class="tab-content hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Investment Courses</h2>
+            <button class="btn-primary" onclick="openModal('addCourse')">+ Add Course</button>
+          </div>
+          <div id="coursesList" class="space-y-3">
+            <p class="text-gray-500">Loading courses...</p>
+          </div>
+        </div>
+
+        <!-- INSIGHTS TAB -->
+        <div id="insights" class="tab-content hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Latest Insights</h2>
+            <button class="btn-primary" onclick="openModal('addInsight')">+ Add Insight</button>
+          </div>
+          <div id="insightsList" class="space-y-3">
+            <p class="text-gray-500">Loading insights...</p>
+          </div>
+        </div>
+
+        <!-- TOOLS TAB -->
+        <div id="tools" class="tab-content hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Investment Tools</h2>
+            <button class="btn-primary" onclick="openModal('addTool')">+ Add Tool</button>
+          </div>
+          <div id="toolsList" class="space-y-3">
+            <p class="text-gray-500">Loading tools...</p>
+          </div>
+        </div>
+
+        <!-- SME TAB -->
+        <div id="sme" class="tab-content hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">SME Funding Readiness</h2>
+            <button class="btn-primary" onclick="openModal('addSME')">+ Add SME Content</button>
+          </div>
+          <div id="smeList" class="space-y-3">
+            <p class="text-gray-500">Loading SME content...</p>
+          </div>
+        </div>
+
+        <!-- COMMUNITY TAB -->
+        <div id="community" class="tab-content hidden">
+          <h2 class="text-xl font-bold mb-4">Community Members</h2>
+          <div class="bg-blue-50 p-4 rounded mb-4 text-sm">
+            <p>Total community members: <span id="communityTotal" class="font-bold">0</span></p>
+          </div>
+          <div id="communityList" class="space-y-2">
+            <p class="text-gray-500">Loading community members...</p>
+          </div>
+        </div>
+
+        <!-- ANALYTICS TAB -->
+        <div id="analytics" class="tab-content hidden">
+          <h2 class="text-xl font-bold mb-6">Analytics Dashboard</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white border border-gray-200 p-6 rounded-lg">
+              <h3 class="font-bold mb-4">Website Traffic</h3>
+              <div class="space-y-2 text-sm">
+                <p>Total Visitors: <span id="totalVisitors" class="font-bold">0</span></p>
+                <p>Unique Visitors: <span id="uniqueVisitors" class="font-bold">0</span></p>
+              </div>
+            </div>
+            <div class="bg-white border border-gray-200 p-6 rounded-lg">
+              <h3 class="font-bold mb-4">User Signups</h3>
+              <div class="space-y-2 text-sm">
+                <p>Total Signups: <span id="totalSignups" class="font-bold">0</span></p>
+                <p>Unique Signups: <span id="uniqueSignups" class="font-bold">0</span></p>
+              </div>
+            </div>
+            <div class="bg-white border border-gray-200 p-6 rounded-lg">
+              <h3 class="font-bold mb-4">User Activity</h3>
+              <div class="space-y-2 text-sm">
+                <p>Total Logins: <span id="totalLogins" class="font-bold">0</span></p>
+                <p>Unique Logins: <span id="uniqueLogins" class="font-bold">0</span></p>
+              </div>
+            </div>
+            <div class="bg-white border border-gray-200 p-6 rounded-lg">
+              <h3 class="font-bold mb-4">Active Sessions</h3>
+              <div class="space-y-2 text-sm">
+                <p>Users Active Now: <span id="activeNow" class="font-bold">0</span></p>
+                <button class="btn-secondary text-xs mt-3 w-full" onclick="loadActiveUsers()">View Details</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- USERS TAB -->
+        <div id="users" class="tab-content hidden">
+          <h2 class="text-xl font-bold mb-4">Signed In Users</h2>
+          <div class="bg-blue-50 p-4 rounded mb-4 text-sm">
+            <p>Total signed-in users: <span id="signinTotal" class="font-bold">0</span></p>
+            <p>Last updated: <span id="lastUpdate" class="text-gray-600">--</span></p>
+          </div>
+          <div id="usersList" class="space-y-2">
+            <p class="text-gray-500">Loading users...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  
+  <!-- Add Course Modal -->
+  <div id="addCourse" class="modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4">Add New Course</h2>
+      <div class="space-y-4">
+        <input class="form-input w-full" id="courseTitle" placeholder="Course Title" />
+        <textarea class="form-input w-full" id="courseDescription" placeholder="Description" rows="3"></textarea>
+        <select class="form-input w-full" id="courseLevel">
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+        </select>
+        <input class="form-input w-full" id="courseDuration" placeholder="Duration (e.g., 4 weeks)" />
+        <input class="form-input w-full" id="coursePrice" type="number" placeholder="Price (KES)" />
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button class="btn-primary flex-1" onclick="createCourse()">Create Course</button>
+        <button class="btn-secondary flex-1" onclick="closeModal('addCourse')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Insight Modal -->
+  <div id="addInsight" class="modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4">Add New Insight</h2>
+      <div class="space-y-4">
+        <input class="form-input w-full" id="insightTitle" placeholder="Insight Title" />
+        <textarea class="form-input w-full" id="insightContent" placeholder="Content" rows="5"></textarea>
+        <input class="form-input w-full" id="insightCategory" placeholder="Category (e.g., Fintech)" />
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button class="btn-primary flex-1" onclick="createInsight()">Create Insight</button>
+        <button class="btn-secondary flex-1" onclick="closeModal('addInsight')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tool Modal -->
+  <div id="addTool" class="modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4">Add New Tool</h2>
+      <div class="space-y-4">
+        <input class="form-input w-full" id="toolTitle" placeholder="Tool Title" />
+        <textarea class="form-input w-full" id="toolDescription" placeholder="Description" rows="3"></textarea>
+        <input class="form-input w-full" id="toolIcon" placeholder="Icon Emoji (e.g., 📊)" />
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button class="btn-primary flex-1" onclick="createTool()">Create Tool</button>
+        <button class="btn-secondary flex-1" onclick="closeModal('addTool')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add SME Modal -->
+  <div id="addSME" class="modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4">Add SME Funding Content</h2>
+      <div class="space-y-4">
+        <input class="form-input w-full" id="smeTitle" placeholder="Content Title" />
+        <textarea class="form-input w-full" id="smeDescription" placeholder="Description" rows="4"></textarea>
+        <input class="form-input w-full" id="smeResources" placeholder="Resources (comma-separated URLs)" />
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button class="btn-primary flex-1" onclick="createSME()">Create Content</button>
+        <button class="btn-secondary flex-1" onclick="closeModal('addSME')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Authentication - Get credentials from user
+    let authToken = '';
+    
+    const authenticate = () => {
+      const user = prompt('Admin Username:');
+      if (!user) return false;
+      const pass = prompt('Admin Password:');
+      if (!pass) return false;
+      authToken = 'Basic ' + btoa(user + ':' + pass);
+      return true;
+    };
+
+    // Initialize on load
+    if (!authenticate()) {
+      window.location.href = '/';
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        e.target.classList.add('tab-active');
+        const tabId = e.target.dataset.tab;
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        // Load data when switching tabs
+        setTimeout(() => {
+          if (tabId === 'courses') loadCourses();
+          else if (tabId === 'insights') loadInsights();
+          else if (tabId === 'tools') loadTools();
+          else if (tabId === 'sme') loadSME();
+          else if (tabId === 'community') loadCommunity();
+          else if (tabId === 'analytics') loadAnalytics();
+          else if (tabId === 'users') loadUsers();
+        }, 100);
+      });
+    });
+
+    // Modal Functions
+    const openModal = (id) => document.getElementById(id).classList.add('active');
+    const closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+    window.onclick = (event) => {
+      if (event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
+      }
+    };
+
+    // API Calls
+    const apiCall = async (method, endpoint, data = null) => {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken
+        }
+      };
+      if (data) options.body = JSON.stringify(data);
+      
+      const res = await fetch(endpoint, options);
+      return res.json();
+    };
+
+    // ===== COURSES =====
+    const loadCourses = async () => {
+      const data = await apiCall('GET', '/api/admin/courses');
+      const list = document.getElementById('coursesList');
+      document.getElementById('coursesCount').textContent = data.courses?.length || 0;
+      
+      if (!data.courses?.length) {
+        list.innerHTML = '<p class="text-gray-500">No courses yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.courses.map(c => `
+        <div class="bg-white p-4 rounded border border-gray-200 flex justify-between items-start">
+          <div>
+            <h4 class="font-bold">${c.title}</h4>
+            <p class="text-sm text-gray-600">${c.description}</p>
+            <div class="text-xs text-gray-500 mt-2">Level: ${c.level} | Duration: ${c.duration}</div>
+          </div>
+          <button class="btn-danger text-xs" onclick="deleteCourse('${c.id}')">Delete</button>
+        </div>
+      `).join('');
+    };
+
+    const createCourse = async () => {
+      const data = {
+        title: document.getElementById('courseTitle').value,
+        description: document.getElementById('courseDescription').value,
+        level: document.getElementById('courseLevel').value,
+        duration: document.getElementById('courseDuration').value,
+        price: parseInt(document.getElementById('coursePrice').value) || 0
+      };
+      
+      if (!data.title) return alert('Title required');
+      
+      const res = await apiCall('POST', '/api/admin/courses', data);
+      if (res.success) {
+        alert('Course created!');
+        closeModal('addCourse');
+        document.getElementById('courseTitle').value = '';
+        document.getElementById('courseDescription').value = '';
+        document.getElementById('courseDuration').value = '';
+        document.getElementById('coursePrice').value = '';
+        loadCourses();
+      }
+    };
+
+    const deleteCourse = async (id) => {
+      if (!confirm('Delete this course?')) return;
+      await apiCall('DELETE', `/api/admin/courses/${id}`);
+      loadCourses();
+    };
+
+    // ===== INSIGHTS =====
+    const loadInsights = async () => {
+      const data = await apiCall('GET', '/api/admin/insights');
+      const list = document.getElementById('insightsList');
+      document.getElementById('insightsCount').textContent = data.insights?.length || 0;
+      
+      if (!data.insights?.length) {
+        list.innerHTML = '<p class="text-gray-500">No insights yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.insights.map(i => `
+        <div class="bg-white p-4 rounded border border-gray-200 flex justify-between items-start">
+          <div>
+            <h4 class="font-bold">${i.title}</h4>
+            <p class="text-sm text-gray-600 line-clamp-2">${i.content}</p>
+            <div class="text-xs text-gray-500 mt-2">Category: ${i.category}</div>
+          </div>
+          <button class="btn-danger text-xs" onclick="deleteInsight('${i.id}')">Delete</button>
+        </div>
+      `).join('');
+    };
+
+    const createInsight = async () => {
+      const data = {
+        title: document.getElementById('insightTitle').value,
+        content: document.getElementById('insightContent').value,
+        category: document.getElementById('insightCategory').value
+      };
+      
+      if (!data.title || !data.content) return alert('Title and content required');
+      
+      const res = await apiCall('POST', '/api/admin/insights', data);
+      if (res.success) {
+        alert('Insight created!');
+        closeModal('addInsight');
+        document.getElementById('insightTitle').value = '';
+        document.getElementById('insightContent').value = '';
+        document.getElementById('insightCategory').value = '';
+        loadInsights();
+      }
+    };
+
+    const deleteInsight = async (id) => {
+      if (!confirm('Delete this insight?')) return;
+      await apiCall('DELETE', `/api/admin/insights/${id}`);
+      loadInsights();
+    };
+
+    // ===== TOOLS =====
+    const loadTools = async () => {
+      const data = await apiCall('GET', '/api/admin/tools');
+      const list = document.getElementById('toolsList');
+      
+      if (!data.tools?.length) {
+        list.innerHTML = '<p class="text-gray-500">No tools yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.tools.map(t => `
+        <div class="bg-white p-4 rounded border border-gray-200 flex justify-between items-start">
+          <div>
+            <h4 class="font-bold">${t.icon} ${t.title}</h4>
+            <p class="text-sm text-gray-600">${t.description}</p>
+          </div>
+          <button class="btn-danger text-xs" onclick="deleteTool('${t.id}')">Delete</button>
+        </div>
+      `).join('');
+    };
+
+    const createTool = async () => {
+      const data = {
+        title: document.getElementById('toolTitle').value,
+        description: document.getElementById('toolDescription').value,
+        icon: document.getElementById('toolIcon').value || '🛠️'
+      };
+      
+      if (!data.title) return alert('Title required');
+      
+      const res = await apiCall('POST', '/api/admin/tools', data);
+      if (res.success) {
+        alert('Tool created!');
+        closeModal('addTool');
+        document.getElementById('toolTitle').value = '';
+        document.getElementById('toolDescription').value = '';
+        loadTools();
+      }
+    };
+
+    const deleteTool = async (id) => {
+      if (!confirm('Delete this tool?')) return;
+      await apiCall('DELETE', `/api/admin/tools/${id}`);
+      loadTools();
+    };
+
+    // ===== SME =====
+    const loadSME = async () => {
+      const data = await apiCall('GET', '/api/admin/sme');
+      const list = document.getElementById('smeList');
+      
+      if (!data.content?.length) {
+        list.innerHTML = '<p class="text-gray-500">No SME content yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.content.map(s => `
+        <div class="bg-white p-4 rounded border border-gray-200 flex justify-between items-start">
+          <div>
+            <h4 class="font-bold">${s.title}</h4>
+            <p class="text-sm text-gray-600">${s.description}</p>
+            ${s.resources?.length ? `<p class="text-xs text-blue-600 mt-2">${s.resources.length} resources</p>` : ''}
+          </div>
+          <button class="btn-danger text-xs" onclick="deleteSME('${s.id}')">Delete</button>
+        </div>
+      `).join('');
+    };
+
+    const createSME = async () => {
+      const data = {
+        title: document.getElementById('smeTitle').value,
+        description: document.getElementById('smeDescription').value,
+        resources: document.getElementById('smeResources').value.split(',').map(r => r.trim()).filter(r => r)
+      };
+      
+      if (!data.title) return alert('Title required');
+      
+      const res = await apiCall('POST', '/api/admin/sme', data);
+      if (res.success) {
+        alert('SME content created!');
+        closeModal('addSME');
+        document.getElementById('smeTitle').value = '';
+        document.getElementById('smeDescription').value = '';
+        document.getElementById('smeResources').value = '';
+        loadSME();
+      }
+    };
+
+    const deleteSME = async (id) => {
+      if (!confirm('Delete this content?')) return;
+      await apiCall('DELETE', `/api/admin/sme/${id}`);
+      loadSME();
+    };
+
+    // ===== COMMUNITY =====
+    const loadCommunity = async () => {
+      const data = await apiCall('GET', '/api/admin/community-users');
+      const list = document.getElementById('communityList');
+      document.getElementById('communityCount').textContent = data.total || 0;
+      document.getElementById('communityTotal').textContent = data.total || 0;
+      
+      if (!data.users?.length) {
+        list.innerHTML = '<p class="text-gray-500">No community members yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.users.map(u => `
+        <div class="bg-white p-3 rounded border border-gray-200 flex justify-between items-center text-sm">
+          <div>
+            <p class="font-medium">${u.name}</p>
+            <p class="text-gray-600">${u.email}</p>
+            <p class="text-xs text-gray-500">Joined: ${new Date(u.joinedAt).toLocaleDateString()}</p>
+          </div>
+          <button class="btn-danger text-xs" onclick="removeCommunity('${u.id}')">Remove</button>
+        </div>
+      `).join('');
+    };
+
+    const removeCommunity = async (id) => {
+      if (!confirm('Remove from community?')) return;
+      await apiCall('DELETE', `/api/admin/community-users/${id}`);
+      loadCommunity();
+    };
+
+    // ===== ANALYTICS =====
+    const loadAnalytics = async () => {
+      const data = await apiCall('GET', '/api/admin/analytics');
+      const stats = data.stats || {};
+      
+      document.getElementById('totalVisitors').textContent = stats.totalVisitors || 0;
+      document.getElementById('uniqueVisitors').textContent = stats.uniqueVisitors || 0;
+      document.getElementById('totalSignups').textContent = stats.totalSignups || 0;
+      document.getElementById('uniqueSignups').textContent = stats.uniqueSignups || 0;
+      document.getElementById('totalLogins').textContent = stats.totalLogins || 0;
+      document.getElementById('uniqueLogins').textContent = stats.uniqueLogins || 0;
+      
+      loadActiveUsers();
+    };
+
+    const loadActiveUsers = async () => {
+      const data = await apiCall('GET', '/api/admin/active-users');
+      document.getElementById('activeNow').textContent = data.activeNow || 0;
+      document.getElementById('activeUsersCount').textContent = data.activeNow || 0;
+    };
+
+    // ===== USERS =====
+    const loadUsers = async () => {
+      const data = await apiCall('GET', '/api/admin/signin-users');
+      const list = document.getElementById('usersList');
+      document.getElementById('signinTotal').textContent = data.total || 0;
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+      
+      if (!data.users?.length) {
+        list.innerHTML = '<p class="text-gray-500">No signed-in users yet</p>';
+        return;
+      }
+      
+      list.innerHTML = data.users.map(u => `
+        <div class="bg-white p-3 rounded border border-gray-200 flex justify-between items-center text-sm">
+          <div>
+            <p class="font-medium">${u.email}</p>
+            <p class="text-xs text-gray-500">Last login: ${new Date(u.lastLogin).toLocaleString()}</p>
+            <p class="text-xs text-gray-500">Total logins: ${u.totalLogins}</p>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    // Load overview on init
+    const logout = () => {
+      if (confirm('Logout?')) {
+        window.location.href = '/';
+      }
+    };
+
+    // Auto-load overview and refresh stats every 30 seconds
+    loadCourses();
+    loadInsights();
+    loadCommunity();
+    loadAnalytics();
+    
+    setInterval(() => {
+      loadCourses();
+      loadCommunity();
+      loadActiveUsers();
+    }, 30000);
+  </script>
+</body>
+</html>

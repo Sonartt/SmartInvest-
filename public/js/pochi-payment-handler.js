@@ -23,7 +23,7 @@ class PochiPaymentHandler {
       // Show loading state
       this.showLoading('Initiating payment prompt...');
 
-      const response = await fetch(`${this.apiBase}/stk-push`, {
+      const response = await pochiFetchWithTimeout(`${this.apiBase}/stk-push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -34,7 +34,12 @@ class PochiPaymentHandler {
         })
       });
 
-      const data = await response.json();
+      const { parsed, text } = await pochiSafeJson(response);
+      const data = parsed || { raw: text };
+
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || data?.raw || 'STK Push failed');
+      }
 
       if (!data.success) {
         throw new Error(data.error || 'STK Push failed');
@@ -59,7 +64,9 @@ class PochiPaymentHandler {
         message: 'Payment initiated'
       };
     } catch (error) {
-      this.showError(error.message);
+      this.showError(error?.name === 'AbortError'
+        ? 'Request timed out. Please try again.'
+        : error.message);
       throw error;
     }
   }
@@ -72,13 +79,22 @@ class PochiPaymentHandler {
 
     const poll = async () => {
       try {
-        const response = await fetch(`${this.apiBase}/query-stk`, {
+        const response = await pochiFetchWithTimeout(`${this.apiBase}/query-stk`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ checkoutRequestId: checkoutId })
         });
 
-        const data = await response.json();
+        const { parsed, text } = await pochiSafeJson(response);
+        const data = parsed || { raw: text };
+
+        if (!response.ok) {
+          this.showError(data?.error || data?.message || data?.raw || 'Payment status check failed');
+          if (this.callbacks.onFailure) {
+            this.callbacks.onFailure({ ...data, context });
+          }
+          return false;
+        }
 
         if (data.resultCode === 0 || data.resultCode === '0') {
           // Payment successful
@@ -222,8 +238,12 @@ class PochiPaymentHandler {
    */
   async getAccountInfo() {
     try {
-      const response = await fetch(`${this.apiBase}/info`);
-      return await response.json();
+      const response = await pochiFetchWithTimeout(`${this.apiBase}/info`);
+      const { parsed, text } = await pochiSafeJson(response);
+      if (!response.ok) {
+        throw new Error(parsed?.error || parsed?.message || text || 'Failed to get account info');
+      }
+      return parsed || { raw: text };
     } catch (error) {
       console.error('Failed to get account info:', error);
       throw error;
@@ -235,8 +255,14 @@ class PochiPaymentHandler {
    */
   async testConnection() {
     try {
-      const response = await fetch(`${this.apiBase}/test`);
-      const data = await response.json();
+      const response = await pochiFetchWithTimeout(`${this.apiBase}/test`);
+      const { parsed, text } = await pochiSafeJson(response);
+      const data = parsed || { raw: text };
+
+      if (!response.ok) {
+        this.showError('✗ Connection failed: ' + (data.error || data.message || data.raw || 'Request failed'));
+        return data;
+      }
 
       if (data.success) {
         this.showSuccess('✓ M-Pesa Pochi connection successful!');
@@ -247,9 +273,31 @@ class PochiPaymentHandler {
 
       return data;
     } catch (error) {
-      this.showError('Connection test failed: ' + error.message);
+      this.showError('Connection test failed: ' + (error?.name === 'AbortError' ? 'Request timed out' : error.message));
       throw error;
     }
+  }
+}
+
+const POCHI_REQUEST_TIMEOUT_MS = 15000;
+
+async function pochiFetchWithTimeout(url, options = {}, timeoutMs = POCHI_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function pochiSafeJson(res) {
+  const text = await res.text();
+  if (!text) return { parsed: null, text: '' };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch (e) {
+    return { parsed: null, text };
   }
 }
 

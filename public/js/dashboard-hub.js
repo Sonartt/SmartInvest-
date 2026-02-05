@@ -13,6 +13,28 @@ const ACTIVITY_KEY = 'si_activity';
 const PREMIUM_KEY = 'si_is_premium';
 const LAST_LOGIN_KEY = 'si_last_login';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function safeJson(res) {
+  const text = await res.text();
+  if (!text) return { parsed: null, text: '' };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch (e) {
+    return { parsed: null, text };
+  }
+}
+
 function safeGet(key, fallback = null) {
   try {
     const value = localStorage.getItem(key);
@@ -255,12 +277,19 @@ async function handleMpesaPay() {
 
   try {
     const phone = btn.dataset.phone || '254114383762';
-    const res = await fetch('/api/pay/mpesa', {
+    const res = await fetchWithTimeout('/api/pay/mpesa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: 1000, phone })
     });
-    const data = await res.json();
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      msgDiv.textContent = data?.error || data?.message || data?.raw || 'M-Pesa payment failed.';
+      msgDiv.className = 'mt-4 text-sm text-red-300';
+      logUserActivity('Payment', 'M-Pesa request failed');
+      return;
+    }
     const success = Boolean(data && data.success);
     msgDiv.textContent = success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
     msgDiv.className = success ? 'mt-4 text-sm text-green-300' : 'mt-4 text-sm text-red-300';
@@ -271,7 +300,9 @@ async function handleMpesaPay() {
       logUserActivity('Payment', 'M-Pesa attempt failed');
     }
   } catch (error) {
-    msgDiv.textContent = 'Network error. Please try again.';
+    msgDiv.textContent = error?.name === 'AbortError'
+      ? 'Request timed out. Please try again.'
+      : 'Network error. Please try again.';
     msgDiv.className = 'mt-4 text-sm text-red-300';
     logUserActivity('Payment', 'M-Pesa network error');
   } finally {
@@ -293,12 +324,19 @@ async function handleBuyMpesa(fileId) {
 
   try {
     const phone = btn.dataset.phone || '254114383762';
-    const res = await fetch('/api/pay/mpesa', {
+    const res = await fetchWithTimeout('/api/pay/mpesa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: 1000, phone, accountReference: fileId })
     });
-    const data = await res.json();
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      msgDiv.textContent = data?.error || data?.message || data?.raw || 'M-Pesa payment failed.';
+      msgDiv.className = 'mt-4 text-sm text-red-300';
+      logUserActivity('Payment', 'Catalog M-Pesa request failed');
+      return;
+    }
     const success = Boolean(data && data.success);
     msgDiv.textContent = success ? 'M-Pesa STK Push sent. Complete payment on your phone.' : 'M-Pesa payment failed.';
     msgDiv.className = success ? 'mt-4 text-sm text-green-300' : 'mt-4 text-sm text-red-300';
@@ -310,7 +348,9 @@ async function handleBuyMpesa(fileId) {
       logUserActivity('Payment', 'Catalog M-Pesa attempt failed');
     }
   } catch (error) {
-    msgDiv.textContent = 'Network error. Please try again.';
+    msgDiv.textContent = error?.name === 'AbortError'
+      ? 'Request timed out. Please try again.'
+      : 'Network error. Please try again.';
     msgDiv.className = 'mt-4 text-sm text-red-300';
     logUserActivity('Payment', 'Catalog M-Pesa network error');
   } finally {
@@ -331,10 +371,17 @@ async function handlePayPalPay() {
   msgDiv.textContent = '';
 
   try {
-    const res = await fetch('/api/pay/paypal/create-order', {
+    const res = await fetchWithTimeout('/api/pay/paypal/create-order', {
       method: 'POST'
     });
-    const data = await res.json();
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      msgDiv.textContent = data?.error || data?.message || data?.raw || 'PayPal order creation failed.';
+      msgDiv.className = 'mt-4 text-sm text-red-300';
+      logUserActivity('Payment', 'PayPal request failed');
+      return;
+    }
     if (data?.approveUrl) {
       logUserActivity('Payment', 'Redirecting to PayPal checkout');
       window.location.href = data.approveUrl;
@@ -344,7 +391,9 @@ async function handlePayPalPay() {
       logUserActivity('Payment', 'PayPal order creation failed');
     }
   } catch (error) {
-    msgDiv.textContent = 'Network error. Please try again.';
+    msgDiv.textContent = error?.name === 'AbortError'
+      ? 'Request timed out. Please try again.'
+      : 'Network error. Please try again.';
     msgDiv.className = 'mt-4 text-sm text-red-300';
     logUserActivity('Payment', 'PayPal network error');
   } finally {
@@ -365,12 +414,19 @@ async function handleBuyPaypal(fileId, amount) {
   msgDiv.textContent = '';
 
   try {
-    const res = await fetch('/api/pay/paypal/create-order', {
+    const res = await fetchWithTimeout('/api/pay/paypal/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: amount || 10, fileId })
     });
-    const data = await res.json();
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      msgDiv.textContent = data?.error || data?.message || data?.raw || 'PayPal order creation failed.';
+      msgDiv.className = 'mt-4 text-sm text-red-300';
+      logUserActivity('Payment', 'PayPal request failed');
+      return;
+    }
     if (data?.approveUrl) {
       const match = dashboardHubState.catalog.find(f => f.id === fileId);
       logUserActivity('Payment', `Redirecting to PayPal for ${match?.title || 'catalog item'}`);
@@ -381,7 +437,9 @@ async function handleBuyPaypal(fileId, amount) {
       logUserActivity('Payment', 'PayPal order creation failed');
     }
   } catch (error) {
-    msgDiv.textContent = 'Network error. Please try again.';
+    msgDiv.textContent = error?.name === 'AbortError'
+      ? 'Request timed out. Please try again.'
+      : 'Network error. Please try again.';
     msgDiv.className = 'mt-4 text-sm text-red-300';
     logUserActivity('Payment', 'PayPal network error');
   } finally {
@@ -408,11 +466,17 @@ async function submitBankTransfer(event) {
   const msgDiv = document.getElementById('bankInstructions');
   msgDiv.textContent = 'Recording transfer...';
   try {
-    const res = await fetch('/api/pay/kcb/manual', {
+    const res = await fetchWithTimeout('/api/pay/kcb/manual', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, amount, reference })
     });
-    const data = await res.json();
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      msgDiv.textContent = data?.error || data?.message || data?.raw || 'Failed to record transfer.';
+      logUserActivity('Bank transfer', 'Manual transfer request failed');
+      return;
+    }
     if (data.success && data.transaction) {
       const acc = data.transaction.account;
       msgDiv.innerHTML = `<div>Please pay <strong>KES ${data.transaction.amount}</strong> to:</div>
@@ -427,7 +491,9 @@ async function submitBankTransfer(event) {
       logUserActivity('Bank transfer', 'Failed to record manual transfer');
     }
   } catch (err) {
-    msgDiv.textContent = 'Network error. Please try again.';
+    msgDiv.textContent = err?.name === 'AbortError'
+      ? 'Request timed out. Please try again.'
+      : 'Network error. Please try again.';
     logUserActivity('Bank transfer', 'Network error while recording transfer');
   }
 }
@@ -450,10 +516,16 @@ function demoLogin(event) {
   if (!emailInput || !passwordInput) return;
   const email = emailInput.value;
 
-  fetch('/api/auth/login', {
+  fetchWithTimeout('/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: passwordInput.value })
-  }).then(r => r.json()).then(data => {
+  }).then(async r => {
+    const { parsed, text } = await safeJson(r);
+    const data = parsed || { raw: text };
+    if (!r.ok) {
+      alert('Sign in failed: ' + (data.error || data.message || data.raw || 'Request failed'));
+      return;
+    }
     if (data.success) {
       alert('Sign in successful');
       const isPremium = Boolean(data.isPremium || data.user?.isPremium || data.profile?.isPremium);
@@ -463,8 +535,8 @@ function demoLogin(event) {
     } else {
       alert('Sign in failed: ' + (data.error || ''));
     }
-  }).catch(() => {
-    alert('Network error');
+  }).catch((err) => {
+    alert(err?.name === 'AbortError' ? 'Request timed out' : 'Network error');
   }).finally(() => {
     event.target.reset();
   });
@@ -476,8 +548,13 @@ async function handleSignup(event) {
   const password = document.getElementById('signupPassword').value;
   const acceptTerms = document.getElementById('acceptTerms').checked;
   try {
-    const res = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, acceptTerms }) });
-    const data = await res.json();
+    const res = await fetchWithTimeout('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, acceptTerms }) });
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      alert('Signup failed: ' + (data.error || data.message || data.raw || 'Request failed'));
+      return;
+    }
     if (data.success) {
       alert('Signup successful — you can now sign in.');
       storeLoginMetadata(email, false);
@@ -487,14 +564,19 @@ async function handleSignup(event) {
       alert('Signup failed: ' + (data.error || ''));
     }
   } catch (err) {
-    alert('Network error');
+    alert(err?.name === 'AbortError' ? 'Request timed out' : 'Network error');
   }
 }
 
 async function fetchCatalog() {
   try {
-    const res = await fetch('/api/catalog');
-    const data = await res.json();
+    const res = await fetchWithTimeout('/api/catalog');
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok) {
+      if (el) el.innerHTML = '<div class="col-span-3 text-center text-red-500">Failed to load catalog.</div>';
+      return;
+    }
     const el = document.getElementById('catalog');
     if (!data.success || !Array.isArray(data.files)) {
       if (el) el.innerHTML = '<div class="col-span-3 text-center text-red-500">Failed to load catalog.</div>';
@@ -536,8 +618,12 @@ async function requestDownloadToken(fileId) {
   const body = { fileId, email };
   const headers = { 'Content-Type': 'application/json' };
   if (email) headers['x-user-email'] = email;
-  const res = await fetch('/api/download/request', { method: 'POST', headers, body: JSON.stringify(body) });
-  return res.json();
+  const res = await fetchWithTimeout('/api/download/request', { method: 'POST', headers, body: JSON.stringify(body) });
+  const { parsed, text } = await safeJson(res);
+  if (!res.ok) {
+    return { success: false, error: parsed?.error || parsed?.message || text || 'Download request failed.' };
+  }
+  return parsed || { raw: text };
 }
 async function loadPaymentsLedger() {
   const list = document.getElementById('paymentsLedger');
@@ -545,8 +631,14 @@ async function loadPaymentsLedger() {
   list.innerHTML = '<div class="text-gray-500">Loading ledger...</div>';
 
   try {
-    const res = await fetch('/api/admin/payments');
-    const data = await res.json();
+    const res = await fetchWithTimeout('/api/admin/payments');
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+
+    if (!res.ok) {
+      list.innerHTML = '<div class="text-red-600">Error loading payments ledger.</div>';
+      return;
+    }
 
     if (!data.success) {
       list.innerHTML = '<div class="text-red-600">Error loading payments ledger.</div>';
@@ -622,9 +714,10 @@ async function refreshDashboard() {
   usersEl.textContent = premiumEl.textContent = filesEl.textContent = messagesEl.textContent = '…';
 
   try {
-    const res = await fetch('/api/admin/dashboard-stats');
-    const data = await res.json();
-    if (!data.success) throw new Error('Failed to load stats');
+    const res = await fetchWithTimeout('/api/admin/dashboard-stats');
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok || !data.success) throw new Error('Failed to load stats');
     usersEl.textContent = data.totalUsers ?? '0';
     premiumEl.textContent = data.premiumUsers ?? '0';
     filesEl.textContent = data.totalFiles ?? '0';
@@ -648,8 +741,65 @@ function renderUsersList(users) {
         </div>
       </div>
       <div class="text-xs text-gray-600 mt-2">Spent: ${user.totalSpent ? '$' + user.totalSpent : '—'}</div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        ${user.isPremium
+          ? `<button onclick="revokePremiumAccess('${user.id}')" class="bg-orange-600 text-white px-2 py-1 rounded text-xs">Revoke Premium</button>`
+          : `<button onclick="grantPremiumAccess('${user.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-xs">Grant Premium</button>`}
+        ${user.email ? `<button onclick="copyUserEmail('${user.email}')" class="bg-slate-600 text-white px-2 py-1 rounded text-xs">Copy Email</button>` : ''}
+      </div>
     </div>
   `).join('');
+}
+
+async function grantPremiumAccess(userId) {
+  if (!confirm('Grant premium access to this user?')) return;
+  try {
+    const res = await fetchWithTimeout(`/api/admin/users/${userId}/grant-premium`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirements: { verified: true } })
+    });
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok || !data.success) {
+      alert('Failed to grant premium: ' + (data.error || data.message || data.raw || 'Request failed'));
+      return;
+    }
+    alert('Premium access granted.');
+    loadAllUsers();
+  } catch (e) {
+    alert(e?.name === 'AbortError' ? 'Request timed out' : 'Network error');
+  }
+}
+
+async function revokePremiumAccess(userId) {
+  if (!confirm('Revoke premium access from this user?')) return;
+  try {
+    const res = await fetchWithTimeout(`/api/admin/users/${userId}/revoke-premium`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok || !data.success) {
+      alert('Failed to revoke premium: ' + (data.error || data.message || data.raw || 'Request failed'));
+      return;
+    }
+    alert('Premium access revoked.');
+    loadAllUsers();
+  } catch (e) {
+    alert(e?.name === 'AbortError' ? 'Request timed out' : 'Network error');
+  }
+}
+
+function copyUserEmail(email) {
+  if (!email) return;
+  try {
+    navigator.clipboard.writeText(email);
+    alert('Email copied');
+  } catch (e) {
+    alert('Unable to copy email');
+  }
 }
 
 async function loadAllUsers(query = '') {
@@ -659,10 +809,11 @@ async function loadAllUsers(query = '') {
 
   try {
     const url = query ? `/api/admin/users?query=${encodeURIComponent(query)}` : '/api/admin/users';
-    const res = await fetch(url);
-    const data = await res.json();
+    const res = await fetchWithTimeout(url);
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
 
-    if (!data.success || !data.users?.length) {
+    if (!res.ok || !data.success || !data.users?.length) {
       list.innerHTML = '<div class="text-gray-600">No users found.</div>';
       return;
     }
@@ -828,9 +979,10 @@ async function loadMessages() {
   list.innerHTML = '<div class="text-gray-500">Loading messages...</div>';
 
   try {
-    const res = await fetch('/api/admin/messages');
-    const data = await res.json();
-    if (!data.success || !data.messages?.length) {
+    const res = await fetchWithTimeout('/api/admin/messages');
+    const { parsed, text } = await safeJson(res);
+    const data = parsed || { raw: text };
+    if (!res.ok || !data.success || !data.messages?.length) {
       list.innerHTML = '<div class="text-gray-600">No messages.</div>';
       return;
     }
@@ -867,20 +1019,21 @@ async function replyMessage(id) {
   const text = input?.value.trim();
   if (!text) return alert('Enter a reply');
   try {
-    const res = await fetch(`/api/admin/messages/${id}/reply`, {
+    const res = await fetchWithTimeout(`/api/admin/messages/${id}/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reply: text })
     });
-    const data = await res.json();
-    if (data.success) {
+    const { parsed, text: rawText } = await safeJson(res);
+    const data = parsed || { raw: rawText };
+    if (res.ok && data.success) {
       input.value = '';
       loadMessages();
     } else {
-      alert('Error: ' + (data.error || 'Failed'));
+      alert('Error: ' + (data.error || data.message || data.raw || 'Failed'));
     }
   } catch (e) {
-    alert('Error: ' + e.message);
+    alert(e?.name === 'AbortError' ? 'Request timed out' : 'Network error');
   }
 }
 

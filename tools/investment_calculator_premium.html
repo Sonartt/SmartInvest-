@@ -1,0 +1,2598 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Professional Financial & Actuarial Calculator</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- KaTeX for rendering formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="document.dispatchEvent(new Event('katex-ready'))"></script>
+  <style>
+    .formula { background: #f8fafc; padding: 0.5rem; border-radius: 6px; margin-top:8px; }
+    .info-box { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+    .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+    .result-card { background: #f0fdf4; border: 2px solid #22c55e; padding: 1rem; margin: 0.5rem 0; border-radius: 6px; }
+
+    /* Mobile responsiveness - prevent iOS zoom */
+    @media (max-width: 768px) {
+      input, select, textarea {
+        font-size: 16px !important;
+        min-height: 44px;
+      }
+      button {
+        min-height: 44px;
+      }
+    }
+
+    /* Placeholder styling */
+    input::placeholder,
+    textarea::placeholder {
+      color: #64748B;
+      opacity: 1;
+    }
+
+    /* Auto-fill styling */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 30px white inset !important;
+      -webkit-text-fill-color: #1E293B !important;
+    }
+
+    /* Focus states */
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #3B82F6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+
+    /* Validation states */
+    input:invalid:not(:placeholder-shown) {
+      border-color: #DC2626 !important;
+      background-color: #FEF2F2;
+    }
+
+    input:valid:not(:placeholder-shown) {
+      border-color: #059669 !important;
+    }
+
+    /* Error message styling */
+    .error-message {
+      color: #DC2626;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    input.error ~ .error-message {
+      display: block;
+    }
+
+    /* Loading state */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* Success/Error notifications */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideInRight 0.3s ease-out;
+      max-width: 400px;
+      z-index: 1000;
+    }
+
+    .toast.success {
+      background-color: #F0FDF4;
+      border: 2px solid #059669;
+      color: #065F46;
+    }
+
+    .toast.error {
+      background-color: #FEF2F2;
+      border: 2px solid #DC2626;
+      color: #991B1B;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* Tab styling with focus indicator */
+    .tab {
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tab:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="p-6 bg-gray-50">
+  <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-3xl font-bold mb-2 text-blue-900">Professional Financial & Actuarial Calculator</h1>
+    <p class="text-sm text-gray-600 mb-4">Comprehensive tools for actuarial science, investments, risk analysis, insurance, bonds, pensions, retirement, business & auditing</p>
+    <div id="toast_container" class="fixed top-4 right-4 space-y-2 z-50" aria-live="polite"></div>
+    <!-- Modals: name input and admin auth -->
+    <div id="modal_backdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-40"></div>
+    <div id="name_modal" class="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow hidden z-50 w-11/12 max-w-md">
+      <h3 class="font-semibold mb-2">Scenario name</h3>
+      <input id="name_input" class="w-full border rounded p-2 mb-3" placeholder="Enter a name">
+      <div class="flex justify-end gap-2"><button id="name_cancel" class="px-3 py-1 rounded bg-gray-200">Cancel</button><button id="name_ok" class="px-3 py-1 rounded bg-blue-600 text-white">OK</button></div>
+    </div>
+    <div id="admin_modal" class="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow hidden z-50 w-11/12 max-w-md">
+      <h3 class="font-semibold mb-2">Admin credentials</h3>
+      <input id="admin_user" class="w-full border-2 border-gray-300 rounded p-2 mb-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" placeholder="Admin user">
+      <div class="relative">
+        <input id="admin_pass" type="password" class="w-full border-2 border-gray-300 rounded p-2 mb-3 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" placeholder="Password">
+        <button type="button" onclick="togglePasswordVisibility('admin_pass')" class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 text-lg" title="Show/Hide password">
+          <span id="admin_passToggle">🔒</span>
+        </button>
+      </div>
+      <div class="flex justify-end gap-2"><button id="admin_cancel" class="px-3 py-1 rounded bg-gray-200">Cancel</button><button id="admin_ok" class="px-3 py-1 rounded bg-blue-600 text-white">OK</button></div>
+    </div>
+
+    <div class="mb-4">
+      <nav class="flex gap-2 flex-wrap">
+        <button class="tab bg-blue-600 text-white px-3 py-1 rounded text-sm" data-tab="investment">Investment</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="amort">Amortization</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="insurance">Insurance</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="bonds">Bonds</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="pension">Pension/Retirement</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="actuarial">Actuarial Science</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="risk">Risk Analysis</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="business">Business Finance</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="audit">Auditing Tools</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="realestate">Real Estate</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="tax">Tax</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="portfolio">Portfolio Optimizer</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="dcf">DCF Valuation</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="options">Options Suite</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="credit">Credit Analysis</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="lifetables">Life Tables</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="leasebuy">Lease vs Buy</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="crypto">Crypto</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="green">Green Finance</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="estate">Estate Planning</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="forecast">Forecasting</button>
+        <button class="tab bg-gray-200 px-3 py-1 rounded text-sm" data-tab="scenarios">Scenarios</button>
+      </nav>
+    </div>
+
+    <div id="content">
+      <!-- Investment -->
+      <section id="investment" class="tab-pane">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Initial amount</label>
+            <input id="inv_initial" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly contribution</label>
+            <input id="inv_monthly" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
+          </div>
+          <div>
+            <label class="block text-sm">Annual rate (%)</label>
+            <input id="inv_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
+          </div>
+          <div>
+            <label class="block text-sm">Years</label>
+            <input id="inv_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="inv_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate</button>
+          <button id="inv_csv" class="bg-gray-200 px-4 py-2 rounded">CSV</button>
+          <button id="inv_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Scenario</button>
+        </div>
+        <div id="inv_result" class="mt-4"></div>
+      </section>
+
+      <!-- Amortization -->
+      <section id="amort" class="tab-pane hidden">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Loan amount</label>
+            <input id="loan_amount" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="50000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual rate (%)</label>
+            <input id="loan_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8">
+          </div>
+          <div>
+            <label class="block text-sm">Years</label>
+            <input id="loan_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Payments per year</label>
+            <input id="loan_freq" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="loan_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Amortization</button>
+          <button id="loan_csv" class="bg-gray-200 px-4 py-2 rounded">CSV</button>
+          <button id="loan_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Scenario</button>
+        </div>
+        <div id="loan_result" class="mt-4"></div>
+      </section>
+
+      <!-- Insurance -->
+      <section id="insurance" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📊 Insurance Premium Calculation</h3>
+          <p class="text-sm">Calculate life insurance premiums based on coverage, age, term, and mortality risk factors.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Coverage amount</label>
+            <input id="ins_coverage" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
+          </div>
+          <div>
+            <label class="block text-sm">Base rate (% per year)</label>
+            <input id="ins_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
+          </div>
+          <div>
+            <label class="block text-sm">Age</label>
+            <input id="ins_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="35">
+          </div>
+          <div>
+            <label class="block text-sm">Term (years)</label>
+            <input id="ins_term" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="20">
+          </div>
+          <div>
+            <label class="block text-sm">Gender</label>
+            <select id="ins_gender" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Health Status</label>
+            <select id="ins_health" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="excellent">Excellent</option>
+              <option value="good" selected>Good</option>
+              <option value="fair">Fair</option>
+              <option value="poor">Poor</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="ins_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Premiums</button>
+          <button id="ins_csv" class="bg-gray-200 px-4 py-2 rounded">CSV</button>
+          <button id="ins_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Scenario</button>
+        </div>
+        <div id="ins_result" class="mt-4"></div>
+      </section>
+
+      <!-- Bonds -->
+      <section id="bonds" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">💰 Bond Valuation & Analysis</h3>
+          <p class="text-sm">Calculate bond prices, yields (YTM), duration, convexity, and interest rate sensitivity.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Face Value (Par)</label>
+            <input id="bond_face" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
+          </div>
+          <div>
+            <label class="block text-sm">Coupon Rate (%)</label>
+            <input id="bond_coupon" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Years to Maturity</label>
+            <input id="bond_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
+          </div>
+          <div>
+            <label class="block text-sm">Market Yield/YTM (%)</label>
+            <input id="bond_yield" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
+          </div>
+          <div>
+            <label class="block text-sm">Payments per Year</label>
+            <select id="bond_freq" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="1">Annual</option>
+              <option value="2" selected>Semi-Annual</option>
+              <option value="4">Quarterly</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="bond_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Bond Metrics</button>
+          <button id="bond_csv" class="bg-gray-200 px-4 py-2 rounded">Export CSV</button>
+        </div>
+        <div id="bond_result" class="mt-4"></div>
+      </section>
+
+      <!-- Pension/Retirement -->
+      <section id="pension" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏦 Pension & Retirement Planning</h3>
+          <p class="text-sm">Calculate pension values, retirement savings, annuities, and withdrawal strategies.</p>
+        </div>
+        <h3 class="font-semibold mb-2">Retirement Savings Calculator</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Current Age</label>
+            <input id="ret_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
+          </div>
+          <div>
+            <label class="block text-sm">Retirement Age</label>
+            <input id="ret_retire_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="65">
+          </div>
+          <div>
+            <label class="block text-sm">Current Savings</label>
+            <input id="ret_current" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="50000">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Contribution</label>
+            <input id="ret_monthly" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Return (%)</label>
+            <input id="ret_return" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="7">
+          </div>
+          <div>
+            <label class="block text-sm">Employer Match (%)</label>
+            <input id="ret_match" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
+          </div>
+          <div>
+            <label class="block text-sm">Inflation Rate (%)</label>
+            <input id="ret_inflation" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2.5">
+          </div>
+          <div>
+            <label class="block text-sm">Life Expectancy</label>
+            <input id="ret_life" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="85">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="ret_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Retirement Plan</button>
+          <button id="ret_csv" class="bg-gray-200 px-4 py-2 rounded">Export CSV</button>
+        </div>
+        <div id="ret_result" class="mt-4"></div>
+      </section>
+
+      <!-- Actuarial Science -->
+      <section id="actuarial" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📈 Actuarial Science Calculations</h3>
+          <p class="text-sm">Life tables, mortality rates, present value of annuities, survival probabilities, and actuarial present values.</p>
+        </div>
+        <h3 class="font-semibold mb-3">Annuity Calculations</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Annuity Type</label>
+            <select id="act_type" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="immediate">Immediate Annuity</option>
+              <option value="deferred">Deferred Annuity</option>
+              <option value="life">Life Annuity</option>
+              <option value="certain">Annuity Certain</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Payment Amount</label>
+            <input id="act_payment" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000">
+          </div>
+          <div>
+            <label class="block text-sm">Interest Rate (%)</label>
+            <input id="act_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4">
+          </div>
+          <div>
+            <label class="block text-sm">Number of Periods</label>
+            <input id="act_periods" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="20">
+          </div>
+          <div>
+            <label class="block text-sm">Age (for life annuity)</label>
+            <input id="act_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="65">
+          </div>
+          <div>
+            <label class="block text-sm">Deferral Period (years)</label>
+            <input id="act_defer" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="act_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Present Value</button>
+          <button id="act_mortality" class="bg-indigo-600 text-white px-4 py-2 rounded">Mortality Analysis</button>
+        </div>
+        <div id="act_result" class="mt-4"></div>
+      </section>
+
+      <!-- Risk Analysis -->
+      <section id="risk" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">⚠️ Risk Analysis & Portfolio Management</h3>
+          <p class="text-sm">Calculate VaR, standard deviation, Sharpe ratio, beta, diversification metrics, and risk-adjusted returns.</p>
+        </div>
+        <h3 class="font-semibold mb-3">Portfolio Risk Metrics</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Portfolio Value</label>
+            <input id="risk_value" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
+          </div>
+          <div>
+            <label class="block text-sm">Expected Return (%)</label>
+            <input id="risk_return" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8">
+          </div>
+          <div>
+            <label class="block text-sm">Standard Deviation (%)</label>
+            <input id="risk_std" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="15">
+          </div>
+          <div>
+            <label class="block text-sm">Risk-Free Rate (%)</label>
+            <input id="risk_rf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
+          </div>
+          <div>
+            <label class="block text-sm">Confidence Level (%)</label>
+            <select id="risk_conf" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="90">90%</option>
+              <option value="95" selected>95%</option>
+              <option value="99">99%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Time Horizon (days)</label>
+            <input id="risk_days" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
+          </div>
+          <div>
+            <label class="block text-sm">Beta (vs Market)</label>
+            <input id="risk_beta" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.2" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Market Return (%)</label>
+            <input id="risk_market" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="risk_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Risk Metrics</button>
+          <button id="risk_scenario" class="bg-purple-600 text-white px-4 py-2 rounded">Scenario Analysis</button>
+        </div>
+        <div id="risk_result" class="mt-4"></div>
+      </section>
+
+      <!-- Business Finance -->
+      <section id="business" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">💼 Business Finance Calculations</h3>
+          <p class="text-sm">NPV, IRR, payback period, break-even analysis, working capital, and financial ratios.</p>
+        </div>
+        <h3 class="font-semibold mb-3">Project Evaluation (NPV & IRR)</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Initial Investment</label>
+            <input id="bus_initial" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (%)</label>
+            <input id="bus_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm">Annual Cash Flows (comma-separated)</label>
+            <input id="bus_cashflows" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25000,30000,35000,40000,45000" placeholder="e.g., 25000,30000,35000">
+          </div>
+        </div>
+        <h3 class="font-semibold mb-3 mt-4">Financial Ratios</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Current Assets</label>
+            <input id="bus_curr_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="150000">
+          </div>
+          <div>
+            <label class="block text-sm">Current Liabilities</label>
+            <input id="bus_curr_liab" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="80000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Assets</label>
+            <input id="bus_tot_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Liabilities</label>
+            <input id="bus_tot_liab" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="200000">
+          </div>
+          <div>
+            <label class="block text-sm">Revenue</label>
+            <input id="bus_revenue" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="300000">
+          </div>
+          <div>
+            <label class="block text-sm">Net Income</label>
+            <input id="bus_netincome" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="45000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="bus_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Metrics</button>
+          <button id="bus_breakeven" class="bg-green-600 text-white px-4 py-2 rounded">Break-Even Analysis</button>
+        </div>
+        <div id="bus_result" class="mt-4"></div>
+      </section>
+
+      <!-- Auditing Tools -->
+      <section id="audit" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🔍 Auditing & Compliance Tools</h3>
+          <p class="text-sm">Statistical sampling, materiality thresholds, analytical procedures, and fraud detection ratios.</p>
+        </div>
+        <h3 class="font-semibold mb-3">Materiality Calculation</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Total Assets</label>
+            <input id="aud_assets" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5000000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Revenue</label>
+            <input id="aud_revenue" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3000000">
+          </div>
+          <div>
+            <label class="block text-sm">Pre-tax Income</label>
+            <input id="aud_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="450000">
+          </div>
+          <div>
+            <label class="block text-sm">Materiality % (of base)</label>
+            <input id="aud_mat_pct" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.5">
+          </div>
+        </div>
+        <h3 class="font-semibold mb-3 mt-4">Sample Size Determination</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Population Size</label>
+            <input id="aud_pop" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10000">
+          </div>
+          <div>
+            <label class="block text-sm">Confidence Level (%)</label>
+            <select id="aud_conf" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="90">90%</option>
+              <option value="95" selected>95%</option>
+              <option value="99">99%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Margin of Error (%)</label>
+            <input id="aud_margin" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Expected Error Rate (%)</label>
+            <input id="aud_error" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="aud_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Audit Metrics</button>
+          <button id="aud_ratios" class="bg-orange-600 text-white px-4 py-2 rounded">Fraud Detection Ratios</button>
+        </div>
+        <div id="aud_result" class="mt-4"></div>
+      </section>
+
+      <!-- Real Estate -->
+      <section id="realestate" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏠 Real Estate Calculator</h3>
+          <p class="text-sm">Mortgage payment, affordability (DTI), and rental analysis.</p>
+        </div>
+        <h3 class="font-semibold mb-2">Mortgage & Affordability</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Home Price</label>
+            <input id="re_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="350000">
+          </div>
+          <div>
+            <label class="block text-sm">Down Payment</label>
+            <input id="re_down" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="70000">
+          </div>
+          <div>
+            <label class="block text-sm">Interest Rate (%)</label>
+            <input id="re_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6.5" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Term (Years)</label>
+            <input id="re_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Property Tax</label>
+            <input id="re_tax" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4200">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Insurance</label>
+            <input id="re_ins" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1200">
+          </div>
+          <div>
+            <label class="block text-sm">PMI Rate (% of loan)</label>
+            <input id="re_pmi" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">HOA (Monthly)</label>
+            <input id="re_hoa" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Income</label>
+            <input id="re_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8000">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Debt Payments</label>
+            <input id="re_debts" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="re_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Mortgage</button>
+        </div>
+        <div id="re_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Rental Analysis</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Monthly Rent</label>
+            <input id="re_rent" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2500">
+          </div>
+          <div>
+            <label class="block text-sm">Vacancy Rate (%)</label>
+            <input id="re_vacancy" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.5">
+          </div>
+          <div>
+            <label class="block text-sm">Monthly Operating Expenses</label>
+            <input id="re_expenses" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600">
+          </div>
+          <div>
+            <label class="block text-sm">Closing Costs</label>
+            <input id="re_closing" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="re_rental_calc" class="bg-green-600 text-white px-4 py-2 rounded">Analyze Rental</button>
+        </div>
+        <div id="re_rental_result" class="mt-4"></div>
+      </section>
+
+      <!-- Tax -->
+      <section id="tax" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🧾 Complete Tax Calculator</h3>
+          <p class="text-sm">Federal, state, capital gains, and effective tax rate.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Filing Status</label>
+            <select id="tax_status" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none">
+              <option value="single">Single</option>
+              <option value="married">Married Filing Jointly</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm">Annual Income</label>
+            <input id="tax_income" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="120000">
+          </div>
+          <div>
+            <label class="block text-sm">Deductions</label>
+            <input id="tax_deductions" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="14000">
+          </div>
+          <div>
+            <label class="block text-sm">State Tax Rate (%)</label>
+            <input id="tax_state" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Short-Term Capital Gains</label>
+            <input id="tax_stcg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3000">
+          </div>
+          <div>
+            <label class="block text-sm">Long-Term Capital Gains</label>
+            <input id="tax_ltcg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="tax_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Taxes</button>
+        </div>
+        <div id="tax_result" class="mt-4"></div>
+      </section>
+
+      <!-- Portfolio Optimizer -->
+      <section id="portfolio" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📈 Portfolio Optimizer</h3>
+          <p class="text-sm">Efficient frontier and max-Sharpe allocation (grid search).</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm">Expected Returns (comma-separated, %)</label>
+            <input id="pf_returns" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8,10,6">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm">Volatilities (comma-separated, %)</label>
+            <input id="pf_vols" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12,18,8">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm">Correlation Matrix (rows separated by ; )</label>
+            <input id="pf_corr" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1,0.2,0.1;0.2,1,0.3;0.1,0.3,1">
+          </div>
+          <div>
+            <label class="block text-sm">Risk-Free Rate (%)</label>
+            <input id="pf_rf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Grid Step</label>
+            <input id="pf_step" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.05" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="pf_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Optimize</button>
+        </div>
+        <div id="pf_result" class="mt-4"></div>
+      </section>
+
+      <!-- DCF Valuation -->
+      <section id="dcf" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏢 DCF Valuation</h3>
+          <p class="text-sm">Multi-stage cash flow forecast with terminal value and sensitivity.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Current FCF</label>
+            <input id="dcf_fcf" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
+          </div>
+          <div>
+            <label class="block text-sm">Forecast Years</label>
+            <input id="dcf_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Growth Rate (%)</label>
+            <input id="dcf_growth" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (WACC, %)</label>
+            <input id="dcf_wacc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="10" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Terminal Growth (%)</label>
+            <input id="dcf_terminal" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Net Debt</label>
+            <input id="dcf_debt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="800000">
+          </div>
+          <div>
+            <label class="block text-sm">Shares Outstanding</label>
+            <input id="dcf_shares" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1000000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="dcf_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Value Company</button>
+        </div>
+        <div id="dcf_result" class="mt-4"></div>
+      </section>
+
+      <!-- Options Suite -->
+      <section id="options" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🧮 Options Suite</h3>
+          <p class="text-sm">Black-Scholes pricing, Greeks, and strategy payoffs.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Spot Price (S)</label>
+            <input id="opt_spot" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
+          </div>
+          <div>
+            <label class="block text-sm">Strike (K)</label>
+            <input id="opt_strike" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="105">
+          </div>
+          <div>
+            <label class="block text-sm">Time to Expiry (years)</label>
+            <input id="opt_time" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.5" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Risk-Free Rate (%)</label>
+            <input id="opt_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Volatility (%)</label>
+            <input id="opt_vol" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Underlying at Expiry</label>
+            <input id="opt_expiry_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="110">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="opt_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Options</button>
+        </div>
+        <div id="opt_result" class="mt-4"></div>
+      </section>
+
+      <!-- Credit Analysis -->
+      <section id="credit" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏦 Credit Analysis</h3>
+          <p class="text-sm">DSCR, debt capacity, and default probability (Altman Z).</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">NOI / EBITDA</label>
+            <input id="cr_noi" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="250000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Debt Service</label>
+            <input id="cr_debt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="180000">
+          </div>
+          <div>
+            <label class="block text-sm">Target DSCR</label>
+            <input id="cr_target" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.25" step="0.01">
+          </div>
+          <div>
+            <label class="block text-sm">Interest Expense</label>
+            <input id="cr_interest" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="60000">
+          </div>
+        </div>
+        <h3 class="font-semibold mb-3 mt-4">Altman Z-Score Inputs</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Working Capital</label>
+            <input id="cr_wc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="80000">
+          </div>
+          <div>
+            <label class="block text-sm">Retained Earnings</label>
+            <input id="cr_re" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="120000">
+          </div>
+          <div>
+            <label class="block text-sm">EBIT</label>
+            <input id="cr_ebit" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="150000">
+          </div>
+          <div>
+            <label class="block text-sm">Market Value of Equity</label>
+            <input id="cr_mve" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="600000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Liabilities</label>
+            <input id="cr_tl" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="500000">
+          </div>
+          <div>
+            <label class="block text-sm">Sales</label>
+            <input id="cr_sales" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="900000">
+          </div>
+          <div>
+            <label class="block text-sm">Total Assets</label>
+            <input id="cr_ta" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1100000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="cr_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Analyze Credit</button>
+        </div>
+        <div id="cr_result" class="mt-4"></div>
+      </section>
+
+      <!-- Life Tables -->
+      <section id="lifetables" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📊 Actuarial Life Tables</h3>
+          <p class="text-sm">Generate $q_x$, $l_x$, and $d_x$ from Gompertz-Makeham.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Starting Age</label>
+            <input id="lt_age" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="30">
+          </div>
+          <div>
+            <label class="block text-sm">Max Age</label>
+            <input id="lt_max" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100">
+          </div>
+          <div>
+            <label class="block text-sm">Makeham A</label>
+            <input id="lt_a" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.0005" step="0.0001">
+          </div>
+          <div>
+            <label class="block text-sm">Gompertz B</label>
+            <input id="lt_b" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.00003" step="0.00001">
+          </div>
+          <div>
+            <label class="block text-sm">Gompertz C</label>
+            <input id="lt_c" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.08" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="lt_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Table</button>
+        </div>
+        <div id="lt_result" class="mt-4"></div>
+      </section>
+
+      <!-- Lease vs Buy -->
+      <section id="leasebuy" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🚗 Lease vs Buy</h3>
+          <p class="text-sm">Compare PV of leasing vs purchasing with financing.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Purchase Price</label>
+            <input id="lb_price" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="32000">
+          </div>
+          <div>
+            <label class="block text-sm">Down Payment</label>
+            <input id="lb_down" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="4000">
+          </div>
+          <div>
+            <label class="block text-sm">Loan Rate (%)</label>
+            <input id="lb_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Loan Term (Years)</label>
+            <input id="lb_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5">
+          </div>
+          <div>
+            <label class="block text-sm">Lease Payment (Monthly)</label>
+            <input id="lb_lease" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="380">
+          </div>
+          <div>
+            <label class="block text-sm">Lease Increase (%/yr)</label>
+            <input id="lb_lease_inc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Maintenance (Buy)</label>
+            <input id="lb_maint" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="800">
+          </div>
+          <div>
+            <label class="block text-sm">Residual Value (%)</label>
+            <input id="lb_residual" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="45" step="1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (%)</label>
+            <input id="lb_disc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6" step="0.1">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="lb_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Compare</button>
+        </div>
+        <div id="lb_result" class="mt-4"></div>
+      </section>
+
+      <!-- Crypto -->
+      <section id="crypto" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🪙 Cryptocurrency Tools</h3>
+          <p class="text-sm">Staking, mining profitability, and impermanent loss.</p>
+        </div>
+        <h3 class="font-semibold mb-2">Staking Rewards</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Principal</label>
+            <input id="crp_principal" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5000">
+          </div>
+          <div>
+            <label class="block text-sm">APY (%)</label>
+            <input id="crp_apy" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="8" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Years</label>
+            <input id="crp_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2">
+          </div>
+          <div>
+            <label class="block text-sm">Compounds / Year</label>
+            <input id="crp_comp" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_stake_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Staking</button>
+        </div>
+        <div id="crp_stake_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Mining Profitability</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Daily Revenue</label>
+            <input id="crp_rev" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="15">
+          </div>
+          <div>
+            <label class="block text-sm">Power Cost (Daily)</label>
+            <input id="crp_cost" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6">
+          </div>
+          <div>
+            <label class="block text-sm">Hardware Cost</label>
+            <input id="crp_hw" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1200">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_mine_calc" class="bg-green-600 text-white px-4 py-2 rounded">Calculate Mining</button>
+        </div>
+        <div id="crp_mine_result" class="mt-4"></div>
+
+        <h3 class="font-semibold mb-2 mt-6">Impermanent Loss</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Price Change (e.g., 1.5 = +50%)</label>
+            <input id="crp_ratio" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1.5" step="0.01">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="crp_il_calc" class="bg-purple-600 text-white px-4 py-2 rounded">Calculate IL</button>
+        </div>
+        <div id="crp_il_result" class="mt-4"></div>
+      </section>
+
+      <!-- Green Finance -->
+      <section id="green" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🌿 Green Finance</h3>
+          <p class="text-sm">Solar ROI, NPV of savings, and payback period.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">System Cost</label>
+            <input id="gr_cost" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="18000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Savings</label>
+            <input id="gr_savings" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2200">
+          </div>
+          <div>
+            <label class="block text-sm">Degradation (%/yr)</label>
+            <input id="gr_deg" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Discount Rate (%)</label>
+            <input id="gr_disc" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="5" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Analysis Years</label>
+            <input id="gr_years" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="25">
+          </div>
+          <div>
+            <label class="block text-sm">Incentives</label>
+            <input id="gr_incentives" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="2000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="gr_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate ROI</button>
+        </div>
+        <div id="gr_result" class="mt-4"></div>
+      </section>
+
+      <!-- Estate Planning -->
+      <section id="estate" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">🏛️ Estate Planning</h3>
+          <p class="text-sm">Estate tax exposure and gifting impact.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm">Estate Value</label>
+            <input id="es_value" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="6500000">
+          </div>
+          <div>
+            <label class="block text-sm">Exemption Amount</label>
+            <input id="es_exempt" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="12920000">
+          </div>
+          <div>
+            <label class="block text-sm">Estate Tax Rate (%)</label>
+            <input id="es_rate" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="40" step="0.1">
+          </div>
+          <div>
+            <label class="block text-sm">Planned Gifts</label>
+            <input id="es_gifts" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100000">
+          </div>
+          <div>
+            <label class="block text-sm">Annual Gift Exclusion</label>
+            <input id="es_excl" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="18000">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="es_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Calculate Estate Tax</button>
+        </div>
+        <div id="es_result" class="mt-4"></div>
+      </section>
+
+      <!-- Forecasting -->
+      <section id="forecast" class="tab-pane hidden">
+        <div class="info-box">
+          <h3 class="font-semibold mb-2">📉 Statistical Forecasting</h3>
+          <p class="text-sm">Linear regression, moving average, and exponential smoothing.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm">Data Series (comma-separated)</label>
+            <input id="fc_series" type="text" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="100,105,98,110,120,130,128,135">
+          </div>
+          <div>
+            <label class="block text-sm">Forecast Periods</label>
+            <input id="fc_periods" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="1">
+          </div>
+          <div>
+            <label class="block text-sm">Moving Avg Window</label>
+            <input id="fc_window" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="3">
+          </div>
+          <div>
+            <label class="block text-sm">Smoothing Alpha</label>
+            <input id="fc_alpha" type="number" class="w-full border-2 border-gray-300 rounded p-2 text-slate-900 bg-white focus:border-blue-500 focus:outline-none" value="0.3" step="0.05">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button id="fc_calc" class="bg-blue-600 text-white px-4 py-2 rounded">Forecast</button>
+        </div>
+        <div id="fc_result" class="mt-4"></div>
+      </section>
+
+      <!-- Scenarios -->
+      <section id="scenarios" class="tab-pane hidden">
+        <div class="flex gap-2 mb-4">
+          <button id="load_scenarios" class="bg-indigo-600 text-white px-3 py-1 rounded">Refresh</button>
+        </div>
+        <div id="scenarios_list" class="text-sm"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+function $qs(sel,root=document){return root.querySelector(sel)}
+function $qa(sel,root=document){return Array.from(root.querySelectorAll(sel))}
+function fmt(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:2})}
+
+// Password visibility toggle
+function togglePasswordVisibility(fieldId) {
+  const field = document.getElementById(fieldId);
+  const toggle = document.getElementById(fieldId + 'Toggle');
+  if (field) {
+    if (field.type === 'password') {
+      field.type = 'text';
+      if (toggle) toggle.textContent = '👁️';
+    } else {
+      field.type = 'password';
+      if (toggle) toggle.textContent = '🔒';
+    }
+  }
+}
+
+// Toast helper
+function showToast(message, type='success'){
+  const container = $qs('#toast_container'); if(!container) return;
+  const el = document.createElement('div');
+  const bg = type==='error'? 'bg-red-600' : (type==='info'? 'bg-blue-600' : 'bg-green-600');
+  el.className = `text-white px-4 py-2 rounded shadow ${bg} transform transition-all duration-300 opacity-0`;
+  el.textContent = message;
+  container.appendChild(el);
+  // animate in
+  requestAnimationFrame(()=> el.classList.remove('opacity-0'));
+  // remove after timeout
+  setTimeout(()=>{ el.classList.add('opacity-0'); setTimeout(()=>el.remove(),300); },3500);
+}
+
+// Button loading/disable visual
+function setLoading(btn, loading){ if(!btn) return; btn.disabled = !!loading; if(loading){ btn.classList.add('opacity-50','cursor-not-allowed'); } else { btn.classList.remove('opacity-50','cursor-not-allowed'); } }
+
+// Modal helpers
+function showBackdrop(show){ const b = $qs('#modal_backdrop'); if(!b) return; b.classList.toggle('hidden', !show); b.style.display = show? 'flex' : 'none'; }
+
+function showNameModal(){
+  return new Promise((resolve)=>{
+    const modal = $qs('#name_modal'); const input = $qs('#name_input'); const ok = $qs('#name_ok'); const cancel = $qs('#name_cancel');
+    function cleanup(){ ok.removeEventListener('click',onOk); cancel.removeEventListener('click',onCancel); showBackdrop(false); modal.classList.add('hidden'); }
+    function onOk(){ const v = input.value && input.value.trim(); cleanup(); resolve(v || null); }
+    function onCancel(){ cleanup(); resolve(null); }
+    input.value = '';
+    ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel);
+    showBackdrop(true); modal.classList.remove('hidden'); input.focus();
+  });
+}
+
+function showAdminModal(){
+  return new Promise((resolve)=>{
+    const modal = $qs('#admin_modal'); const user = $qs('#admin_user'); const pass = $qs('#admin_pass'); const ok = $qs('#admin_ok'); const cancel = $qs('#admin_cancel');
+    function cleanup(){ ok.removeEventListener('click',onOk); cancel.removeEventListener('click',onCancel); showBackdrop(false); modal.classList.add('hidden'); }
+    function onOk(){ const u = user.value && user.value.trim(); const p = pass.value || ''; cleanup(); resolve({ user: u || null, pass: p }); }
+    function onCancel(){ cleanup(); resolve(null); }
+    user.value = ''; pass.value = '';
+    ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel);
+    showBackdrop(true); modal.classList.remove('hidden'); user.focus();
+  });
+}
+
+// Tabs
+$qa('.tab').forEach(btn=>btn.addEventListener('click',()=>{
+  const tab = btn.dataset.tab;
+  $qa('.tab').forEach(b=>b.classList.remove('bg-blue-600','text-white'));
+  btn.classList.add('bg-blue-600','text-white');
+  $qa('.tab-pane').forEach(p=>p.classList.add('hidden'));
+  $qs('#'+tab).classList.remove('hidden');
+}));
+
+// Helper: render LaTeX to an element (requires KaTeX loaded)
+function renderLatex(el, latex, displayMode=true){
+  if (!window.katex) {
+    // wait for katex-ready event then retry once
+    document.addEventListener('katex-ready', ()=> {
+      try { el.innerHTML = katex.renderToString(latex, {throwOnError:false, displayMode: displayMode}); } catch(e){ el.textContent = latex; }
+    }, { once: true });
+    // fallback text until katex loads
+    el.textContent = latex;
+    return;
+  }
+  try { el.innerHTML = katex.renderToString(latex, {throwOnError:false, displayMode: displayMode}); } catch(e){ el.textContent = latex; }
+}
+
+// Investment detailed monthly schedule
+function invSchedule(initial, monthly, annualRate, years){
+  const months = years*12; const monthlyRate = Math.pow(1+annualRate/100,1/12)-1;
+  const rows = []; let bal=initial, totalContrib=initial, totalInterest=0;
+  for(let m=1;m<=months;m++){
+    bal += monthly; totalContrib += monthly;
+    const interest = bal * monthlyRate; bal += interest; totalInterest += interest;
+    rows.push({month:m,balance:bal,contrib: totalContrib,interest: totalInterest});
+  }
+  return { rows, monthlyRate };
+}
+
+function renderInv(){
+  const initial=Number($qs('#inv_initial').value)||0;
+  const monthly=Number($qs('#inv_monthly').value)||0;
+  const rate=Number($qs('#inv_rate').value)||0;
+  const years=Number($qs('#inv_years').value)||0;
+  const out = invSchedule(initial,monthly,rate,years);
+  const rows = out.rows;
+  const r_m = out.monthlyRate;
+  const n = years*12;
+  const finalBal = rows.length? rows[rows.length-1].balance : initial;
+
+  // LaTeX formula (symbols)
+  const formula = String.raw`F = P(1+r_m)^{n} + PMT \cdot \frac{(1+r_m)^{n}-1}{r_m}, \quad r_m = (1+R)^{1/12}-1`;
+  const substituted = String.raw`F = ${initial} (1 + ${r_m.toFixed(8)})^{${n}} + ${monthly} \cdot \frac{(1 + ${r_m.toFixed(8)})^{${n}} - 1}{${r_m.toFixed(8)}} = ${finalBal.toFixed(2)}`;
+
+  let html = `<div class="formula" id="inv_formula_tex"></div>`;
+  html += `<p class="mt-2">Final balance: <strong>${fmt(finalBal)}</strong></p>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm"><thead><tr><th class="border px-2">Month</th><th class="border px-2">Balance</th><th class="border px-2">Contrib</th><th class="border px-2">Interest</th></tr></thead><tbody>`;
+  rows.forEach(r=> html+=`<tr class="border-b"><td class="px-2">${r.month}</td><td class="px-2">${fmt(r.balance)}</td><td class="px-2">${fmt(r.contrib)}</td><td class="px-2">${fmt(r.interest)}</td></tr>`);
+  html += `</tbody></table></div>`;
+  $qs('#inv_result').innerHTML = html;
+  // render LaTeX into formula container
+  const fEl = $qs('#inv_formula_tex');
+  renderLatex(fEl, formula);
+  const fEl2 = document.createElement('div'); fEl2.className='mt-2 text-sm text-gray-700'; fEl2.textContent = substituted;
+  $qs('#inv_result').insertBefore(fEl2, $qs('#inv_result').firstChild.nextSibling);
+
+  window._inv_rows = rows;
+}
+
+$qs('#inv_calc').addEventListener('click', renderInv);
+$qs('#inv_csv').addEventListener('click', ()=>{
+  const rows = window._inv_rows||[]; if(!rows.length) return alert('Run calculation first');
+  let csv='month,balance,contrib,interest\n'; rows.forEach(r=>csv+=`${r.month},${r.balance},${r.contrib},${r.interest}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='investment_monthly.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save scenario
+$qs('#inv_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#inv_save'); setLoading(btn, true);
+  const settings = { initial: Number($qs('#inv_initial').value)||0, monthly: Number($qs('#inv_monthly').value)||0, rate: Number($qs('#inv_rate').value)||0, years: Number($qs('#inv_years').value)||0 };
+  const rows = window._inv_rows||[]; const result = { final: rows.length?rows[rows.length-1].balance:null };
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'investment', settings, result })});
+    const d = await res.json();
+    if(d.success){ showToast('Scenario saved'); } else { showToast('Save failed','error'); }
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// Amortization schedule (standard)
+function amortSchedule(amount, annualRate, years, freq){
+  const n = years*freq; const r = annualRate/100/freq; const payment = r===0? amount/n : (amount * r / (1 - Math.pow(1+r, -n)));
+  let bal=amount; const rows=[]; let totalInt=0;
+  for(let i=1;i<=n;i++){
+    const interest = bal * r; const principal = payment - interest; bal -= principal; if(bal<0) bal=0;
+    totalInt += interest; rows.push({period:i,payment,principal,interest,balance:bal});
+  }
+  return {rows,payment,totalInterest: totalInt, r, n};
+}
+
+$qs('#loan_calc').addEventListener('click', ()=>{
+  const amt=Number($qs('#loan_amount').value)||0; const rate=Number($qs('#loan_rate').value)||0; const yrs=Number($qs('#loan_years').value)||0; const freq=Number($qs('#loan_freq').value)||12;
+  const out = amortSchedule(amt,rate,yrs,freq);
+  let html = `<div class="formula" id="loan_formula_tex"></div>`;
+  html += `<p>Payment: <strong>${fmt(out.payment)}</strong> — Total interest: <strong>${fmt(out.totalInterest)}</strong></p>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm"><thead><tr><th class="border px-2">#</th><th class="border px-2">Payment</th><th class="border px-2">Principal</th><th class="border px-2">Interest</th><th class="border px-2">Balance</th></tr></thead><tbody>`;
+  out.rows.forEach(r=> html+=`<tr class="border-b"><td class="px-2">${r.period}</td><td class="px-2">${fmt(r.payment)}</td><td class="px-2">${fmt(r.principal)}</td><td class="px-2">${fmt(r.interest)}</td><td class="px-2">${fmt(r.balance)}</td></tr>`);
+  html += `</tbody></table></div>`;
+  $qs('#loan_result').innerHTML = html;
+  // formula display using LaTeX symbols
+  const formula = String.raw`PMT = \dfrac{r \cdot PV}{1-(1+r)^{-n}}, \quad r = \dfrac{R}{m}, \; n = m \cdot t`;
+  renderLatex($qs('#loan_formula_tex'), formula);
+  const substituted = `PMT = (${out.r.toFixed(8)} \\cdot ${amt}) / (1 - (1+${out.r.toFixed(8)})^{-${out.n}}) = ${out.payment.toFixed(2)}`;
+  const subEl = document.createElement('div'); subEl.className='mt-2 text-sm text-gray-700'; subEl.textContent = substituted;
+  $qs('#loan_result').insertBefore(subEl, $qs('#loan_result').firstChild.nextSibling);
+
+  window._loan_out = out;
+});
+
+$qs('#loan_csv').addEventListener('click', ()=>{
+  const out = window._loan_out; if(!out) return alert('Generate amortization first');
+  let csv='period,payment,principal,interest,balance\n'; out.rows.forEach(r=>csv+=`${r.period},${r.payment},${r.principal},${r.interest},${r.balance}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='amortization.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save amortization scenario
+$qs('#loan_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#loan_save'); setLoading(btn, true);
+  const settings = { amount: Number($qs('#loan_amount').value)||0, rate: Number($qs('#loan_rate').value)||0, years: Number($qs('#loan_years').value)||0, freq: Number($qs('#loan_freq').value)||12 };
+  const result = { payment: window._loan_out? window._loan_out.payment : null };
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'amort', settings, result })});
+    const j = await res.json(); if(j.success) showToast('Scenario saved'); else showToast('Save failed','error');
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// Insurance advanced formulas
+function calcInsurancePremium(coverage, baseRate, age, term, gender, health){
+  // Mortality rate estimation (simplified Gompertz-Makeham law)
+  const mortalityBase = 0.0005 * Math.exp(0.08 * (age - 20));
+  
+  // Gender factor: females typically live longer
+  const genderFactor = gender === 'F' ? 0.92 : 1.0;
+  
+  // Health status loading
+  const healthFactors = { excellent: 0.85, good: 1.0, fair: 1.25, poor: 1.6 };
+  const healthFactor = healthFactors[health] || 1.0;
+  
+  // Age loading: increases with age
+  const ageFactor = age > 30 ? 1 + ((age - 30) * 0.015) : 1;
+  
+  // Term discount: longer terms get slight discount
+  const termFactor = term > 20 ? 0.95 : (term > 15 ? 0.97 : 1);
+  
+  // Calculate annual premium
+  const annual = coverage * (baseRate / 100) * ageFactor * genderFactor * healthFactor * termFactor;
+  const total = annual * term;
+  
+  // Calculate present value of benefits (actuarial)
+  const discountRate = 0.03; // 3% discount rate
+  let pvBenefits = 0;
+  for (let t = 1; t <= term; t++) {
+    const survivalProb = Math.exp(-mortalityBase * t);
+    pvBenefits += coverage * (1 - survivalProb) * Math.pow(1 + discountRate, -t);
+  }
+  
+  return { 
+    annual, 
+    total, 
+    ageFactor, 
+    termFactor, 
+    genderFactor, 
+    healthFactor,
+    mortalityRate: mortalityBase * 100,
+    pvBenefits
+  };
+}
+
+$qs('#ins_calc').addEventListener('click', ()=>{
+  const coverage = Number($qs('#ins_coverage').value) || 0;
+  const rate = Number($qs('#ins_rate').value) || 0;
+  const age = Number($qs('#ins_age').value) || 30;
+  const term = Number($qs('#ins_term').value) || 10;
+  const gender = $qs('#ins_gender').value;
+  const health = $qs('#ins_health').value;
+  
+  const res = calcInsurancePremium(coverage, rate, age, term, gender, health);
+
+  const formula = String.raw`P_{annual} = C \cdot r \cdot \alpha_{age} \cdot \alpha_{gender} \cdot \alpha_{health} \cdot \tau_{term}`;
+  const substituted = `P = ${coverage} \\cdot ${rate/100} \\cdot ${res.ageFactor.toFixed(3)} \\cdot ${res.genderFactor.toFixed(3)} \\cdot ${res.healthFactor.toFixed(3)} \\cdot ${res.termFactor.toFixed(3)} = ${res.annual.toFixed(2)}`;
+
+  let html = `<div class="formula" id="ins_formula_tex"></div>`;
+  html += `<div class="result-card">
+    <h4 class="font-semibold mb-2">Premium Results</h4>
+    <p>Annual Premium: <strong class="text-lg text-green-700">$${fmt(res.annual)}</strong></p>
+    <p>Total over ${term} years: <strong>$${fmt(res.total)}</strong></p>
+    <p class="text-sm mt-2 text-gray-700">Present Value of Expected Benefits: $${fmt(res.pvBenefits)}</p>
+  </div>`;
+  html += `<div class="info-box mt-3">
+    <h4 class="font-semibold mb-2">Premium Factors Breakdown:</h4>
+    <ul class="text-sm space-y-1">
+      <li>• Age Factor (${age} years): ${res.ageFactor.toFixed(3)}x</li>
+      <li>• Gender Factor (${gender}): ${res.genderFactor.toFixed(3)}x</li>
+      <li>• Health Factor (${health}): ${res.healthFactor.toFixed(3)}x</li>
+      <li>• Term Factor (${term} years): ${res.termFactor.toFixed(3)}x</li>
+      <li>• Estimated Mortality Rate: ${res.mortalityRate.toFixed(4)}% per year</li>
+    </ul>
+  </div>`;
+  html += `<div class="warning-box mt-3">
+    <p class="text-sm"><strong>Note:</strong> These calculations use simplified actuarial models. Actual premiums depend on medical exams, family history, occupation, lifestyle factors, and insurer-specific underwriting criteria.</p>
+  </div>`;
+  
+  $qs('#ins_result').innerHTML = html;
+  renderLatex($qs('#ins_formula_tex'), formula);
+  
+  window._ins_res = res;
+});
+
+$qs('#ins_csv').addEventListener('click', ()=>{
+  const r = window._ins_res; if(!r) return alert('Calculate first');
+  const coverage=Number($qs('#ins_coverage').value)||0; const rate=Number($qs('#ins_rate').value)||0; const term=Number($qs('#ins_term').value)||0;
+  const csv = `coverage,rate,term,annual,total\n${coverage},${rate},${term},${r.annual},${r.total}`;
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='insurance.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save insurance scenario
+$qs('#ins_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#ins_save'); setLoading(btn, true);
+  const settings = { coverage: Number($qs('#ins_coverage').value)||0, rate: Number($qs('#ins_rate').value)||0, age: Number($qs('#ins_age').value)||30, term: Number($qs('#ins_term').value)||10 };
+  const result = window._ins_res || {};
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'insurance', settings, result })});
+    const j = await res.json(); if(j.success) showToast('Scenario saved'); else showToast('Save failed','error');
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// Scenarios list
+async function loadScenarios(){
+  const refreshBtn = $qs('#load_scenarios'); setLoading(refreshBtn, true);
+  try{
+    const res = await fetch('/api/scenarios'); const d = await res.json(); if(!d.success) { $qs('#scenarios_list').textContent='Failed to load'; setLoading(refreshBtn,false); return; }
+    const list = d.scenarios || [];
+    if(!list.length) { $qs('#scenarios_list').innerHTML='<div class="text-gray-600">No scenarios saved.</div>'; setLoading(refreshBtn,false); return; }
+    let html = '<ul class="space-y-2">';
+    list.forEach(s=>{
+      html += `<li class="border p-2 rounded"><div class="flex justify-between items-center"><div><strong>${s.name}</strong> <span class="text-xs text-gray-600">${s.type}</span><div class="text-xs text-gray-600">${new Date(s.createdAt).toLocaleString()}</div></div><div class="flex gap-2"><button data-id="${s.id}" class="load btn bg-indigo-600 text-white px-2 py-1 rounded">Load</button><button data-id="${s.id}" class="del btn bg-red-600 text-white px-2 py-1 rounded">Delete</button></div></div></li>`;
+    });
+    html += '</ul>';
+    $qs('#scenarios_list').innerHTML = html;
+    $qa('.load').forEach(b=>b.addEventListener('click', async e=>{
+      const id = e.currentTarget.dataset.id; const btn = e.currentTarget; setLoading(btn, true);
+      try{
+        const r = await fetch('/api/scenarios/'+id); const j = await r.json(); if(!j.success){ showToast('Failed to load scenario','error'); setLoading(btn,false); return; }
+        const s = j.scenario; if(!s){ showToast('Scenario missing','error'); setLoading(btn,false); return; }
+        const tabName = s.type || 'investment'; const tabBtn = $qs('.tab[data-tab="'+tabName+'"]'); if(tabBtn) tabBtn.click();
+        if(tabName === 'investment'){
+          const st = s.settings||{}; $qs('#inv_initial').value = st.initial || 0; $qs('#inv_monthly').value = st.monthly || 0; $qs('#inv_rate').value = st.rate || 0; $qs('#inv_years').value = st.years || 0; renderInv();
+        } else if(tabName === 'amort' || tabName === 'amortization'){
+          const st = s.settings||{}; $qs('#loan_amount').value = st.amount || st.loanAmount || 0; $qs('#loan_rate').value = st.rate || 0; $qs('#loan_years').value = st.years || 0; $qs('#loan_freq').value = st.freq || st.paymentsPerYear || 12; $qs('#loan_calc').click();
+        } else if(tabName === 'insurance'){
+          const st = s.settings||{}; $qs('#ins_coverage').value = st.coverage || 0; $qs('#ins_rate').value = st.rate || 0; $qs('#ins_age').value = st.age || 30; $qs('#ins_term').value = st.term || 10; $qs('#ins_calc').click();
+        } else { const st = s.settings||{}; if(st.initial !== undefined) $qs('#inv_initial').value = st.initial; if(st.monthly !== undefined) $qs('#inv_monthly').value = st.monthly; renderInv(); }
+        showToast('Scenario loaded','info');
+      }catch(err){ console.error(err); showToast('Error loading scenario','error'); }
+      setLoading(e.currentTarget, false);
+    }));
+    $qa('.del').forEach(b=>b.addEventListener('click', async e=>{
+      const id = e.currentTarget.dataset.id; const ok = confirm('Delete scenario? (admin auth required)'); if(!ok) return;
+        const creds = await showAdminModal(); if(!creds) return;
+        const auth = 'Basic '+btoa((creds.user||'')+':'+(creds.pass||''));
+      const delBtn = e.currentTarget; setLoading(delBtn, true);
+      try{
+        const r = await fetch('/api.scenarios/'+id,{method:'DELETE',headers:{Authorization:auth}});
+        const j = await r.json(); if(r.ok && j.success){ showToast('Deleted'); loadScenarios(); } else { showToast('Delete failed','error'); }
+      }catch(err){ console.error(err); showToast('Delete error','error'); }
+      setLoading(delBtn, false);
+    }));
+  }catch(err){ console.error(err); $qs('#scenarios_list').textContent='Failed to load'; showToast('Failed to load scenarios','error'); }
+  setLoading(refreshBtn, false);
+}
+
+$qs('#load_scenarios').addEventListener('click', loadScenarios);
+
+// Activate default tab
+document.querySelector('.tab[data-tab="investment"]').click();
+
+// expose helper for external load
+
+// Include accessibility enhancements
+|// ============================================|// ACCESSIBILITY & VALIDATION ENHANCEMENTS|// ============================================||// Real-time input validation|function setupValidation() {|  document.querySelectorAll('input[type="number"]').forEach(input => {|    input.addEventListener('blur', function() {|      validateNumberInput(this);|    });||    input.addEventListener('input', function() {|      if (this.classList.contains('error')) {|        validateNumberInput(this);|      }|    });|  });|}||// Validate number inputs|function validateNumberInput(input) {|  const min = input.getAttribute('min');|  const max = input.getAttribute('max');|  let isValid = true;||  const value = parseFloat(input.value);|  |  if (isNaN(value) && input.value !== '') {|    input.classList.add('error');|    showErrorMessage(input, 'Please enter a valid number');|    return false;|  }||  if (min !== null && value < parseFloat(min)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must be at least ${min}`);|    isValid = false;|  } else if (max !== null && value > parseFloat(max)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must not exceed ${max}`);|    isValid = false;|  } else {|    input.classList.remove('error');|    hideErrorMessage(input);|  }||  return isValid;|}||// Show error message below input|function showErrorMessage(input, message) {|  let errorMsg = input.nextElementSibling;|  if (!errorMsg || !errorMsg.classList.contains('error-message')) {|    errorMsg = document.createElement('div');|    errorMsg.className = 'error-message';|    input.parentElement.appendChild(errorMsg);|  }|  errorMsg.textContent = message;|}||// Hide error message|function hideErrorMessage(input) {|  const errorMsg = input.nextElementSibling;|  if (errorMsg && errorMsg.classList.contains('error-message')) {|    errorMsg.textContent = '';|  }|}||// Accessibility: Add ARIA labels to all inputs|function addAccessibilityLabels() {|  document.querySelectorAll('.grid > div > input, .grid > div > select').forEach(input => {|    const label = input.previousElementSibling;|    if (label && label.tagName === 'LABEL') {|      input.setAttribute('aria-label', label.textContent.trim());|    }|  });||  // Add ARIA to tab buttons|  document.querySelectorAll('.tab').forEach(tab => {|    tab.setAttribute('role', 'button');|    tab.setAttribute('aria-pressed', tab.classList.contains('bg-blue-600'));|  });|}||// Initialize enhancements on page load|document.addEventListener('DOMContentLoaded', function() {|  setupValidation();|  addAccessibilityLabels();|});||// Keyboard navigation for tabs|document.addEventListener('keydown', function(e) {|  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;|  |  const activeTab = document.querySelector('.tab[data-tab]:focus');|  if (!activeTab) return;||  const tabs = Array.from(document.querySelectorAll('.tab[data-tab]'));|  const currentIndex = tabs.indexOf(activeTab);|  let nextIndex;||  if (e.key === 'ArrowRight') {|    nextIndex = (currentIndex + 1) % tabs.length;|  } else {|    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;|  }||  tabs[nextIndex].focus();|  tabs[nextIndex].click();|});|
+window._loadScenarios = loadScenarios;
+</script>
+</body>
+</html>
+$qs('#inv_csv').addEventListener('click', ()=>{
+  const rows = window._inv_rows||[]; if(!rows.length) return alert('Run calculation first');
+  let csv='month,balance,contrib,interest\n'; rows.forEach(r=>csv+=`${r.month},${r.balance},${r.contrib},${r.interest}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='investment_monthly.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save scenario
+$qs('#inv_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#inv_save'); setLoading(btn, true);
+  const settings = { initial: Number($qs('#inv_initial').value)||0, monthly: Number($qs('#inv_monthly').value)||0, rate: Number($qs('#inv_rate').value)||0, years: Number($qs('#inv_years').value)||0 };
+  const rows = window._inv_rows||[]; const result = { final: rows.length?rows[rows.length-1].balance:null };
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'investment', settings, result })});
+    const d = await res.json();
+    if(d.success){ showToast('Scenario saved'); } else { showToast('Save failed','error'); }
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// Amortization schedule (standard)
+function amortSchedule(amount, annualRate, years, freq){
+  const n = years*freq; const r = annualRate/100/freq; const payment = r===0? amount/n : (amount * r / (1 - Math.pow(1+r, -n)));
+  let bal=amount; const rows=[]; let totalInt=0;
+  for(let i=1;i<=n;i++){
+    const interest = bal * r; const principal = payment - interest; bal -= principal; if(bal<0) bal=0;
+    totalInt += interest; rows.push({period:i,payment,principal,interest,balance:bal});
+  }
+  return {rows,payment,totalInterest: totalInt};
+}
+
+$qs('#loan_calc').addEventListener('click', ()=>{
+  const amt=Number($qs('#loan_amount').value)||0; const rate=Number($qs('#loan_rate').value)||0; const yrs=Number($qs('#loan_years').value)||0; const freq=Number($qs('#loan_freq').value)||12;
+  const out = amortSchedule(amt,rate,yrs,freq);
+  let html = `<p>Payment: <strong>${fmt(out.payment)}</strong> — Total interest: <strong>${fmt(out.totalInterest)}</strong></p>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm"><thead><tr><th class="border px-2">#</th><th class="border px-2">Payment</th><th class="border px-2">Principal</th><th class="border px-2">Interest</th><th class="border px-2">Balance</th></tr></thead><tbody>`;
+  out.rows.forEach(r=> html+=`<tr class="border-b"><td class="px-2">${r.period}</td><td class="px-2">${fmt(r.payment)}</td><td class="px-2">${fmt(r.principal)}</td><td class="px-2">${fmt(r.interest)}</td><td class="px-2">${fmt(r.balance)}</td></tr>`);
+  html += `</tbody></table></div>`;
+  $qs('#loan_result').innerHTML = html; window._loan_out = out;
+});
+
+$qs('#loan_csv').addEventListener('click', ()=>{
+  const out = window._loan_out; if(!out) return alert('Generate amortization first');
+  let csv='period,payment,principal,interest,balance\n'; out.rows.forEach(r=>csv+=`${r.period},${r.payment},${r.principal},${r.interest},${r.balance}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='amortization.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save amortization scenario
+$qs('#loan_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#loan_save'); setLoading(btn, true);
+  const settings = { amount: Number($qs('#loan_amount').value)||0, rate: Number($qs('#loan_rate').value)||0, years: Number($qs('#loan_years').value)||0, freq: Number($qs('#loan_freq').value)||12 };
+  const result = { payment: window._loan_out? window._loan_out.payment : null };
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'amort', settings, result })});
+    const j = await res.json(); if(j.success) showToast('Scenario saved'); else showToast('Save failed','error');
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// Insurance advanced formulas
+function calcInsurancePremium(coverage, baseRate, age, term){
+  // base annual premium = coverage * baseRate%
+  // age loading: simple factor: 1 + (age-30)*0.01 after 30
+  const ageFactor = age>30? 1 + ((age-30)*0.01) : 1;
+  // term discount: longer term gets small discount
+  const termFactor = term>20? 0.95 : 1;
+  const annual = coverage * (baseRate/100) * ageFactor * termFactor;
+  const total = annual * term;
+  return { annual, total, ageFactor, termFactor };
+}
+
+$qs('#ins_calc').addEventListener('click', ()=>{
+  const coverage=Number($qs('#ins_coverage').value)||0; const rate=Number($qs('#ins_rate').value)||0; const age=Number($qs('#ins_age').value)||30; const term=Number($qs('#ins_term').value)||10;
+  const res = calcInsurancePremium(coverage,rate,age,term);
+  $qs('#ins_result').innerHTML = `<p>Estimated annual premium: <strong>${fmt(res.annual)}</strong></p><p>Total over term (${term}y): <strong>${fmt(res.total)}</strong></p><p class="text-sm text-gray-600">Age factor: ${res.ageFactor.toFixed(2)}, Term factor: ${res.termFactor.toFixed(2)}</p>`;
+  window._ins_res = res;
+});
+
+$qs('#ins_csv').addEventListener('click', ()=>{
+  const r = window._ins_res; if(!r) return alert('Calculate first');
+  const coverage=Number($qs('#ins_coverage').value)||0; const rate=Number($qs('#ins_rate').value)||0; const term=Number($qs('#ins_term').value)||0;
+  const csv = `coverage,rate,term,annual,total\n${coverage},${rate},${term},${r.annual},${r.total}`;
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='insurance.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Save insurance scenario
+$qs('#ins_save').addEventListener('click', async ()=>{
+  const name = await showNameModal(); if(!name) return;
+  const btn = $qs('#ins_save'); setLoading(btn, true);
+  const settings = { coverage: Number($qs('#ins_coverage').value)||0, rate: Number($qs('#ins_rate').value)||0, age: Number($qs('#ins_age').value)||30, term: Number($qs('#ins_term').value)||10 };
+  const result = window._ins_res || {};
+  try{
+    const res = await fetch('/api/scenarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ name, type:'insurance', settings, result })});
+    const j = await res.json(); if(j.success) showToast('Scenario saved'); else showToast('Save failed','error');
+  }catch(err){ console.error(err); showToast('Save error','error'); }
+  setLoading(btn, false);
+});
+
+// ========== BOND CALCULATIONS ==========
+function calculateBond(faceValue, couponRate, years, marketYield, paymentsPerYear){
+  const n = years * paymentsPerYear;
+  const couponPayment = (faceValue * couponRate / 100) / paymentsPerYear;
+  const yieldPerPeriod = marketYield / 100 / paymentsPerYear;
+  let pvCoupons = 0;
+  if (yieldPerPeriod > 0) {
+    pvCoupons = couponPayment * (1 - Math.pow(1 + yieldPerPeriod, -n)) / yieldPerPeriod;
+  } else {
+    pvCoupons = couponPayment * n;
+  }
+  const pvFace = faceValue * Math.pow(1 + yieldPerPeriod, -n);
+  const bondPrice = pvCoupons + pvFace;
+  let duration = 0;
+  for (let t = 1; t <= n; t++) {
+    const cfPV = couponPayment * Math.pow(1 + yieldPerPeriod, -t);
+    duration += t * cfPV;
+  }
+  duration += n * pvFace;
+  duration = duration / bondPrice / paymentsPerYear;
+  const modDuration = duration / (1 + yieldPerPeriod);
+  let convexity = 0;
+  for (let t = 1; t <= n; t++) {
+    const cfPV = couponPayment * Math.pow(1 + yieldPerPeriod, -t);
+    convexity += t * (t + 1) * cfPV;
+  }
+  convexity += n * (n + 1) * pvFace;
+  convexity = convexity / (bondPrice * Math.pow(1 + yieldPerPeriod, 2)) / Math.pow(paymentsPerYear, 2);
+  const currentYield = (faceValue * couponRate / 100) / bondPrice * 100;
+  return { price: bondPrice, duration, modDuration, convexity, currentYield, ytm: marketYield, totalCouponPayments: couponPayment * n, premium: bondPrice > faceValue, discount: bondPrice < faceValue };
+}
+
+$qs('#bond_calc').addEventListener('click', () => {
+  const face = Number($qs('#bond_face').value) || 1000;
+  const coupon = Number($qs('#bond_coupon').value) || 5;
+  const years = Number($qs('#bond_years').value) || 10;
+  const yield_ = Number($qs('#bond_yield').value) || 6;
+  const freq = Number($qs('#bond_freq').value) || 2;
+  const res = calculateBond(face, coupon, years, yield_, freq);
+  const formula = String.raw`P = \sum_{t=1}^{n} \frac{C}{(1+y)^t} + \frac{F}{(1+y)^n}`;
+  let html = `<div class="formula" id="bond_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Bond Valuation Results</h4>
+    <p>Bond Price: <strong class="text-lg text-blue-700">$${fmt(res.price)}</strong> ${res.premium ? '(Premium)' : res.discount ? '(Discount)' : '(At Par)'}</p>
+    <p>Current Yield: <strong>${res.currentYield.toFixed(3)}%</strong></p>
+    <p>Yield to Maturity: <strong>${res.ytm.toFixed(3)}%</strong></p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Duration & Convexity</h5>
+      <p class="text-sm">Macaulay Duration: <strong>${res.duration.toFixed(4)} years</strong></p>
+      <p class="text-sm">Modified Duration: <strong>${res.modDuration.toFixed(4)}</strong></p>
+      <p class="text-sm">Convexity: <strong>${res.convexity.toFixed(4)}</strong></p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Cash Flow Info</h5>
+      <p class="text-sm">Face Value: $${fmt(face)}</p>
+      <p class="text-sm">Total Coupon Payments: $${fmt(res.totalCouponPayments)}</p>
+      <p class="text-sm">Total Return: $${fmt(face + res.totalCouponPayments)}</p></div></div>`;
+  html += `<div class="info-box mt-3"><h4 class="font-semibold mb-2">Understanding Bond Metrics:</h4>
+    <ul class="text-sm space-y-1">
+      <li><strong>Duration:</strong> Measures price sensitivity to interest rate changes. A 1% rate increase causes ~${res.modDuration.toFixed(2)}% price decrease.</li>
+      <li><strong>Convexity:</strong> Measures the curvature of price-yield relationship. Higher convexity means less price volatility.</li></ul></div>`;
+  $qs('#bond_result').innerHTML = html;
+  renderLatex($qs('#bond_formula_tex'), formula);
+  window._bond_res = res;
+});
+
+$qs('#bond_csv').addEventListener('click', () => {
+  const r = window._bond_res;
+  if (!r) return alert('Calculate bond first');
+  const csv = `metric,value\nBond Price,${r.price}\nCurrent Yield,${r.currentYield}\nYTM,${r.ytm}\nDuration,${r.duration}\nModified Duration,${r.modDuration}\nConvexity,${r.convexity}`;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bond_analysis.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// ========== PENSION/RETIREMENT CALCULATIONS ==========
+function calculateRetirement(currentAge, retireAge, currentSavings, monthlyContrib, annualReturn, employerMatch, inflation, lifeExpectancy){
+  const yearsToRetirement = retireAge - currentAge;
+  const yearsInRetirement = lifeExpectancy - retireAge;
+  const monthlyRate = Math.pow(1 + annualReturn / 100, 1 / 12) - 1;
+  let balance = currentSavings;
+  const totalContrib = monthlyContrib * (1 + employerMatch / 100);
+  const months = yearsToRetirement * 12;
+  for (let m = 1; m <= months; m++) {
+    balance = balance * (1 + monthlyRate) + totalContrib;
+  }
+  const retirementBalance = balance;
+  const realBalance = retirementBalance / Math.pow(1 + inflation / 100, yearsToRetirement);
+  const safeWithdrawalRate = 0.04;
+  const annualWithdrawal = retirementBalance * safeWithdrawalRate;
+  const monthlyIncome = annualWithdrawal / 12;
+  let retBalance = retirementBalance;
+  const retMonthlyRate = Math.pow(1 + (annualReturn - inflation) / 100, 1 / 12) - 1;
+  let lastingYears = 0;
+  for (let y = 0; y < yearsInRetirement; y++) {
+    for (let m = 0; m < 12; m++) {
+      retBalance = retBalance * (1 + retMonthlyRate) - monthlyIncome;
+      if (retBalance <= 0) break;
+    }
+    if (retBalance <= 0) break;
+    lastingYears++;
+  }
+  const sufficient = lastingYears >= yearsInRetirement;
+  return { retirementBalance, realBalance, annualWithdrawal, monthlyIncome, totalContributions: currentSavings + totalContrib * months, investmentGains: retirementBalance - (currentSavings + totalContrib * months), lastingYears: lastingYears > yearsInRetirement ? yearsInRetirement : lastingYears, sufficient };
+}
+
+$qs('#ret_calc').addEventListener('click', () => {
+  const age = Number($qs('#ret_age').value) || 30;
+  const retAge = Number($qs('#ret_retire_age').value) || 65;
+  const current = Number($qs('#ret_current').value) || 0;
+  const monthly = Number($qs('#ret_monthly').value) || 0;
+  const return_ = Number($qs('#ret_return').value) || 7;
+  const match = Number($qs('#ret_match').value) || 0;
+  const inflation = Number($qs('#ret_inflation').value) || 2.5;
+  const life = Number($qs('#ret_life').value) || 85;
+  const res = calculateRetirement(age, retAge, current, monthly, return_, match, inflation, life);
+  const formula = String.raw`FV = PV(1+r)^n + PMT \cdot \frac{(1+r)^n - 1}{r}`;
+  let html = `<div class="formula" id="ret_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Retirement Projection</h4>
+    <p>Estimated Balance at Retirement (age ${retAge}): <strong class="text-lg text-green-700">$${fmt(res.retirementBalance)}</strong></p>
+    <p>In Today's Dollars: <strong>$${fmt(res.realBalance)}</strong></p>
+    <p class="mt-2">Sustainable Monthly Income: <strong class="text-blue-600">$${fmt(res.monthlyIncome)}</strong></p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Accumulation Phase</h5>
+      <p class="text-sm">Years to Retirement: ${retAge - age}</p>
+      <p class="text-sm">Total Contributions: $${fmt(res.totalContributions)}</p>
+      <p class="text-sm">Investment Gains: $${fmt(res.investmentGains)}</p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Distribution Phase</h5>
+      <p class="text-sm">Years in Retirement: ${life - retAge}</p>
+      <p class="text-sm">Savings Last: ${res.lastingYears} years</p>
+      <p class="text-sm ${res.sufficient ? 'text-green-600' : 'text-red-600'}">${res.sufficient ? '✓ Sufficient' : '✗ Insufficient'}</p></div></div>`;
+  if (!res.sufficient) {
+    html += `<div class="warning-box mt-3"><p class="text-sm"><strong>Warning:</strong> Retirement savings may not last. Consider increasing contributions.</p></div>`;
+  }
+  $qs('#ret_result').innerHTML = html;
+  renderLatex($qs('#ret_formula_tex'), formula);
+  window._ret_res = res;
+});
+
+$qs('#ret_csv').addEventListener('click', () => {
+  const r = window._ret_res;
+  if (!r) return alert('Calculate retirement plan first');
+  const csv = `metric,value\nRetirement Balance,${r.retirementBalance}\nReal Balance,${r.realBalance}\nMonthly Income,${r.monthlyIncome}\nAnnual Withdrawal,${r.annualWithdrawal}`;
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'retirement_plan.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// ========== ACTUARIAL SCIENCE ==========
+function calculateAnnuity(type, payment, rate, periods, age, deferral){
+  const r = rate / 100;
+  let pv = 0;
+  function survivalProb(x, t) {
+    const mortality = 0.0005 * Math.exp(0.08 * (x - 20));
+    return Math.exp(-mortality * t);
+  }
+  if (type === 'immediate') {
+    pv = payment * (1 - Math.pow(1 + r, -periods)) / r;
+  } else if (type === 'deferred') {
+    const ordinaryPV = payment * (1 - Math.pow(1 + r, -periods)) / r;
+    pv = ordinaryPV * Math.pow(1 + r, -deferral);
+  } else if (type === 'life') {
+    for (let t = 1; t <= periods; t++) {
+      const survival = survivalProb(age, t);
+      pv += payment * survival * Math.pow(1 + r, -t);
+    }
+  } else if (type === 'certain') {
+    pv = payment * (1 - Math.pow(1 + r, -periods)) / r;
+  }
+  const totalPayments = payment * periods;
+  const discountEffect = totalPayments - pv;
+  return { presentValue: pv, totalPayments, discountEffect, effectiveReturn: rate };
+}
+
+$qs('#act_calc').addEventListener('click', () => {
+  const type = $qs('#act_type').value;
+  const payment = Number($qs('#act_payment').value) || 1000;
+  const rate = Number($qs('#act_rate').value) || 4;
+  const periods = Number($qs('#act_periods').value) || 20;
+  const age = Number($qs('#act_age').value) || 65;
+  const defer = Number($qs('#act_defer').value) || 0;
+  const res = calculateAnnuity(type, payment, rate, periods, age, defer);
+  const formulas = {
+    immediate: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r}`,
+    deferred: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r} \cdot (1+r)^{-d}`,
+    life: String.raw`PV = \sum_{t=1}^{n} PMT \cdot {}_tp_x \cdot (1+r)^{-t}`,
+    certain: String.raw`PV = PMT \cdot \frac{1 - (1+r)^{-n}}{r}`
+  };
+  let html = `<div class="formula" id="act_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Actuarial Present Value</h4>
+    <p>Present Value: <strong class="text-lg text-blue-700">$${fmt(res.presentValue)}</strong></p>
+    <p>Total Future Payments: <strong>$${fmt(res.totalPayments)}</strong></p>
+    <p>Discount Effect: <strong>$${fmt(res.discountEffect)}</strong></p></div>`;
+  $qs('#act_result').innerHTML = html;
+  renderLatex($qs('#act_formula_tex'), formulas[type] || formulas.immediate);
+  window._act_res = res;
+});
+
+$qs('#act_mortality').addEventListener('click', () => {
+  const age = Number($qs('#act_age').value) || 65;
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Mortality Analysis (Age: ${age})</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr>
+    <th class="border px-2 py-1">Age</th><th class="border px-2 py-1">Mortality Rate</th><th class="border px-2 py-1">Survival Prob</th><th class="border px-2 py-1">Life Expectancy</th></tr></thead><tbody>`;
+  for (let a = age; a <= age + 30; a += 5) {
+    const mortality = 0.0005 * Math.exp(0.08 * (a - 20));
+    const survival = Math.exp(-mortality * (a - age));
+    const lifeExp = 85 - a;
+    html += `<tr><td class="border px-2 py-1 text-center">${a}</td><td class="border px-2 py-1 text-center">${(mortality * 100).toFixed(4)}%</td>
+      <td class="border px-2 py-1 text-center">${(survival * 100).toFixed(2)}%</td><td class="border px-2 py-1 text-center">${lifeExp} years</td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  $qs('#act_result').innerHTML = html;
+});
+
+// ========== RISK ANALYSIS ==========
+function calculateRisk(value, expectedReturn, stdDev, rfRate, confidence, days, beta, marketReturn){
+  const zScores = { 90: 1.282, 95: 1.645, 99: 2.326 };
+  const z = zScores[confidence] || 1.645;
+  const dailyReturn = expectedReturn / 100 / 252;
+  const dailyStd = stdDev / 100 / Math.sqrt(252);
+  const varAbsolute = value * z * dailyStd * Math.sqrt(days);
+  const varPercent = z * dailyStd * Math.sqrt(days) * 100;
+  const sharpeRatio = (expectedReturn - rfRate) / stdDev;
+  const treynorRatio = (expectedReturn - rfRate) / beta;
+  const alpha = expectedReturn - (rfRate + beta * (marketReturn - rfRate));
+  const cvar = value * dailyStd * Math.sqrt(days) * Math.exp(-0.5 * z * z) / ((1 - confidence / 100) * Math.sqrt(2 * Math.PI));
+  return { var: varAbsolute, varPercent, cvar, sharpe: sharpeRatio, treynor: treynorRatio, alpha, beta, annualizedVol: stdDev };
+}
+
+$qs('#risk_calc').addEventListener('click', () => {
+  const value = Number($qs('#risk_value').value) || 100000;
+  const return_ = Number($qs('#risk_return').value) || 8;
+  const std = Number($qs('#risk_std').value) || 15;
+  const rf = Number($qs('#risk_rf').value) || 3;
+  const conf = Number($qs('#risk_conf').value) || 95;
+  const days = Number($qs('#risk_days').value) || 1;
+  const beta = Number($qs('#risk_beta').value) || 1.2;
+  const market = Number($qs('#risk_market').value) || 10;
+  const res = calculateRisk(value, return_, std, rf, conf, days, beta, market);
+  const formula = String.raw`VaR = Z_\alpha \cdot \sigma \cdot \sqrt{t} \cdot V`;
+  let html = `<div class="formula" id="risk_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Risk Metrics Summary</h4>
+    <p>Value at Risk (${conf}% conf, ${days} day${days > 1 ? 's' : ''}): <strong class="text-lg text-red-600">$${fmt(res.var)}</strong> (${res.varPercent.toFixed(2)}%)</p></div>`;
+  html += `<div class="grid grid-cols-2 gap-4 mt-3">
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Risk-Adjusted Performance</h5>
+      <p class="text-sm">Sharpe Ratio: <strong>${res.sharpe.toFixed(3)}</strong></p>
+      <p class="text-sm">Treynor Ratio: <strong>${res.treynor.toFixed(3)}</strong></p>
+      <p class="text-sm">Jensen's Alpha: <strong>${res.alpha.toFixed(2)}%</strong></p></div>
+    <div class="border p-3 rounded"><h5 class="font-semibold text-sm mb-2">Risk Measures</h5>
+      <p class="text-sm">CVaR: $${fmt(res.cvar)}</p>
+      <p class="text-sm">Beta: <strong>${res.beta.toFixed(2)}</strong></p>
+      <p class="text-sm">Volatility: <strong>${res.annualizedVol}%</strong></p></div></div>`;
+  $qs('#risk_result').innerHTML = html;
+  renderLatex($qs('#risk_formula_tex'), formula);
+  window._risk_res = res;
+});
+
+$qs('#risk_scenario').addEventListener('click', () => {
+  const value = Number($qs('#risk_value').value) || 100000;
+  const return_ = Number($qs('#risk_return').value) || 8;
+  const std = Number($qs('#risk_std').value) || 15;
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Scenario Analysis - Portfolio Outcomes</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100">
+    <tr><th class="border px-2 py-1">Scenario</th><th class="border px-2 py-1">Return</th><th class="border px-2 py-1">End Value</th><th class="border px-2 py-1">Gain/Loss</th></tr></thead><tbody>`;
+  const scenarios = [
+    { name: 'Best Case (+2σ)', return: return_ + 2 * std },
+    { name: 'Good (+1σ)', return: return_ + std },
+    { name: 'Expected', return: return_ },
+    { name: 'Poor (-1σ)', return: return_ - std },
+    { name: 'Worst Case (-2σ)', return: return_ - 2 * std }
+  ];
+  scenarios.forEach(s => {
+    const endValue = value * (1 + s.return / 100);
+    const gainLoss = endValue - value;
+    const color = gainLoss >= 0 ? 'text-green-600' : 'text-red-600';
+    html += `<tr><td class="border px-2 py-1">${s.name}</td><td class="border px-2 py-1 text-center">${s.return.toFixed(2)}%</td>
+      <td class="border px-2 py-1 text-right">$${fmt(endValue)}</td><td class="border px-2 py-1 text-right ${color}">${gainLoss >= 0 ? '+' : ''}$${fmt(gainLoss)}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  $qs('#risk_result').innerHTML = html;
+});
+
+// ========== BUSINESS FINANCE ==========
+function calculateNPVIRR(initial, cashflows, rate){
+  let npv = -initial;
+  cashflows.forEach((cf, i) => {
+    npv += cf / Math.pow(1 + rate / 100, i + 1);
+  });
+  function npvAtRate(r) {
+    let val = -initial;
+    cashflows.forEach((cf, i) => {
+      val += cf / Math.pow(1 + r, i + 1);
+    });
+    return val;
+  }
+  function npvDerivative(r) {
+    let val = 0;
+    cashflows.forEach((cf, i) => {
+      val -= (i + 1) * cf / Math.pow(1 + r, i + 2);
+    });
+    return val;
+  }
+  let irr = 0.1;
+  for (let iter = 0; iter < 100; iter++) {
+    const f = npvAtRate(irr);
+    const df = npvDerivative(irr);
+    if (Math.abs(f) < 0.0001) break;
+    irr = irr - f / df;
+    if (irr < -0.99) irr = -0.99;
+  }
+  let cumulative = -initial;
+  let payback = 0;
+  for (let i = 0; i < cashflows.length; i++) {
+    cumulative += cashflows[i];
+    if (cumulative >= 0) {
+      payback = i + 1 - (cumulative - cashflows[i]) / cashflows[i];
+      break;
+    }
+  }
+  if (cumulative < 0) payback = cashflows.length;
+  let pvInflows = 0;
+  cashflows.forEach((cf, i) => {
+    pvInflows += cf / Math.pow(1 + rate / 100, i + 1);
+  });
+  const pi = pvInflows / initial;
+  return { npv, irr: irr * 100, payback, pi, totalCashflow: cashflows.reduce((a, b) => a + b, 0) };
+}
+
+function calculateRatios(currAssets, currLiab, totAssets, totLiab, revenue, netIncome){
+  return {
+    currentRatio: currAssets / currLiab,
+    quickRatio: (currAssets * 0.7) / currLiab,
+    debtToEquity: totLiab / (totAssets - totLiab),
+    debtToAssets: totLiab / totAssets,
+    roe: netIncome / (totAssets - totLiab) * 100,
+    roa: netIncome / totAssets * 100,
+    profitMargin: netIncome / revenue * 100,
+    workingCapital: currAssets - currLiab
+  };
+}
+
+$qs('#bus_calc').addEventListener('click', () => {
+  const initial = Number($qs('#bus_initial').value) || 0;
+  const rate = Number($qs('#bus_rate').value) || 10;
+  const cfString = $qs('#bus_cashflows').value || '';
+  const cashflows = cfString.split(',').map(s => Number(s.trim()) || 0);
+  const currAssets = Number($qs('#bus_curr_assets').value) || 0;
+  const currLiab = Number($qs('#bus_curr_liab').value) || 0;
+  const totAssets = Number($qs('#bus_tot_assets').value) || 0;
+  const totLiab = Number($qs('#bus_tot_liab').value) || 0;
+  const revenue = Number($qs('#bus_revenue').value) || 0;
+  const netIncome = Number($qs('#bus_netincome').value) || 0;
+  const npvData = calculateNPVIRR(initial, cashflows, rate);
+  const ratios = calculateRatios(currAssets, currLiab, totAssets, totLiab, revenue, netIncome);
+  const formula = String.raw`NPV = \sum_{t=0}^{n} \frac{CF_t}{(1+r)^t}`;
+  let html = `<div class="formula" id="bus_formula_tex"></div>`;
+  html += `<div class="result-card"><h4 class="font-semibold mb-2">Project Valuation</h4>
+    <p>NPV: <strong class="text-lg ${npvData.npv >= 0 ? 'text-green-600' : 'text-red-600'}">$${fmt(npvData.npv)}</strong></p>
+    <p>IRR: <strong>${npvData.irr.toFixed(2)}%</strong></p>
+    <p>Payback Period: <strong>${npvData.payback.toFixed(2)} years</strong></p>
+    <p>Profitability Index: <strong>${npvData.pi.toFixed(3)}</strong></p></div>`;
+  html += `<div class="mt-3"><h4 class="font-semibold mb-2">Financial Ratios</h4><div class="grid grid-cols-2 gap-3">`;
+  const ratioData = [
+    { label: 'Current Ratio', value: ratios.currentRatio.toFixed(2), color: ratios.currentRatio >= 1.5 ? 'text-green-600' : 'text-orange-600' },
+    { label: 'Quick Ratio', value: ratios.quickRatio.toFixed(2) },
+    { label: 'Debt-to-Equity', value: ratios.debtToEquity.toFixed(2), color: ratios.debtToEquity < 1 ? 'text-green-600' : 'text-orange-600' },
+    { label: 'Debt-to-Assets', value: (ratios.debtToAssets * 100).toFixed(1) + '%' },
+    { label: 'ROE', value: ratios.roe.toFixed(2) + '%', color: 'text-blue-600' },
+    { label: 'ROA', value: ratios.roa.toFixed(2) + '%' },
+    { label: 'Profit Margin', value: ratios.profitMargin.toFixed(2) + '%', color: 'text-green-600' },
+    { label: 'Working Capital', value: '$' + fmt(ratios.workingCapital) }
+  ];
+  ratioData.forEach(r => {
+    html += `<div class="border p-2 rounded"><p class="text-xs text-gray-600">${r.label}</p><p class="font-semibold ${r.color || ''}">${r.value}</p></div>`;
+  });
+  html += `</div></div>`;
+  $qs('#bus_result').innerHTML = html;
+  renderLatex($qs('#bus_formula_tex'), formula);
+  window._bus_res = { npvData, ratios };
+});
+
+$qs('#bus_breakeven').addEventListener('click', () => {
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">Break-Even Analysis</h4>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="block text-xs">Fixed Costs ($/month)</label>
+        <input id="be_fixed" type="number" class="w-full border rounded p-1 text-sm" value="10000"></div>
+      <div><label class="block text-xs">Variable Cost per Unit</label>
+        <input id="be_var" type="number" class="w-full border rounded p-1 text-sm" value="25"></div>
+      <div><label class="block text-xs">Price per Unit</label>
+        <input id="be_price" type="number" class="w-full border rounded p-1 text-sm" value="50"></div>
+      <div class="flex items-end"><button id="be_compute" class="bg-blue-600 text-white px-3 py-1 rounded text-sm w-full">Compute</button></div>
+    </div><div id="be_output" class="mt-3"></div></div>`;
+  $qs('#bus_result').innerHTML = html;
+  $qs('#be_compute').addEventListener('click', () => {
+    const fixed = Number($qs('#be_fixed').value) || 0;
+    const varCost = Number($qs('#be_var').value) || 0;
+    const price = Number($qs('#be_price').value) || 0;
+    const contributionMargin = price - varCost;
+    const breakEvenUnits = fixed / contributionMargin;
+    const breakEvenRevenue = breakEvenUnits * price;
+    const contributionMarginRatio = contributionMargin / price * 100;
+    let output = `<div class="result-card mt-3"><h5 class="font-semibold">Break-Even Point</h5>
+      <p>Units to Sell: <strong class="text-lg text-blue-600">${Math.ceil(breakEvenUnits)} units</strong></p>
+      <p>Revenue Needed: <strong>$${fmt(breakEvenRevenue)}</strong></p>
+      <p class="text-sm mt-2">Contribution Margin: $${fmt(contributionMargin)} per unit (${contributionMarginRatio.toFixed(1)}%)</p></div>`;
+    $qs('#be_output').innerHTML = output;
+  });
+});
+
+// ========== AUDITING TOOLS ==========
+function calculateAudit(assets, revenue, income, matPct, popSize, confLevel, margin, errorRate){
+  const assetMateriality = assets * (matPct / 100);
+  const revenueMateriality = revenue * (matPct / 100);
+  const incomeMateriality = income * (matPct / 100);
+  const materiality = Math.min(assetMateriality, revenueMateriality, incomeMateriality);
+  const performanceMateriality = materiality * 0.75;
+  const trivialThreshold = materiality * 0.05;
+  const zScores = { 90: 1.645, 95: 1.96, 99: 2.576 };
+  const z = zScores[confLevel] || 1.96;
+  const p = errorRate / 100;
+  const e = margin / 100;
+  let sampleSize = (z * z * p * (1 - p)) / (e * e);
+  if (popSize > 0) {
+    sampleSize = sampleSize / (1 + ((sampleSize - 1) / popSize));
+  }
+  sampleSize = Math.ceil(sampleSize);
+  return { materiality, performanceMateriality, trivialThreshold, sampleSize, samplingRate: (sampleSize / popSize * 100) };
+}
+
+$qs('#aud_calc').addEventListener('click', () => {
+  const assets = Number($qs('#aud_assets').value) || 0;
+  const revenue = Number($qs('#aud_revenue').value) || 0;
+  const income = Number($qs('#aud_income').value) || 0;
+  const matPct = Number($qs('#aud_mat_pct').value) || 5;
+  const pop = Number($qs('#aud_pop').value) || 10000;
+  const conf = Number($qs('#aud_conf').value) || 95;
+  const margin = Number($qs('#aud_margin').value) || 5;
+  const error = Number($qs('#aud_error').value) || 2;
+  const res = calculateAudit(assets, revenue, income, matPct, pop, conf, margin, error);
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Materiality Assessment</h4>
+    <p>Overall Materiality: <strong class="text-lg text-blue-600">$${fmt(res.materiality)}</strong></p>
+    <p>Performance Materiality: <strong>$${fmt(res.performanceMateriality)}</strong></p>
+    <p>Trivial Threshold: <strong>$${fmt(res.trivialThreshold)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Sample Size Determination</h4>
+    <p>Required Sample Size: <strong class="text-lg text-green-600">${res.sampleSize} items</strong></p>
+    <p>Sampling Rate: <strong>${res.samplingRate.toFixed(2)}%</strong> of population</p></div>`;
+  $qs('#aud_result').innerHTML = html;
+  window._aud_res = res;
+});
+
+$qs('#aud_ratios').addEventListener('click', () => {
+  let html = `<div class="info-box"><h4 class="font-semibold mb-2">🔍 Fraud Detection Indicators</h4></div>`;
+  html += `<div class="overflow-auto mt-3"><table class="w-full text-sm border"><thead class="bg-gray-100">
+    <tr><th class="border px-2 py-1">Indicator</th><th class="border px-2 py-1">Red Flag</th></tr></thead><tbody>
+    <tr><td class="border px-2 py-1"><strong>Days Sales Outstanding</strong></td><td class="border px-2 py-1">Increasing with flat sales</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Gross Margin</strong></td><td class="border px-2 py-1">Unexplained sudden increases</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Asset Turnover</strong></td><td class="border px-2 py-1">Declining despite revenue growth</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Cash Flow vs Income</strong></td><td class="border px-2 py-1">Large persistent divergence</td></tr>
+    <tr><td class="border px-2 py-1"><strong>Related Party Transactions</strong></td><td class="border px-2 py-1">Non-arms-length terms</td></tr>
+    </tbody></table></div>`;
+  $qs('#aud_result').innerHTML = html;
+});
+
+// ========== REAL ESTATE ==========
+function mortgagePayment(principal, annualRate, years){
+  const n = years * 12; const r = annualRate / 100 / 12;
+  if (r === 0) return principal / n;
+  return (principal * r) / (1 - Math.pow(1 + r, -n));
+}
+
+$qs('#re_calc').addEventListener('click', () => {
+  const price = Number($qs('#re_price').value) || 0;
+  const down = Number($qs('#re_down').value) || 0;
+  const rate = Number($qs('#re_rate').value) || 0;
+  const years = Number($qs('#re_years').value) || 0;
+  const propTax = Number($qs('#re_tax').value) || 0;
+  const insurance = Number($qs('#re_ins').value) || 0;
+  const pmiRate = Number($qs('#re_pmi').value) || 0;
+  const hoa = Number($qs('#re_hoa').value) || 0;
+  const income = Number($qs('#re_income').value) || 0;
+  const debts = Number($qs('#re_debts').value) || 0;
+
+  const loan = Math.max(price - down, 0);
+  const ltv = price > 0 ? loan / price : 0;
+  const pmiMonthly = ltv > 0.8 ? loan * (pmiRate / 100) / 12 : 0;
+  const basePayment = mortgagePayment(loan, rate, years);
+  const taxesMonthly = propTax / 12;
+  const insMonthly = insurance / 12;
+  const housing = basePayment + taxesMonthly + insMonthly + hoa + pmiMonthly;
+  const frontDTI = income > 0 ? housing / income * 100 : 0;
+  const backDTI = income > 0 ? (housing + debts) / income * 100 : 0;
+
+  const frontLimit = 0.28; const backLimit = 0.36;
+  const maxPayment = Math.max(0, Math.min(income * frontLimit, income * backLimit - debts));
+  const maxLoan = mortgagePayment(1, rate, years) > 0 ? maxPayment / mortgagePayment(1, rate, years) : 0;
+  const maxPrice = maxLoan + down;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Mortgage Summary</h4>
+    <p>Loan Amount: <strong>$${fmt(loan)}</strong></p>
+    <p>Monthly P&I: <strong>$${fmt(basePayment)}</strong></p>
+    <p>Taxes + Insurance: <strong>$${fmt(taxesMonthly + insMonthly)}</strong></p>
+    <p>PMI: <strong>$${fmt(pmiMonthly)}</strong></p>
+    <p>Total Housing: <strong class="text-green-600">$${fmt(housing)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Affordability</h4>
+    <p>Front-end DTI: <strong>${frontDTI.toFixed(1)}%</strong></p>
+    <p>Back-end DTI: <strong>${backDTI.toFixed(1)}%</strong></p>
+    <p>Max Purchase Price (28/36): <strong class="text-blue-600">$${fmt(maxPrice)}</strong></p></div>`;
+  $qs('#re_result').innerHTML = html;
+});
+
+$qs('#re_rental_calc').addEventListener('click', () => {
+  const price = Number($qs('#re_price').value) || 0;
+  const down = Number($qs('#re_down').value) || 0;
+  const closing = Number($qs('#re_closing').value) || 0;
+  const rent = Number($qs('#re_rent').value) || 0;
+  const vacancy = Number($qs('#re_vacancy').value) || 0;
+  const expenses = Number($qs('#re_expenses').value) || 0;
+  const propTax = Number($qs('#re_tax').value) || 0;
+  const insurance = Number($qs('#re_ins').value) || 0;
+  const rate = Number($qs('#re_rate').value) || 0;
+  const years = Number($qs('#re_years').value) || 0;
+  const loan = Math.max(price - down, 0);
+  const debtService = mortgagePayment(loan, rate, years) * 12;
+  const noi = (rent * 12 * (1 - vacancy / 100)) - (expenses * 12) - propTax - insurance;
+  const cashFlow = noi - debtService;
+  const capRate = price > 0 ? (noi / price) * 100 : 0;
+  const cashInvested = down + closing;
+  const cashOnCash = cashInvested > 0 ? (cashFlow / cashInvested) * 100 : 0;
+  const breakEven = rent > 0 ? ((expenses * 12 + debtService + propTax + insurance) / (rent * 12)) * 100 : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Rental Metrics</h4>
+    <p>NOI: <strong>$${fmt(noi)}</strong></p>
+    <p>Annual Cash Flow: <strong class="${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}">$${fmt(cashFlow)}</strong></p>
+    <p>Cap Rate: <strong>${capRate.toFixed(2)}%</strong></p>
+    <p>Cash-on-Cash: <strong>${cashOnCash.toFixed(2)}%</strong></p>
+    <p>Break-even Occupancy: <strong>${breakEven.toFixed(1)}%</strong></p></div>`;
+  $qs('#re_rental_result').innerHTML = html;
+});
+
+// ========== TAX ==========
+function calcProgressiveTax(taxableIncome, brackets){
+  let tax = 0;
+  for (let i = 0; i < brackets.length; i++) {
+    const [limit, rate] = brackets[i];
+    const nextLimit = (i + 1 < brackets.length) ? brackets[i + 1][0] : Infinity;
+    const incomeInBracket = Math.max(0, Math.min(taxableIncome, nextLimit) - limit);
+    if (incomeInBracket > 0) tax += incomeInBracket * rate;
+  }
+  return tax;
+}
+
+$qs('#tax_calc').addEventListener('click', () => {
+  const status = $qs('#tax_status').value;
+  const income = Number($qs('#tax_income').value) || 0;
+  const deductions = Number($qs('#tax_deductions').value) || 0;
+  const stateRate = Number($qs('#tax_state').value) || 0;
+  const stcg = Number($qs('#tax_stcg').value) || 0;
+  const ltcg = Number($qs('#tax_ltcg').value) || 0;
+
+  const taxable = Math.max(0, income - deductions);
+  const brackets = status === 'married'
+    ? [[0,0.10],[23200,0.12],[94300,0.22],[201050,0.24],[383900,0.32],[487450,0.35],[731200,0.37]]
+    : [[0,0.10],[11600,0.12],[47150,0.22],[100525,0.24],[191950,0.32],[243725,0.35],[609350,0.37]];
+  const federalTax = calcProgressiveTax(taxable + stcg, brackets);
+
+  const cgThresholds = status === 'married' ? { zero: 94050, fifteen: 583750 } : { zero: 47025, fifteen: 518900 };
+  let ltcgRate = 0.15;
+  if (taxable < cgThresholds.zero) ltcgRate = 0.0;
+  else if (taxable > cgThresholds.fifteen) ltcgRate = 0.20;
+  const ltcgTax = ltcg * ltcgRate;
+
+  const stateTax = taxable * (stateRate / 100);
+  const niitThreshold = status === 'married' ? 250000 : 200000;
+  const nii = stcg + ltcg;
+  const niit = Math.max(0, Math.min(nii, income - niitThreshold)) * 0.038;
+
+  const totalTax = federalTax + ltcgTax + stateTax + niit;
+  const effectiveRate = income > 0 ? totalTax / income * 100 : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Tax Summary</h4>
+    <p>Taxable Income: <strong>$${fmt(taxable)}</strong></p>
+    <p>Federal Tax: <strong>$${fmt(federalTax)}</strong></p>
+    <p>Long-Term Capital Gains Tax (${(ltcgRate*100).toFixed(0)}%): <strong>$${fmt(ltcgTax)}</strong></p>
+    <p>State Tax: <strong>$${fmt(stateTax)}</strong></p>
+    <p>NIIT: <strong>$${fmt(niit)}</strong></p>
+    <p>Total Tax: <strong class="text-blue-600">$${fmt(totalTax)}</strong></p>
+    <p>Effective Rate: <strong>${effectiveRate.toFixed(2)}%</strong></p></div>`;
+  $qs('#tax_result').innerHTML = html;
+});
+
+// ========== PORTFOLIO OPTIMIZER ==========
+function parseNumberList(text){
+  return text.split(',').map(v => Number(v.trim())).filter(v => !Number.isNaN(v));
+}
+
+function parseMatrix(text){
+  return text.split(';').map(row => row.split(',').map(v => Number(v.trim())));
+}
+
+function portfolioStats(weights, returns, cov){
+  let ret = 0; for (let i = 0; i < weights.length; i++) ret += weights[i] * returns[i];
+  let variance = 0;
+  for (let i = 0; i < weights.length; i++) {
+    for (let j = 0; j < weights.length; j++) {
+      variance += weights[i] * weights[j] * cov[i][j];
+    }
+  }
+  return { ret, sigma: Math.sqrt(variance) };
+}
+
+$qs('#pf_calc').addEventListener('click', () => {
+  const returns = parseNumberList($qs('#pf_returns').value).map(r => r / 100);
+  const vols = parseNumberList($qs('#pf_vols').value).map(v => v / 100);
+  const corr = parseMatrix($qs('#pf_corr').value);
+  const rf = (Number($qs('#pf_rf').value) || 0) / 100;
+  const step = Number($qs('#pf_step').value) || 0.05;
+  const n = returns.length;
+  if (n < 2 || vols.length !== n || corr.length !== n) {
+    $qs('#pf_result').innerHTML = '<div class="warning-box">Please provide matching returns, vols, and correlation matrix.</div>';
+    return;
+  }
+  const cov = Array.from({length:n}, (_,i)=> Array.from({length:n},(_,j)=> corr[i][j] * vols[i] * vols[j]));
+  let minVar = null; let maxSharpe = null; const frontier = [];
+  if (n === 2) {
+    for (let w = 0; w <= 1 + 1e-9; w += step) {
+      const weights = [w, 1 - w];
+      const stats = portfolioStats(weights, returns, cov);
+      const sharpe = stats.sigma > 0 ? (stats.ret - rf) / stats.sigma : 0;
+      frontier.push({ weights, ...stats, sharpe });
+    }
+  } else {
+    for (let w1 = 0; w1 <= 1 + 1e-9; w1 += step) {
+      for (let w2 = 0; w2 <= 1 - w1 + 1e-9; w2 += step) {
+        const w3 = 1 - w1 - w2;
+        if (w3 < -1e-9) continue;
+        const weights = [w1, w2, Math.max(0, w3)];
+        const stats = portfolioStats(weights, returns, cov);
+        const sharpe = stats.sigma > 0 ? (stats.ret - rf) / stats.sigma : 0;
+        frontier.push({ weights, ...stats, sharpe });
+      }
+    }
+  }
+  frontier.forEach(p => {
+    if (!minVar || p.sigma < minVar.sigma) minVar = p;
+    if (!maxSharpe || p.sharpe > maxSharpe.sharpe) maxSharpe = p;
+  });
+  frontier.sort((a,b)=> a.sigma - b.sigma);
+  const sample = frontier.slice(0, 10);
+
+  const fmtWeights = w => w.map(x => (x*100).toFixed(1) + '%').join(', ');
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Optimal Portfolios</h4>
+    <p>Minimum Variance: <strong>${fmtWeights(minVar.weights)}</strong> — Return ${(minVar.ret*100).toFixed(2)}%, Vol ${(minVar.sigma*100).toFixed(2)}%</p>
+    <p>Max Sharpe: <strong>${fmtWeights(maxSharpe.weights)}</strong> — Return ${(maxSharpe.ret*100).toFixed(2)}%, Vol ${(maxSharpe.sigma*100).toFixed(2)}%, Sharpe ${maxSharpe.sharpe.toFixed(2)}</p></div>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr>
+    <th class="border px-2 py-1">Weights</th><th class="border px-2 py-1">Return</th><th class="border px-2 py-1">Vol</th><th class="border px-2 py-1">Sharpe</th></tr></thead><tbody>`;
+  sample.forEach(p=>{
+    html += `<tr><td class="border px-2 py-1">${fmtWeights(p.weights)}</td><td class="border px-2 py-1">${(p.ret*100).toFixed(2)}%</td><td class="border px-2 py-1">${(p.sigma*100).toFixed(2)}%</td><td class="border px-2 py-1">${p.sharpe.toFixed(2)}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  $qs('#pf_result').innerHTML = html;
+});
+
+// ========== DCF ==========
+$qs('#dcf_calc').addEventListener('click', () => {
+  const fcf = Number($qs('#dcf_fcf').value) || 0;
+  const years = Number($qs('#dcf_years').value) || 0;
+  const growth = Number($qs('#dcf_growth').value) || 0;
+  const wacc = Number($qs('#dcf_wacc').value) || 0;
+  const terminal = Number($qs('#dcf_terminal').value) || 0;
+  const debt = Number($qs('#dcf_debt').value) || 0;
+  const shares = Number($qs('#dcf_shares').value) || 1;
+
+  const r = wacc / 100; const g = growth / 100; const tg = terminal / 100;
+  let pv = 0; let lastFcf = fcf;
+  const rows = [];
+  for (let t = 1; t <= years; t++) {
+    lastFcf = lastFcf * (1 + g);
+    const pvFcf = lastFcf / Math.pow(1 + r, t);
+    pv += pvFcf;
+    rows.push({ year: t, fcf: lastFcf, pv: pvFcf });
+  }
+  const terminalValue = (lastFcf * (1 + tg)) / Math.max(0.0001, (r - tg));
+  const terminalPV = terminalValue / Math.pow(1 + r, years);
+  const enterprise = pv + terminalPV;
+  const equity = enterprise - debt;
+  const perShare = shares > 0 ? equity / shares : 0;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">DCF Summary</h4>
+    <p>Enterprise Value: <strong>$${fmt(enterprise)}</strong></p>
+    <p>Equity Value: <strong>$${fmt(equity)}</strong></p>
+    <p>Value per Share: <strong class="text-blue-600">$${fmt(perShare)}</strong></p></div>`;
+  html += `<div class="mt-3 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="border px-2 py-1">Year</th><th class="border px-2 py-1">FCF</th><th class="border px-2 py-1">PV</th></tr></thead><tbody>`;
+  rows.forEach(rw => html += `<tr><td class="border px-2 py-1">${rw.year}</td><td class="border px-2 py-1">$${fmt(rw.fcf)}</td><td class="border px-2 py-1">$${fmt(rw.pv)}</td></tr>`);
+  html += `</tbody></table></div>`;
+  $qs('#dcf_result').innerHTML = html;
+});
+
+// ========== OPTIONS ==========
+function normalPdf(x){ return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+function normalCdf(x){
+  // Abramowitz-Stegun approximation
+  const k = 1 / (1 + 0.2316419 * Math.abs(x));
+  const kSum = k * (0.31938153 + k * (-0.356563782 + k * (1.781477937 + k * (-1.821255978 + 1.330274429 * k))));
+  const approx = 1 - normalPdf(x) * kSum;
+  return x >= 0 ? approx : 1 - approx;
+}
+
+function blackScholes(S, K, T, r, v){
+  const sqrtT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + 0.5 * v * v) * T) / (v * sqrtT);
+  const d2 = d1 - v * sqrtT;
+  const call = S * normalCdf(d1) - K * Math.exp(-r * T) * normalCdf(d2);
+  const put = K * Math.exp(-r * T) * normalCdf(-d2) - S * normalCdf(-d1);
+  const deltaCall = normalCdf(d1);
+  const deltaPut = deltaCall - 1;
+  const gamma = normalPdf(d1) / (S * v * sqrtT);
+  const vega = S * normalPdf(d1) * sqrtT / 100;
+  const thetaCall = (-S * normalPdf(d1) * v / (2 * sqrtT) - r * K * Math.exp(-r * T) * normalCdf(d2)) / 365;
+  const thetaPut = (-S * normalPdf(d1) * v / (2 * sqrtT) + r * K * Math.exp(-r * T) * normalCdf(-d2)) / 365;
+  const rhoCall = K * T * Math.exp(-r * T) * normalCdf(d2) / 100;
+  const rhoPut = -K * T * Math.exp(-r * T) * normalCdf(-d2) / 100;
+  return { call, put, deltaCall, deltaPut, gamma, vega, thetaCall, thetaPut, rhoCall, rhoPut };
+}
+
+$qs('#opt_calc').addEventListener('click', () => {
+  const S = Number($qs('#opt_spot').value) || 0;
+  const K = Number($qs('#opt_strike').value) || 0;
+  const T = Number($qs('#opt_time').value) || 0.01;
+  const r = (Number($qs('#opt_rate').value) || 0) / 100;
+  const v = (Number($qs('#opt_vol').value) || 0) / 100;
+  const expiryPrice = Number($qs('#opt_expiry_price').value) || 0;
+  const res = blackScholes(S, K, T, r, v);
+
+  const callPayoff = Math.max(0, expiryPrice - K);
+  const putPayoff = Math.max(0, K - expiryPrice);
+  const coveredCall = expiryPrice - S - res.call + callPayoff;
+  const protectivePut = expiryPrice - S - res.put + putPayoff;
+  const straddle = callPayoff + putPayoff - res.call - res.put;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Pricing & Greeks</h4>
+    <p>Call: <strong>$${fmt(res.call)}</strong> | Put: <strong>$${fmt(res.put)}</strong></p>
+    <p>Delta (Call/Put): <strong>${res.deltaCall.toFixed(3)}</strong> / <strong>${res.deltaPut.toFixed(3)}</strong></p>
+    <p>Gamma: <strong>${res.gamma.toFixed(4)}</strong> | Vega: <strong>${res.vega.toFixed(4)}</strong></p>
+    <p>Theta (Call/Put): <strong>${res.thetaCall.toFixed(4)}</strong> / <strong>${res.thetaPut.toFixed(4)}</strong></p>
+    <p>Rho (Call/Put): <strong>${res.rhoCall.toFixed(4)}</strong> / <strong>${res.rhoPut.toFixed(4)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Strategy P/L at Expiry</h4>
+    <p>Covered Call: <strong>${coveredCall.toFixed(2)}</strong></p>
+    <p>Protective Put: <strong>${protectivePut.toFixed(2)}</strong></p>
+    <p>Straddle: <strong>${straddle.toFixed(2)}</strong></p></div>`;
+  $qs('#opt_result').innerHTML = html;
+});
+
+// ========== CREDIT ==========
+$qs('#cr_calc').addEventListener('click', () => {
+  const noi = Number($qs('#cr_noi').value) || 0;
+  const debtService = Number($qs('#cr_debt').value) || 0;
+  const target = Number($qs('#cr_target').value) || 1.25;
+  const interest = Number($qs('#cr_interest').value) || 0;
+  const wc = Number($qs('#cr_wc').value) || 0;
+  const re = Number($qs('#cr_re').value) || 0;
+  const ebit = Number($qs('#cr_ebit').value) || 0;
+  const mve = Number($qs('#cr_mve').value) || 0;
+  const tl = Number($qs('#cr_tl').value) || 0;
+  const sales = Number($qs('#cr_sales').value) || 0;
+  const ta = Number($qs('#cr_ta').value) || 1;
+
+  const dscr = debtService > 0 ? noi / debtService : 0;
+  const debtCapacity = target > 0 ? noi / target : 0;
+  const interestCoverage = interest > 0 ? noi / interest : 0;
+  const z = 1.2 * (wc / ta) + 1.4 * (re / ta) + 3.3 * (ebit / ta) + 0.6 * (mve / Math.max(1, tl)) + 1.0 * (sales / ta);
+  let defaultProb = 0.2;
+  if (z > 3) defaultProb = 0.01; else if (z > 1.8) defaultProb = 0.05;
+
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Credit Metrics</h4>
+    <p>DSCR: <strong>${dscr.toFixed(2)}</strong></p>
+    <p>Debt Capacity (Target DSCR): <strong>$${fmt(debtCapacity)}</strong></p>
+    <p>Interest Coverage: <strong>${interestCoverage.toFixed(2)}</strong></p></div>`;
+  html += `<div class="result-card mt-3"><h4 class="font-semibold mb-2">Altman Z-Score</h4>
+    <p>Z-Score: <strong>${z.toFixed(2)}</strong></p>
+    <p>Estimated Default Probability: <strong>${(defaultProb*100).toFixed(1)}%</strong></p></div>`;
+  $qs('#cr_result').innerHTML = html;
+});
+
+// ========== LIFE TABLES ==========
+$qs('#lt_calc').addEventListener('click', () => {
+  const startAge = Number($qs('#lt_age').value) || 0;
+  const maxAge = Number($qs('#lt_max').value) || 100;
+  const A = Number($qs('#lt_a').value) || 0.0005;
+  const B = Number($qs('#lt_b').value) || 0.00003;
+  const C = Number($qs('#lt_c').value) || 1.08;
+  let lx = 100000;
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">Life Table (${startAge}-${maxAge})</h4></div>`;
+  html += `<div class="mt-2 overflow-auto"><table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="border px-2 py-1">Age</th><th class="border px-2 py-1">qₓ</th><th class="border px-2 py-1">lₓ</th><th class="border px-2 py-1">dₓ</th></tr></thead><tbody>`;
+  let lifeExpectancy = 0; let lStart = lx;
+  for (let age = startAge; age <= maxAge; age++) {
+    const qx = Math.min(0.999, A + B * Math.pow(C, age));
+    const dx = lx * qx;
+    const lxNext = lx - dx;
+    lifeExpectancy += (lx + lxNext) / 2;
+    html += `<tr><td class="border px-2 py-1">${age}</td><td class="border px-2 py-1">${qx.toFixed(6)}</td><td class="border px-2 py-1">${Math.round(lx)}</td><td class="border px-2 py-1">${Math.round(dx)}</td></tr>`;
+    lx = lxNext;
+  }
+  html += `</tbody></table></div>`;
+  const e0 = lStart > 0 ? lifeExpectancy / lStart : 0;
+  html = `<div class="result-card"><p>Expected remaining years: <strong>${e0.toFixed(2)}</strong></p></div>` + html;
+  $qs('#lt_result').innerHTML = html;
+});
+
+// ========== LEASE VS BUY ==========
+$qs('#lb_calc').addEventListener('click', () => {
+  const price = Number($qs('#lb_price').value) || 0;
+  const down = Number($qs('#lb_down').value) || 0;
+  const rate = Number($qs('#lb_rate').value) || 0;
+  const years = Number($qs('#lb_years').value) || 0;
+  const leasePay = Number($qs('#lb_lease').value) || 0;
+  const leaseInc = Number($qs('#lb_lease_inc').value) || 0;
+  const maint = Number($qs('#lb_maint').value) || 0;
+  const residualPct = Number($qs('#lb_residual').value) || 0;
+  const disc = Number($qs('#lb_disc').value) || 0;
+
+  const loan = Math.max(price - down, 0);
+  const pmt = mortgagePayment(loan, rate, years);
+  const months = years * 12;
+  const r = disc / 100 / 12;
+  let pvLease = 0; let pvBuy = down; let cumLease = 0; let cumBuy = down; let breakeven = null;
+  for (let m = 1; m <= months; m++) {
+    const year = Math.ceil(m / 12);
+    const leaseMonthly = leasePay * Math.pow(1 + leaseInc / 100, year - 1);
+    const maintMonthly = maint / 12;
+    const df = Math.pow(1 + r, -m);
+    const leasePV = leaseMonthly * df;
+    const buyPV = (pmt + maintMonthly) * df;
+    pvLease += leasePV; pvBuy += buyPV;
+    cumLease += leasePV; cumBuy += buyPV;
+    if (breakeven === null && cumLease > cumBuy) breakeven = m;
+  }
+  const residual = price * (residualPct / 100);
+  const residualPV = residual * Math.pow(1 + r, -months);
+  pvBuy -= residualPV;
+  let html = `<div class="result-card"><h4 class="font-semibold mb-2">PV Comparison</h4>
+    <p>PV Lease: <strong>$${fmt(pvLease)}</strong></p>
+    <p>PV Buy: <strong>$${fmt(pvBuy)}</strong></p>
+    <p>Break-even Month: <strong>${breakeven ? breakeven : 'N/A'}</strong></p></div>`;
+  $qs('#lb_result').innerHTML = html;
+});
+
+// ========== CRYPTO ==========
+$qs('#crp_stake_calc').addEventListener('click', () => {
+  const principal = Number($qs('#crp_principal').value) || 0;
+  const apy = Number($qs('#crp_apy').value) || 0;
+  const years = Number($qs('#crp_years').value) || 0;
+  const comp = Number($qs('#crp_comp').value) || 1;
+  const fv = principal * Math.pow(1 + apy / 100 / comp, comp * years);
+  const rewards = fv - principal;
+  $qs('#crp_stake_result').innerHTML = `<div class="result-card"><p>Final Value: <strong>$${fmt(fv)}</strong></p><p>Rewards: <strong>$${fmt(rewards)}</strong></p></div>`;
+});
+
+$qs('#crp_mine_calc').addEventListener('click', () => {
+  const rev = Number($qs('#crp_rev').value) || 0;
+  const cost = Number($qs('#crp_cost').value) || 0;
+  const hw = Number($qs('#crp_hw').value) || 0;
+  const profit = rev - cost;
+  const breakevenDays = profit > 0 ? hw / profit : null;
+  $qs('#crp_mine_result').innerHTML = `<div class="result-card"><p>Daily Profit: <strong>$${fmt(profit)}</strong></p><p>Break-even Days: <strong>${breakevenDays ? breakevenDays.toFixed(1) : 'N/A'}</strong></p></div>`;
+});
+
+$qs('#crp_il_calc').addEventListener('click', () => {
+  const ratio = Number($qs('#crp_ratio').value) || 1;
+  const il = (2 * Math.sqrt(ratio) / (1 + ratio)) - 1;
+  $qs('#crp_il_result').innerHTML = `<div class="result-card"><p>Impermanent Loss: <strong>${(il * 100).toFixed(2)}%</strong></p></div>`;
+});
+
+// ========== GREEN FINANCE ==========
+$qs('#gr_calc').addEventListener('click', () => {
+  const cost = Number($qs('#gr_cost').value) || 0;
+  const savings = Number($qs('#gr_savings').value) || 0;
+  const deg = Number($qs('#gr_deg').value) || 0;
+  const disc = Number($qs('#gr_disc').value) || 0;
+  const years = Number($qs('#gr_years').value) || 0;
+  const incentives = Number($qs('#gr_incentives').value) || 0;
+  let npv = -cost + incentives; let cumulative = -cost + incentives; let payback = null;
+  for (let t = 1; t <= years; t++) {
+    const cash = savings * Math.pow(1 - deg / 100, t - 1);
+    const pv = cash / Math.pow(1 + disc / 100, t);
+    npv += pv;
+    cumulative += cash;
+    if (payback === null && cumulative >= 0) payback = t;
+  }
+  $qs('#gr_result').innerHTML = `<div class="result-card"><p>NPV of Savings: <strong>$${fmt(npv)}</strong></p><p>Simple Payback: <strong>${payback ? payback + ' years' : 'N/A'}</strong></p></div>`;
+});
+
+// ========== ESTATE ==========
+$qs('#es_calc').addEventListener('click', () => {
+  const value = Number($qs('#es_value').value) || 0;
+  const exempt = Number($qs('#es_exempt').value) || 0;
+  const rate = Number($qs('#es_rate').value) || 0;
+  const gifts = Number($qs('#es_gifts').value) || 0;
+  const exclusion = Number($qs('#es_excl').value) || 0;
+  const taxable = Math.max(0, value - exempt - Math.max(0, gifts - exclusion));
+  const tax = taxable * (rate / 100);
+  const net = value - tax;
+  $qs('#es_result').innerHTML = `<div class="result-card"><p>Taxable Estate: <strong>$${fmt(taxable)}</strong></p><p>Estate Tax: <strong>$${fmt(tax)}</strong></p><p>Net to Heirs: <strong class="text-green-600">$${fmt(net)}</strong></p></div>`;
+});
+
+// ========== FORECASTING ==========
+$qs('#fc_calc').addEventListener('click', () => {
+  const series = parseNumberList($qs('#fc_series').value);
+  const periods = Number($qs('#fc_periods').value) || 1;
+  const window = Number($qs('#fc_window').value) || 3;
+  const alpha = Number($qs('#fc_alpha').value) || 0.3;
+  const n = series.length;
+  if (n < 2) { $qs('#fc_result').innerHTML = '<div class="warning-box">Provide at least 2 data points.</div>'; return; }
+  const xs = series.map((_, i) => i + 1);
+  const xAvg = xs.reduce((a,b)=>a+b,0) / n;
+  const yAvg = series.reduce((a,b)=>a+b,0) / n;
+  let num = 0; let den = 0;
+  xs.forEach((x,i)=>{ num += (x - xAvg) * (series[i] - yAvg); den += (x - xAvg) ** 2; });
+  const slope = den !== 0 ? num / den : 0;
+  const intercept = yAvg - slope * xAvg;
+  const nextX = n + periods;
+  const regForecast = intercept + slope * nextX;
+  const ma = series.slice(-window).reduce((a,b)=>a+b,0) / Math.min(window, n);
+  let s = series[0];
+  for (let i = 1; i < n; i++) s = alpha * series[i] + (1 - alpha) * s;
+  const expForecast = s;
+  $qs('#fc_result').innerHTML = `<div class="result-card"><p>Linear Regression Forecast: <strong>${regForecast.toFixed(2)}</strong></p><p>Moving Average: <strong>${ma.toFixed(2)}</strong></p><p>Exponential Smoothing: <strong>${expForecast.toFixed(2)}</strong></p></div>`;
+});
+
+// ========== SCENARIOS ==========
+async function loadScenarios(){
+  const refreshBtn = $qs('#load_scenarios'); setLoading(refreshBtn, true);
+  try{
+    const res = await fetch('/api/scenarios'); const d = await res.json(); if(!d.success) { $qs('#scenarios_list').textContent='Failed to load'; setLoading(refreshBtn,false); return; }
+    const list = d.scenarios || [];
+    if(!list.length) { $qs('#scenarios_list').innerHTML='<div class="text-gray-600">No scenarios saved.</div>'; setLoading(refreshBtn,false); return; }
+    let html = '<ul class="space-y-2">';
+    list.forEach(s=>{
+      html += `<li class="border p-2 rounded"><div class="flex justify-between items-center"><div><strong>${s.name}</strong> <span class="text-xs text-gray-600">${s.type}</span><div class="text-xs text-gray-600">${new Date(s.createdAt).toLocaleString()}</div></div><div class="flex gap-2"><button data-id="${s.id}" class="load btn bg-indigo-600 text-white px-2 py-1 rounded">Load</button><button data-id="${s.id}" class="del btn bg-red-600 text-white px-2 py-1 rounded">Delete</button></div></div></li>`;
+    });
+    html += '</ul>';
+    $qs('#scenarios_list').innerHTML = html;
+    $qa('.load').forEach(b=>b.addEventListener('click', async e=>{
+      const id = e.currentTarget.dataset.id; const btn = e.currentTarget; setLoading(btn, true);
+      try{
+        const r = await fetch('/api/scenarios/'+id); const j = await r.json(); if(!j.success){ showToast('Failed to load scenario','error'); setLoading(btn,false); return; }
+        const s = j.scenario; if(!s){ showToast('Scenario missing','error'); setLoading(btn,false); return; }
+        const tabName = s.type || 'investment'; const tabBtn = $qs('.tab[data-tab="'+tabName+'"]'); if(tabBtn) tabBtn.click();
+        if(tabName === 'investment'){
+          const st = s.settings||{}; $qs('#inv_initial').value = st.initial || 0; $qs('#inv_monthly').value = st.monthly || 0; $qs('#inv_rate').value = st.rate || 0; $qs('#inv_years').value = st.years || 0; renderInv();
+        } else if(tabName === 'amort' || tabName === 'amortization'){
+          const st = s.settings||{}; $qs('#loan_amount').value = st.amount || st.loanAmount || 0; $qs('#loan_rate').value = st.rate || 0; $qs('#loan_years').value = st.years || 0; $qs('#loan_freq').value = st.freq || st.paymentsPerYear || 12; $qs('#loan_calc').click();
+        } else if(tabName === 'insurance'){
+          const st = s.settings||{}; $qs('#ins_coverage').value = st.coverage || 0; $qs('#ins_rate').value = st.rate || 0; $qs('#ins_age').value = st.age || 30; $qs('#ins_term').value = st.term || 10; $qs('#ins_calc').click();
+        } else { const st = s.settings||{}; if(st.initial !== undefined) $qs('#inv_initial').value = st.initial; if(st.monthly !== undefined) $qs('#inv_monthly').value = st.monthly; renderInv(); }
+        showToast('Scenario loaded','info');
+      }catch(err){ console.error(err); showToast('Error loading scenario','error'); }
+      setLoading(e.currentTarget, false);
+    }));
+    $qa('.del').forEach(b=>b.addEventListener('click', async e=>{
+      const id = e.currentTarget.dataset.id; const ok = confirm('Delete scenario? (admin auth required)'); if(!ok) return;
+      const creds = await showAdminModal(); if(!creds) return;
+      const auth = 'Basic '+btoa((creds.user||'')+':'+(creds.pass||''));
+      const delBtn = e.currentTarget; setLoading(delBtn, true);
+      try{
+        const r = await fetch('/api/scenarios/'+id,{method:'DELETE',headers:{Authorization:auth}});
+        const j = await r.json(); if(r.ok && j.success){ showToast('Deleted'); loadScenarios(); } else { showToast('Delete failed','error'); }
+      }catch(err){ console.error(err); showToast('Delete error','error'); }
+      setLoading(delBtn, false);
+    }));
+  }catch(err){ console.error(err); $qs('#scenarios_list').textContent='Failed to load'; showToast('Failed to load scenarios','error'); }
+  setLoading(refreshBtn, false);
+}
+
+$qs('#load_scenarios').addEventListener('click', loadScenarios);
+
+// Activate default tab
+document.querySelector('.tab[data-tab="investment"]').click();
+
+// expose helper for external load
+
+// Include accessibility enhancements
+|// ============================================|// ACCESSIBILITY & VALIDATION ENHANCEMENTS|// ============================================||// Real-time input validation|function setupValidation() {|  document.querySelectorAll('input[type="number"]').forEach(input => {|    input.addEventListener('blur', function() {|      validateNumberInput(this);|    });||    input.addEventListener('input', function() {|      if (this.classList.contains('error')) {|        validateNumberInput(this);|      }|    });|  });|}||// Validate number inputs|function validateNumberInput(input) {|  const min = input.getAttribute('min');|  const max = input.getAttribute('max');|  let isValid = true;||  const value = parseFloat(input.value);|  |  if (isNaN(value) && input.value !== '') {|    input.classList.add('error');|    showErrorMessage(input, 'Please enter a valid number');|    return false;|  }||  if (min !== null && value < parseFloat(min)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must be at least ${min}`);|    isValid = false;|  } else if (max !== null && value > parseFloat(max)) {|    input.classList.add('error');|    showErrorMessage(input, `Value must not exceed ${max}`);|    isValid = false;|  } else {|    input.classList.remove('error');|    hideErrorMessage(input);|  }||  return isValid;|}||// Show error message below input|function showErrorMessage(input, message) {|  let errorMsg = input.nextElementSibling;|  if (!errorMsg || !errorMsg.classList.contains('error-message')) {|    errorMsg = document.createElement('div');|    errorMsg.className = 'error-message';|    input.parentElement.appendChild(errorMsg);|  }|  errorMsg.textContent = message;|}||// Hide error message|function hideErrorMessage(input) {|  const errorMsg = input.nextElementSibling;|  if (errorMsg && errorMsg.classList.contains('error-message')) {|    errorMsg.textContent = '';|  }|}||// Accessibility: Add ARIA labels to all inputs|function addAccessibilityLabels() {|  document.querySelectorAll('.grid > div > input, .grid > div > select').forEach(input => {|    const label = input.previousElementSibling;|    if (label && label.tagName === 'LABEL') {|      input.setAttribute('aria-label', label.textContent.trim());|    }|  });||  // Add ARIA to tab buttons|  document.querySelectorAll('.tab').forEach(tab => {|    tab.setAttribute('role', 'button');|    tab.setAttribute('aria-pressed', tab.classList.contains('bg-blue-600'));|  });|}||// Initialize enhancements on page load|document.addEventListener('DOMContentLoaded', function() {|  setupValidation();|  addAccessibilityLabels();|});||// Keyboard navigation for tabs|document.addEventListener('keydown', function(e) {|  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;|  |  const activeTab = document.querySelector('.tab[data-tab]:focus');|  if (!activeTab) return;||  const tabs = Array.from(document.querySelectorAll('.tab[data-tab]'));|  const currentIndex = tabs.indexOf(activeTab);|  let nextIndex;||  if (e.key === 'ArrowRight') {|    nextIndex = (currentIndex + 1) % tabs.length;|  } else {|    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;|  }||  tabs[nextIndex].focus();|  tabs[nextIndex].click();|});|
+window._loadScenarios = loadScenarios;
+</script>
+</body>
+</html>

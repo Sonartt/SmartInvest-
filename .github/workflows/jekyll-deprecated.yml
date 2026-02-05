@@ -1,0 +1,25 @@
+# This file disables the Jekyll workflow
+# The SmartInvest Africa project is a Node.js/Express application, not a Jekyll site.
+# If you need to re-enable Jekyll, delete this file and restore jekyll-docker.yml
+
+# To completely remove the Jekyll workflow from GitHub:
+# 1. Delete .github/workflows/jekyll-docker.yml from the main branch
+# 2. This will prevent the workflow from running on new PRs
+
+name: Deprecated - Jekyll Workflow Disabled
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "The Jekyll CI/CD workflow has been deprecated."
+          echo "This is a Node.js/Express application."
+          echo "Please use the nodejs-ci.yml workflow instead."

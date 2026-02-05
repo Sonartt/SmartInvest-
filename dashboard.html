@@ -108,8 +108,21 @@
                     <a href="#analytics" class="sidebar-link">📈 Analytics</a>
                     <a href="#payments" class="sidebar-link">💰 Payments</a>
                     <a href="#payment-history" class="sidebar-link">📜 Payment History</a>
-                    <a href="#settings" class="sidebar-link">⚙️ Settings</a>
                     <hr class="my-3 opacity-25">
+                    <div class="px-3 py-2">
+                        <small class="text-white-50 text-uppercase">Premium Features</small>
+                    </div>
+                    <a href="/blockchain-investment-dashboard.html" class="sidebar-link">⛓️ Blockchain Investment</a>
+                    <hr class="my-3 opacity-25">
+                    <div class="px-3 py-2">
+                        <small class="text-white-50 text-uppercase">Payment Systems</small>
+                    </div>
+                    <a href="/p2p-dashboard.html" class="sidebar-link">💸 P2P Transactions</a>
+                    <a href="/affiliate-dashboard.html" class="sidebar-link">🎯 Affiliate Program</a>
+                    <a href="/ads-dashboard.html" class="sidebar-link">📢 Ads Management</a>
+                    <a href="/advertise.html" class="sidebar-link">🛒 Buy Ad Space</a>
+                    <hr class="my-3 opacity-25">
+                    <a href="#settings" class="sidebar-link">⚙️ Settings</a>
                     <a href="/" class="sidebar-link">🏠 Back to Home</a>
                     <a href="/calculator.html" class="sidebar-link">🧮 Calculator</a>
                     <a href="/pricing.html" class="sidebar-link">💎 Upgrade</a>
@@ -392,5 +405,22 @@
             });
         }
     </script>
+  <script src="/public/js/p2p-payment-interface.js"></script>
+  <script src="/public/js/ads-display-widget.js"></script>
+  <script>
+    // Initialize P2P payment interface
+    const p2pInterface = new P2PPaymentInterface({
+      apiBase: '/api/p2p',
+      platformNumber: '0114383762',
+      transactionFee: 5.00,
+      currency: 'USD'
+    });
+
+    function showP2PModal() {
+      p2pInterface.showPaymentModal();
+    }
+  </script>
+  <script src="/public/js/live-chat-widget.js"></script>
+  <script src="/public/js/social-media-widget.js"></script>
 </body>
 </html>

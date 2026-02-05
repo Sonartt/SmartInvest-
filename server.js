@@ -4,81 +4,97 @@ const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const storageComplex = require('./storage-complex');
-const pochiRoutes = require('./src/routes/pochi-routes');
+const rateLimit = require('express-rate-limit');
+const contentAPI = require('./api/content-management');
+const subManager = require('./api/subscription-manager');
+const shareLinkService = require('./services/share-link-service');
+const chatAPIRouter = require('./api/chat-api-enhanced');
+const { blockIP, unblockIP, getClientIP, isIPBlocked, logSecurityEvent, securityHeaders } = require('./middleware/security');
 
 const app = express();
 app.use(cors());
-app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/api/pochi', pochiRoutes);
+app.use(securityHeaders);
+// SECURITY FIX #4: Add request size limits to prevent DOS
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn('⚠️  JWT_SECRET not set in .env — using insecure fallback');
-  return 'INSECURE-DEV-SECRET-CHANGE-ME';
-})();
-const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
+// Rate limiters
+const authLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 25, standardHeaders: true, legacyHeaders: false });
+const paymentLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 15, standardHeaders: true, legacyHeaders: false });
+const downloadLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
-// JWT token verification helper
-function verifyTokenFromReq(req) {
-  const auth = (req.headers.authorization || '').toString();
-  let token = null;
-  if (auth && auth.startsWith('Bearer ')) token = auth.split(' ')[1];
-  if (!token && req.cookies && req.cookies.si_token) token = req.cookies.si_token;
-  if (!token) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (e) {
-    return null;
-  }
-}
-
-// Lightweight health check
-app.get('/api/health', (req, res) => {
-  return res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    mpesaEnv: process.env.MPESA_ENV || 'sandbox',
-    paypalMode: process.env.PAYPAL_MODE || process.env.PAYPAL_ENV || 'sandbox',
-    pochiEnabled: true
-  });
-});
-
-// Admin authentication - requires valid JWT with admin flag OR Basic auth with ADMIN_USER/ADMIN_PASS from .env
+// Basic auth for admin routes if ADMIN_USER is set
+// SECURITY FIX #1: Enforce admin authentication always
 function adminAuth(req, res, next) {
-  const adminUserEnv = process.env.ADMIN_USER;
-  const adminPassEnv = process.env.ADMIN_PASS;
+  const adminUser = process.env.ADMIN_USER;
+  const adminPass = process.env.ADMIN_PASS;
   
-  if (!adminUserEnv || !adminPassEnv) {
-    return res.status(500).json({ error: 'Admin authentication not configured: set ADMIN_USER and ADMIN_PASS in .env' });
+  // SECURITY: If admin credentials not configured, BLOCK access (don't bypass)
+  if (!adminUser || !adminPass) {
+    console.error('[SECURITY] Admin access attempt without credentials configured!');
+    return res.status(500).json({ 
+      error: 'Admin authentication not configured. Please set ADMIN_USER and ADMIN_PASS environment variables.' 
+    });
   }
   
-  const payload = verifyTokenFromReq(req);
-  if (payload && payload.admin) {
-    req.user = { email: payload.email, admin: true };
-    return next();
-  }
-
-  // Fallback: Basic auth if ADMIN_USER configured
-  const auth = (req.headers.authorization || '').toString();
-  if (auth && auth.startsWith('Basic ')) {
-    const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-    const [user, pass] = creds.split(':');
-    if (user === adminUserEnv && pass === adminPassEnv) {
-      req.user = { email: user, admin: true };
-      return next();
-    }
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
     return res.status(401).end('Unauthorized');
   }
+  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  if (user === adminUser && pass === adminPass) {
+    // Log successful admin authentication (only outside production to avoid exposing auth events in general logs)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH] Admin login successful from IP: ${req.ip}`);
+    }
+    return next();
+  }
+  
+  // Log failed authentication attempt
+  console.warn(`[SECURITY] Failed admin login attempt from IP: ${req.ip}`);
+  res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
+  return res.status(401).end('Unauthorized');
+}
 
-  return res.status(401).json({ error: 'Unauthorized: admin access required' });
+function isAdminRequest(req) {
+  const adminUser = process.env.ADMIN_USER;
+  const adminPass = process.env.ADMIN_PASS;
+  if (!adminUser || !adminPass) return false;
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Basic ')) return false;
+  const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+  const [user, pass] = creds.split(':');
+  return user === adminUser && pass === adminPass;
 }
 
 const PORT = process.env.PORT || 3000;
+
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS) || 15000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = UPSTREAM_TIMEOUT_MS) {
+  if (typeof AbortController === 'undefined') {
+    return fetch(url, options);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function readResponsePayload(res) {
+  const text = await res.text();
+  if (!text) return { parsed: null, text: '' };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch (e) {
+    return { parsed: null, text };
+  }
+}
 
 // Helper: get OAuth token for M-Pesa (Daraja)
 async function getMpesaAuth() {
@@ -89,14 +105,17 @@ async function getMpesaAuth() {
   const url = process.env.MPESA_ENV === 'production'
     ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
-  const res = await fetch(url, { headers: { Authorization: `Basic ${basic}` } });
-  if (!res.ok) throw new Error('Failed to get M-Pesa token');
-  const data = await res.json();
-  return data.access_token;
+  const res = await fetchWithTimeout(url, { headers: { Authorization: `Basic ${basic}` } });
+  const { parsed, text } = await readResponsePayload(res);
+  if (!res.ok) {
+    const reason = parsed?.error_description || parsed?.error || text || 'Failed to get M-Pesa token';
+    throw new Error(`Failed to get M-Pesa token (${res.status}): ${reason}`);
+  }
+  return parsed?.access_token;
 }
 
 // MPESA STK Push (simplified for Daraja sandbox)
-app.post('/api/pay/mpesa', async (req, res) => {
+app.post('/api/pay/mpesa', paymentLimiter, async (req, res) => {
   try {
     // Default to 1000 KES if amount not provided
     const { phone, accountReference } = req.body || {};
@@ -136,256 +155,33 @@ app.post('/api/pay/mpesa', async (req, res) => {
     // Log outgoing request (mask sensitive fields)
     logMpesa({ stage: 'request', endpoint, body: maskMpesaBody(body) });
 
-    const mpRes = await fetch(endpoint, {
+    const mpRes = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
     // Read raw response for logging and parsing
-    const raw = await mpRes.text();
-    let parsed = null;
-    try { parsed = JSON.parse(raw); } catch (e) { /* not JSON */ }
-    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : raw, parsed: parsed || undefined });
+    const { parsed, text } = await readResponsePayload(mpRes);
+    logMpesa({ stage: 'response', status: mpRes.status, raw: parsed ? undefined : text, parsed: parsed || undefined });
 
-    return res.json({ success: true, data: parsed || raw });
+    if (!mpRes.ok) {
+      return res.status(502).json({
+        success: false,
+        error: parsed?.errorMessage || parsed?.error || 'M-Pesa request failed',
+        status: mpRes.status,
+        data: parsed || text
+      });
+    }
+
+    return res.json({ success: true, data: parsed || text });
   } catch (err) {
     console.error('mpesa error', err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// PayPal create order (sandbox by default)
-async function getPaypalToken() {
-  const id = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!id || !secret) throw new Error('PayPal credentials not set');
-  const basic = Buffer.from(`${id}:${secret}`).toString('base64');
-  const url = process.env.PAYPAL_ENV === 'production'
-    ? 'https://api-m.paypal.com/v1/oauth2/token'
-    : 'https://api-m.sandbox.paypal.com/v1/oauth2/token';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'grant_type=client_credentials'
-  });
-  if (!res.ok) throw new Error('Failed to get PayPal token');
-  const d = await res.json();
-  return d.access_token;
-}
-
-app.post('/api/pay/paypal/create-order', async (req, res) => {
-  try {
-    const token = await getPaypalToken();
-    const url = process.env.PAYPAL_ENV === 'production'
-      ? 'https://api-m.paypal.com/v2/checkout/orders'
-      : 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
-    // Convert 1000 KES to USD (use env EXCHANGE_RATE_KES_USD if provided)
-    const rate = Number(process.env.EXCHANGE_RATE_KES_USD) || 0.0065;
-    const kesAmount = 1000; // fixed as requested
-    const usdAmount = Number((kesAmount * rate).toFixed(2));
-    const purchase = {
-      intent: 'CAPTURE',
-      purchase_units: [ {
-        amount: { currency_code: 'USD', value: String(usdAmount) },
-        custom_id: req.body.fileId || undefined,
-        reference_id: req.body.fileId || undefined
-      } ],
-      application_context: {
-        return_url: process.env.PAYPAL_RETURN_URL || 'https://example.com/paypal/return',
-        cancel_url: process.env.PAYPAL_CANCEL_URL || 'https://example.com/paypal/cancel'
-      }
-    };
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(purchase)
-    });
-    const data = await r.json();
-    const approve = (data.links||[]).find(l=>l.rel==='approve')?.href;
-    return res.json({ success: true, data, approveUrl: approve });
-  } catch (err) {
-    console.error('paypal error', err.message);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// Simple JSON file user store (demo). In production use a real DB.
-/* Duplicate USERS_FILE and related requires removed to fix redeclaration error */
-
-
-// (mailer setup and sendNotificationMail are defined later in the file)
-
-// User cache for improved performance
-let userCache = null;
-let userCacheTime = 0;
-
-function readUsers() {
-  // Use cache if fresh (within TTL)
-  const now = Date.now();
-  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
-    // Log cache hit to storage complex
-    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
-    return userCache;
-  }
-  
-  try {
-    const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    const users = JSON.parse(raw || '[]');
-    // Update cache only after successful read
-    userCache = users;
-    userCacheTime = now;
-    // Log cache miss to storage complex
-    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
-    return users;
-  } catch (e) {
-    // Return empty array but don't update cache on error
-    storageComplex.addCrashEntry(e, { function: 'readUsers' });
-    return [];
-  }
-}
-
-function writeUsers(users) {
-  try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    // Update cache only after successful write
-    userCache = users;
-    userCacheTime = Date.now();
-  } catch (e) {
-    // Invalidate cache on write failure to force fresh read
-    userCache = null;
-    userCacheTime = 0;
-    throw e;
-  }
-}
-
-// Helper: find user by email efficiently
-function findUserByEmail(users, email) {
-  const emailLower = email.toLowerCase();
-  return users.find(u => u.email.toLowerCase() === emailLower);
-}
-
-app.post('/api/auth/signup', bodyParser.json(), (req, res) => {
-  const { email, password, idNumber, driverLicense, taxNumber } = req.body || {};
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-  // prevent duplicate
-  const users = readUsers();
-  if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-    return res.status(409).json({ error: 'Email already registered. Please login.' });
-  }
-
-  const user = {
-    email: email.toLowerCase(),
-    passwordHash: bcrypt.hashSync(password, 10),
-    createdAt: new Date().toISOString(),
-    createdVia: 'signup',
-    // registration IDs
-    idNumber: idNumber || null,
-    driverLicense: driverLicense || null,
-    taxNumber: taxNumber || null
-  };
-  users.push(user);
-  writeUsers(users);
-
-  logUserActivity(email, 'signup', req.ip);
-  storageComplex.addUserEntry(email, 'signup', { ip: req.ip });
-
-  return res.json({ success: true, message: 'signup successful' });
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-    const users = readUsers();
-    const user = findUserByEmail(users, email);
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
-
-    const ok = bcrypt.compareSync(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-
-    // Determine admin flag: explicit user.admin OR ADMIN_USER env match
-    const isAdmin = !!((process.env.ADMIN_USER && String(email).toLowerCase() === String(process.env.ADMIN_USER).toLowerCase()) || user.admin);
-
-    const token = jwt.sign({ email: user.email, admin: !!isAdmin }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-
-    // Cookie options
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: (function() {
-        const m = String(JWT_EXPIRES || '12h');
-        if (/^\d+$/.test(m)) return Number(m) * 1000;
-        const match = m.match(/^(\d+)h$/);
-        if (match) return Number(match[1]) * 60 * 60 * 1000;
-        return 1000 * 60 * 60 * 12;
-      })()
-    };
-    res.cookie('si_token', token, cookieOptions);
-
-    // Log activity
-    logUserActivity(email, 'login', req.ip);
-    
-    // Log to storage complex
-    storageComplex.addUserEntry(email, 'login', { ip: req.ip });
-    storageComplex.addLogEntry('info', 'User login', { email });
-
-    return res.json({ 
-      success: true, 
-      email: user.email, 
-      admin: !!isAdmin,
-      isPremium: user.isPremium || false,
-      premiumExpiresAt: user.premiumExpiresAt || null
-    });
-  } catch (err) {
-    console.error('login error', err && err.message);
-    storageComplex.addCrashEntry(err, { endpoint: '/api/auth/login' });
-    return res.status(500).json({ error: err && err.message });
-  }
-});
-
-// 8) Add logout endpoint to clear cookie
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('si_token', { path: '/' });
-  return res.json({ success: true });
-});
-
-// GeoIP detection endpoint
-app.get('/api/geo', (req, res) => {
-  // Try Cloudflare country header first (most reliable when using CF)
-  let country = req.headers['cf-ipcountry'];
-  
-  // Fall back to IP-based detection if no CF header
-  if (!country) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection.remoteAddress;
-    // Simple IP range detection for Kenya (simplified - for production use a proper GeoIP database)
-    // Kenya IP ranges typically start with specific prefixes, but this is a basic check
-    // For localhost/development, default to KE
-    if (ip === '::1' || ip === '127.0.0.1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
-      country = 'KE'; // Default to Kenya for local development
-    } else {
-      // For production, you'd use a service like ipapi.co or maxmind
-      country = 'OTHER'; // Default to OTHER for unknown IPs
+    if (err && err.name === 'AbortError') {
+      return res.status(504).json({ error: 'M-Pesa request timed out' });
     }
+    return res.status(500).json({ error: err.message });
   }
-  
-  // Normalize to uppercase
-  country = String(country).toUpperCase();
-  
-  // Return KE for Kenya, OTHER for everything else
-  const isKenya = country === 'KE' || country === 'KENYA';
-  return res.json({ country: isKenya ? 'KE' : 'OTHER' });
-});
-
-// 9) Add /api/auth/me to introspect token (header or cookie)
-app.get('/api/auth/me', (req, res) => {
-  const payload = verifyTokenFromReq(req);
-  if (!payload) return res.status(401).json({ error: 'invalid or missing token' });
-  return res.json({ success: true, email: payload.email, admin: !!payload.admin });
 });
 
 // PayPal create order (sandbox by default)
@@ -397,17 +193,20 @@ async function getPaypalToken() {
   const url = process.env.PAYPAL_ENV === 'production'
     ? 'https://api-m.paypal.com/v1/oauth2/token'
     : 'https://api-m.sandbox.paypal.com/v1/oauth2/token';
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=client_credentials'
   });
-  if (!res.ok) throw new Error('Failed to get PayPal token');
-  const d = await res.json();
-  return d.access_token;
+  const { parsed, text } = await readResponsePayload(res);
+  if (!res.ok) {
+    const reason = parsed?.error_description || parsed?.error || text || 'Failed to get PayPal token';
+    throw new Error(`Failed to get PayPal token (${res.status}): ${reason}`);
+  }
+  return parsed?.access_token;
 }
 
-app.post('/api/pay/paypal/create-order', async (req, res) => {
+app.post('/api/pay/paypal/create-order', paymentLimiter, async (req, res) => {
   try {
     const token = await getPaypalToken();
     const url = process.env.PAYPAL_ENV === 'production'
@@ -429,28 +228,60 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
         cancel_url: process.env.PAYPAL_CANCEL_URL || 'https://example.com/paypal/cancel'
       }
     };
-    const r = await fetch(url, {
+    const r = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(purchase)
     });
-    const data = await r.json();
-    const approve = (data.links||[]).find(l=>l.rel==='approve')?.href;
+    const { parsed, text } = await readResponsePayload(r);
+    const data = parsed || { raw: text };
+    if (!r.ok) {
+      return res.status(502).json({
+        success: false,
+        error: data?.message || data?.name || 'PayPal order creation failed',
+        status: r.status,
+        data
+      });
+    }
+    const approve = (data.links || []).find(l => l.rel === 'approve')?.href;
     return res.json({ success: true, data, approveUrl: approve });
   } catch (err) {
     console.error('paypal error', err.message);
+    if (err && err.name === 'AbortError') {
+      return res.status(504).json({ error: 'PayPal request timed out' });
+    }
     return res.status(500).json({ error: err.message });
   }
 });
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
+const WALLET_TRANSFERS_FILE = './data/wallet-transfers.json';
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const EmailService = require('./services/email-service');
+
+// Initialize email service with Gmail credentials
+const emailService = new EmailService();
+if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  emailService.initialize({
+    email: process.env.SMTP_USER,
+    password: process.env.SMTP_PASS,
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true'
+  }).then(() => {
+    console.log('✅ Email service initialized');
+  }).catch(err => {
+    console.error('❌ Email service initialization error:', err.message);
+  });
+} else {
+  console.warn('⚠️ Email service not initialized: SMTP_USER/SMTP_PASS not set');
+}
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');
@@ -528,108 +359,460 @@ async function sendNotificationMail(opts={}){
   }
 })();
 
-// User cache for improved performance
-// let userCache = null;
-// let userCacheTime = 0;
-const USER_CACHE_TTL = 5000; // 5 seconds cache
-
 function readUsers() {
-  // Use cache if fresh (within TTL)
-  const now = Date.now();
-  if (userCache && (now - userCacheTime) < USER_CACHE_TTL) {
-    // Log cache hit to storage complex
-    storageComplex.addCacheEntry('userCache', 'hit', { timestamp: now, cacheAge: now - userCacheTime });
-    return userCache;
-  }
-  
   try {
     const raw = fs.readFileSync(USERS_FILE, 'utf8');
-    const users = JSON.parse(raw || '[]');
-    // Update cache only after successful read
-    userCache = users;
-    userCacheTime = now;
-    // Log cache miss to storage complex
-    storageComplex.addCacheEntry('userCache', 'miss', { timestamp: now, usersCount: users.length });
-    return users;
+    return JSON.parse(raw || '[]');
   } catch (e) {
-    // Return empty array but don't update cache on error
-    storageComplex.addCrashEntry(e, { function: 'readUsers' });
     return [];
   }
 }
 
-function writeUsers(users) {
+function readWalletTransfers() {
   try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    // Update cache only after successful write
-    userCache = users;
-    userCacheTime = Date.now();
+    if (!fs.existsSync(WALLET_TRANSFERS_FILE)) {
+      fs.writeFileSync(WALLET_TRANSFERS_FILE, JSON.stringify([], null, 2));
+    }
+    const raw = fs.readFileSync(WALLET_TRANSFERS_FILE, 'utf8');
+    return JSON.parse(raw || '[]');
   } catch (e) {
-    // Invalidate cache on write failure to force fresh read
-    userCache = null;
-    userCacheTime = 0;
-    throw e;
+    return [];
   }
 }
 
-// Helper: find user by email efficiently
-function findUserByEmail(users, email) {
-  const emailLower = email.toLowerCase();
-  return users.find(u => u.email.toLowerCase() === emailLower);
+function writeWalletTransfers(transfers) {
+  fs.writeFileSync(WALLET_TRANSFERS_FILE, JSON.stringify(transfers, null, 2));
 }
 
-// Password reset request
-app.post('/api/auth/reset-password-request', async (req, res) => {
+function writeUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function normalizeEmail(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  const [local, domain] = raw.split('@');
+  if (!domain) return raw;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const stripped = local.split('+')[0].replace(/\./g, '');
+    return `${stripped}@gmail.com`;
+  }
+  return raw;
+}
+
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits;
+}
+
+function isValidEmail(value) {
+  const email = String(value || '').trim();
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isStrongPassword(value) {
+  const pwd = String(value || '');
+  if (pwd.length < 10) return false;
+  if (!/[A-Z]/.test(pwd)) return false;
+  if (!/[a-z]/.test(pwd)) return false;
+  if (!/\d/.test(pwd)) return false;
+  if (!/[^A-Za-z0-9]/.test(pwd)) return false;
+  return true;
+}
+
+function isValidPhone(value) {
+  const digits = normalizePhone(value);
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function isValidCountry(value) {
+  const country = String(value || '').trim();
+  return country.length >= 2 && country.length <= 64;
+}
+
+function isValidName(value) {
+  const name = String(value || '').trim();
+  return name.length >= 2 && name.length <= 80;
+}
+
+function isSafeText(value, maxLen = 200) {
+  const text = String(value || '').trim();
+  if (text.length > maxLen) return false;
+  return !/[<>]/.test(text);
+}
+
+function findContactConflict(users, { email, mobileNumber, phone }, currentUserId = null) {
+  const targetEmail = normalizeEmail(email);
+  const targetPhone = normalizePhone(mobileNumber || phone);
+  let emailMatch = null;
+  let phoneMatch = null;
+
+  if (targetEmail) {
+    emailMatch = users.find(u => u.id !== currentUserId && normalizeEmail(u.email) === targetEmail);
+  }
+
+  if (targetPhone) {
+    phoneMatch = users.find(u => u.id !== currentUserId && normalizePhone(u.mobileNumber || u.phone) === targetPhone);
+  }
+
+  if (emailMatch) {
+    return { conflict: true, field: 'email', message: 'email already in use by another account' };
+  }
+
+  if (phoneMatch) {
+    return { conflict: true, field: 'mobileNumber', message: 'mobile number already in use by another account' };
+  }
+
+  return { conflict: false };
+}
+
+function getWalletBalance(user) {
+  const raw = user && (user.walletBalance ?? user.amount ?? 0);
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setWalletBalance(user, amount) {
+  const normalized = Number(amount) || 0;
+  user.walletBalance = normalized;
+  user.amount = normalized;
+}
+
+app.post('/api/auth/signup', authLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    
+    const { email, password, acceptTerms, mobileNumber, paymentMethod, taxInfo, country, fullName } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
+    if (!acceptTerms) return res.status(400).json({ error: 'terms must be accepted' });
+
+    const referralToken = req.body.referralToken || req.body.affiliateToken || req.body.ref || null;
+
     const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-      // Don't reveal if email exists
-      return res.json({ success: true, message: 'If account exists, reset email sent' });
+    const conflict = findContactConflict(users, { email, mobileNumber });
+    if (conflict.conflict) {
+      return res.status(409).json({ error: conflict.message });
+    }
+    if (users.find(u => normalizeEmail(u.email) === normalizeEmail(email))) {
+      return res.status(409).json({ error: 'email already registered' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    const userId = uuidv4();
+    
+    // Capture IP address and user agent for security tracking
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    
+    let referralLink = null;
+    if (referralToken) {
+      try {
+        referralLink = await shareLinkService.getLink(referralToken);
+      } catch (e) {
+        referralLink = null;
+      }
+    }
+
+    const user = { 
+      id: userId,
+      email: String(email || '').trim().toLowerCase(), 
+      passwordHash: hash,
+      fullName: fullName || '',
+      mobileNumber: mobileNumber || '',
+      country: country || '',
+      paymentMethod: paymentMethod || '',
+      taxInfo: {
+        taxId: (taxInfo && taxInfo.taxId) || '',
+        taxCountry: (taxInfo && taxInfo.taxCountry) || country || '',
+        taxType: (taxInfo && taxInfo.taxType) || 'individual',
+        vatNumber: (taxInfo && taxInfo.vatNumber) || '',
+        businessRegistration: (taxInfo && taxInfo.businessRegistration) || '',
+        verified: false
+      },
+      amount: 0,
+      walletBalance: 0,
+      isPremium: false,
+      premiumGrantedAt: null,
+      premiumGrantedBy: null,
+      isAdmin: false,
+      referralToken: referralLink ? referralLink.token : null,
+      referralType: referralLink ? referralLink.type : null,
+      referredBy: referralLink ? referralLink.userId : null,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      registrationIp: ipAddress,
+      registrationUserAgent: userAgent,
+      loginHistory: []
+    };
+    users.push(user);
+    writeUsers(users);
+
+    if (referralLink && (referralLink.type === 'affiliate' || referralLink.type === 'referral')) {
+      try {
+        await shareLinkService.recordConversion(referralLink.token, {
+          newUserId: user.id,
+          newUserEmail: user.email,
+          referralType: referralLink.type,
+          referrerUserId: referralLink.userId
+        });
+      } catch (e) {
+        console.warn('referral conversion tracking failed:', e.message);
+      }
     }
     
-    // Generate reset token
-    const token = crypto.randomBytes(32).toString('hex');
-    user.resetToken = token;
-    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
-    writeUsers(users);
+    // Send welcome email with terms and conditions
+    console.log(`📧 Sending welcome email to ${email}...`);
+    await emailService.sendWelcomeEmail(email, user);
     
-    // Send reset email with activity logs
-    sendPasswordResetEmail(email, token);
-    logUserActivity(email, 'password_reset_requested', req.ip);
+    // Send terms and conditions email
+    console.log(`📧 Sending terms & conditions email to ${email}...`);
+    await emailService.sendTermsAndConditionsEmail(email, user);
     
-    return res.json({ success: true, message: 'If account exists, reset email sent' });
+    // Track signup in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
+    
+    return res.json({ success: true, message: 'signup successful - welcome emails sent', userId });
   } catch (err) {
-    console.error('reset password request error', err.message);
+    console.error('signup error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Password reset confirm
-app.post('/api/auth/reset-password-confirm', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) return res.status(400).json({ error: 'token and newPassword required' });
-    
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
     const users = readUsers();
-    const user = users.find(u => u.resetToken === token && u.resetTokenExpiry > Date.now());
-    if (!user) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    const normalizedEmail = normalizeEmail(email);
+    const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (matches.length > 1) {
+      logSecurityEvent('contact-conflict', req.ip, { reason: 'duplicate_email', email: normalizedEmail });
+      return res.status(409).json({ error: 'contact conflict detected, contact support' });
+    }
+    const user = matches[0];
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+    const ok = bcrypt.compareSync(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     
-    // Update password
-    user.passwordHash = bcrypt.hashSync(newPassword, 10);
-    delete user.resetToken;
-    delete user.resetTokenExpiry;
+    // Capture login details
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const loginTime = new Date().toISOString();
+    
+    // Update last login timestamp and add to login history
+    user.lastLoginAt = loginTime;
+    user.lastLoginIp = ipAddress;
+    
+    // Initialize loginHistory if it doesn't exist
+    if (!user.loginHistory) user.loginHistory = [];
+    
+    // Add current login to history (keep last 50 logins)
+    user.loginHistory.push({
+      timestamp: loginTime,
+      ipAddress: ipAddress,
+      userAgent: userAgent
+    });
+    
+    // Keep only last 50 login records to prevent file bloat
+    if (user.loginHistory.length > 50) {
+      user.loginHistory = user.loginHistory.slice(-50);
+    }
+    
     writeUsers(users);
     
-    logUserActivity(user.email, 'password_reset_completed', req.ip);
-    sendNotificationMail({ to: user.email, subject: 'Password Changed', text: 'Your SmartInvest password was successfully changed.' });
+    // Track login in analytics
+    try {
+      await fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/analytics/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+    } catch (e) {
+      console.log('analytics tracking skipped');
+    }
     
-    return res.json({ success: true, message: 'Password reset successful' });
+    // For demo: return a simple success message. In production return a session or JWT.
+    return res.json({ success: true, message: 'login successful', isPremium: user.isPremium || false, isAdmin: user.isAdmin || false });
   } catch (err) {
-    console.error('reset password confirm error', err.message);
+    console.error('login error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all registered users (with sensitive data visible only to admin)
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    // Return user data without password hashes
+    const safeUsers = users.map(u => {
+      const { passwordHash, ...safeData } = u;
+      return {
+        ...safeData,
+        subscriptionDetails: subManager.getUserSubscription ? subManager.getUserSubscription(u.id) : null
+      };
+    });
+    return res.json({ success: true, users: safeUsers });
+  } catch (err) {
+    console.error('admin users list error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Grant premium access to a user
+app.post('/api/admin/users/:userId/grant-premium', adminAuth, express.json(), async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { requirements } = req.body;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met (you can customize this logic)
+    const requirementsMet = requirements && requirements.verified === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the required terms for premium access' });
+    }
+    
+    // Grant premium access
+    users[userIndex].isPremium = true;
+    users[userIndex].premiumGrantedAt = new Date().toISOString();
+    users[userIndex].premiumGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Send premium upgrade email
+    console.log(`🎉 Sending premium upgrade email to ${users[userIndex].email}...`);
+    await emailService.sendPremiumUpgradeEmail(users[userIndex].email, users[userIndex]);
+    
+    return res.json({ success: true, message: 'Premium access granted - notification email sent', user: { id: users[userIndex].id, email: users[userIndex].email, isPremium: true } });
+  } catch (err) {
+    console.error('grant premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Revoke premium access from a user
+app.post('/api/admin/users/:userId/revoke-premium', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    users[userIndex].isPremium = false;
+    users[userIndex].premiumRevokedAt = new Date().toISOString();
+    users[userIndex].premiumRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Premium access revoked' });
+  } catch (err) {
+    console.error('revoke premium error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Add another admin (with requirements check)
+app.post('/api/admin/add-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId, requirements } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Check if requirements are met for admin access
+    const requirementsMet = requirements && requirements.verified === true && requirements.adminApproved === true;
+    
+    if (!requirementsMet) {
+      return res.status(400).json({ error: 'User has not met the requirements to become an admin' });
+    }
+    
+    // Grant admin access
+    users[userIndex].isAdmin = true;
+    users[userIndex].adminGrantedAt = new Date().toISOString();
+    users[userIndex].adminGrantedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    // Notify new admin
+    sendNotificationMail({
+      to: users[userIndex].email,
+      subject: 'Admin Access Granted - SmartInvest Africa',
+      text: `You have been granted administrator access to SmartInvest Africa.`,
+      html: `<p>Congratulations!</p><p>You have been granted <strong>administrator access</strong> to SmartInvest Africa.</p><p>You can now access the admin dashboard and manage the platform.</p>`
+    });
+    
+    return res.json({ success: true, message: 'Admin access granted', admin: { id: users[userIndex].id, email: users[userIndex].email, isAdmin: true } });
+  } catch (err) {
+    console.error('add admin error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Remove admin access
+app.post('/api/admin/remove-admin', adminAuth, express.json(), (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent removing the primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot remove primary admin access' });
+    }
+    
+    users[userIndex].isAdmin = false;
+    users[userIndex].adminRevokedAt = new Date().toISOString();
+    users[userIndex].adminRevokedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    return res.json({ success: true, message: 'Admin access removed' });
+  } catch (err) {
+    console.error('remove admin error', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -660,48 +843,20 @@ app.post('/api/pay/mpesa/callback', (req, res) => {
       const items = (stk && stk.CallbackMetadata && stk.CallbackMetadata.Item) || (body && body.CallbackMetadata && body.CallbackMetadata.Item) || [];
       const accItem = Array.isArray(items) ? items.find(i => (String(i.Name||i.name||'')).toLowerCase() === 'accountreference' || (String(i.Name||i.name||'')).toLowerCase() === 'account') : null;
       const acctVal = accItem && accItem.Value ? String(accItem.Value).trim() : null;
-      const resultCode = stk && stk.ResultCode !== undefined ? stk.ResultCode : null;
-      
-      // Find phone number efficiently with single pass
-      let phone = null;
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          const name = item.Name || item.name || '';
-          if (name === 'PhoneNumber' || name === 'phone') {
-            phone = item;
-            break;
-          }
-        }
-      }
-      
-      // Auto-grant premium on successful payment
-      if (resultCode === 0) {
-        if (phone && phone.Value) {
-          const phoneNum = String(phone.Value);
-          const email = phoneNum + '@mpesa.local';
-          // Ensure user exists
-          const users = readUsers();
-          let user = users.find(u => u.email === email);
-          if (!user) {
-            user = {
-              email,
-              passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-              createdAt: new Date().toISOString(),
-              createdVia: 'mpesa_payment',
-              phone: phoneNum
-            };
-            users.push(user);
-            writeUsers(users);
-          }
-          grantPremium(email, 30, 'mpesa_payment', 'system');
-        }
-      }
-      
       if (acctVal) {
         const files = readFilesMeta();
         const match = files.find(f => f.id === acctVal);
         if (match) {
+          const phone = Array.isArray(items) ? (items.find(i=>i.Name==='PhoneNumber') || items.find(i=>i.Name==='phone' ) ) : null;
           const emailLike = phone && phone.Value ? String(phone.Value)+'@mpesa.local' : '';
+          const users = readUsers();
+          if (emailLike) {
+            const normalizedEmail = normalizeEmail(emailLike);
+            const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+            if (matches.length > 1) {
+              logSecurityEvent('payment-contact-conflict', req.ip, { provider: 'mpesa', email: normalizedEmail, reason: 'duplicate_email' });
+            }
+          }
           grantPurchase(match.id, emailLike, 'mpesa', { raw: payload });
         }
       }
@@ -724,26 +879,6 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
     // Strict mapping: only honor explicit PayPal fields `custom_id`, `reference_id` or `invoice_id` matching a file id
     try {
       const resource = payload.resource || payload.body || payload;
-      const eventType = payload.event_type || '';
-      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
-      
-      // Auto-grant premium on successful payment
-      if ((eventType === 'PAYMENT.CAPTURE.COMPLETED' || eventType === 'CHECKOUT.ORDER.APPROVED') && payerEmail) {
-        const users = readUsers();
-        let user = users.find(u => u.email.toLowerCase() === payerEmail.toLowerCase());
-        if (!user) {
-          user = {
-            email: payerEmail.toLowerCase(),
-            passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-            createdAt: new Date().toISOString(),
-            createdVia: 'paypal_payment'
-          };
-          users.push(user);
-          writeUsers(users);
-        }
-        grantPremium(payerEmail, 30, 'paypal_payment', 'system');
-      }
-      
       const files = readFilesMeta();
       let fileId = null;
       const pus = (resource.purchase_units || resource.purchaseUnits || []);
@@ -755,6 +890,18 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
         }
         if (fileId) break;
       }
+      const payerEmail = resource?.payer?.email_address || resource?.payer?.email || payload?.payer_email || '';
+      if (payerEmail) {
+        const users = readUsers();
+        const normalizedEmail = normalizeEmail(payerEmail);
+        const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+        if (matches.length > 1) {
+          logSecurityEvent('payment-contact-conflict', req.ip, { provider: 'paypal', email: normalizedEmail, reason: 'duplicate_email' });
+        }
+        if (matches.length === 0) {
+          logSecurityEvent('payment-unregistered-email', req.ip, { provider: 'paypal', email: normalizedEmail });
+        }
+      }
       if (fileId) grantPurchase(fileId, payerEmail, 'paypal', { raw: payload });
     } catch (e) { console.error('paypal grant detection error', e.message); }
     return res.status(200).json({ received: true });
@@ -765,16 +912,29 @@ app.post('/api/pay/paypal/webhook', (req, res) => {
 });
 
 // Manual KCB Bank Transfer (simple flow)
-app.post('/api/pay/kcb/manual', (req, res) => {
+app.post('/api/pay/kcb/manual', paymentLimiter, (req, res) => {
   try {
     const { name, email, amount, reference } = req.body;
     if (!name || !email || !amount) return res.status(400).json({ error: 'name, email and amount required' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'invalid email format' });
+
+    const users = readUsers();
+    const normalizedEmail = normalizeEmail(email);
+    const emailMatches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (emailMatches.length > 1) {
+      logSecurityEvent('payment-contact-conflict', req.ip, { email: normalizedEmail, reason: 'duplicate_email' });
+      return res.status(409).json({ error: 'contact conflict detected for email' });
+    }
+    if (emailMatches.length === 0) {
+      logSecurityEvent('payment-unregistered-email', req.ip, { email: normalizedEmail, provider: 'kcb_manual' });
+      return res.status(400).json({ error: 'email not registered' });
+    }
 
     const tx = {
       provider: 'kcb_manual',
       timestamp: new Date().toISOString(),
       name,
-      email,
+      email: emailMatches[0].email,
       amount,
       reference: reference || '',
       status: 'pending',
@@ -813,54 +973,11 @@ app.get('/api/admin/kcb-transfers', adminAuth, (req, res) => {
     const file = './transactions.json';
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const only = arr.filter(t => t.provider === 'kcb_manual');
-    
-    // Add pagination
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = only.slice(start, end);
-    
-    return res.json({ 
-      success: true, 
-      transfers: paginated,
-      pagination: {
-        page,
-        limit,
-        total: only.length,
-        hasMore: end < only.length
-      }
-    });
+    return res.json({ success: true, transfers: only });
   } catch (e) {
     console.error('admin list error', e.message);
     return res.status(500).json({ error: e.message });
   }
-});
-
-// Consolidated payments ledger for admins
-app.get('/api/admin/payments', adminAuth, (req, res) => {
-  const files = readFilesMeta();
-  const allPayments = readTransactions().map(tx => summarizeTransaction(tx, files));
-  const purchases = readPurchases();
-  
-  // Add pagination
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const payments = allPayments.slice(start, end);
-  
-  return res.json({ 
-    success: true, 
-    payments,
-    purchases,
-    pagination: {
-      page,
-      limit,
-      total: allPayments.length,
-      hasMore: end < allPayments.length
-    }
-  });
 });
 
 app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
@@ -875,24 +992,6 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     arr[idx].paidAt = new Date().toISOString();
     if (note) arr[idx].note = note;
     fs.writeFileSync(file, JSON.stringify(arr, null, 2));
-
-    // Auto-grant premium to user
-    const email = arr[idx].email;
-    if (email) {
-      const users = readUsers();
-      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (!user) {
-        user = {
-          email: email.toLowerCase(),
-          passwordHash: bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 10),
-          createdAt: new Date().toISOString(),
-          createdVia: 'kcb_payment'
-        };
-        users.push(user);
-        writeUsers(users);
-      }
-      grantPremium(email, 30, 'kcb_manual_payment', process.env.ADMIN_USER || 'admin');
-    }
 
     // notify user
     sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer marked paid', text: `Your bank transfer of KES ${arr[idx].amount} has been marked as received. Thank you.` });
@@ -910,87 +1009,6 @@ app.post('/api/admin/kcb/mark-paid', adminAuth, (req, res) => {
     return res.json({ success: true, transfer: arr[idx] });
   } catch (e) {
     console.error('mark paid error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: list all users with full details including premium status
-app.get('/api/admin/users', adminAuth, (req, res) => {
-  try {
-    const users = readUsers();
-    const sanitized = users.map(u => ({
-      email: u.email,
-      createdAt: u.createdAt,
-      createdVia: u.createdVia,
-      isPremium: u.isPremium || false,
-      premiumExpiresAt: u.premiumExpiresAt,
-      premiumGrantedAt: u.premiumGrantedAt,
-      premiumReason: u.premiumReason,
-      premiumGrantedBy: u.premiumGrantedBy,
-      phone: u.phone,
-      activityLogs: (u.activityLogs || []).slice(-10)
-    }));
-    return res.json({ success: true, users: sanitized });
-  } catch (e) {
-    console.error('admin users list error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: manually grant premium to a user
-app.post('/api/admin/grant-premium', adminAuth, (req, res) => {
-  try {
-    const { email, days, reason } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    const daysNum = Number(days) || 30;
-    const grantedBy = process.env.ADMIN_USER || 'admin';
-    const user = grantPremium(email, daysNum, reason || 'manual_admin_grant', grantedBy);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    return res.json({ success: true, user: { email: user.email, isPremium: user.isPremium, premiumExpiresAt: user.premiumExpiresAt } });
-  } catch (e) {
-    console.error('grant premium error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: revoke premium from a user
-app.post('/api/admin/revoke-premium', adminAuth, (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'email required' });
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    user.isPremium = false;
-    user.premiumRevokedAt = new Date().toISOString();
-    delete user.premiumExpiresAt;
-    writeUsers(users);
-    sendNotificationMail({ to: email, subject: 'Premium Access Revoked', text: 'Your premium access has been revoked by an administrator.' });
-    return res.json({ success: true });
-  } catch (e) {
-    console.error('revoke premium error', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// Admin: dashboard stats
-app.get('/api/admin/dashboard-stats', adminAuth, (req, res) => {
-  try {
-    const users = readUsers();
-    const files = readFilesMeta();
-    const messages = readMessages();
-    const purchases = readPurchases();
-    const premiumUsers = users.filter(u => u.isPremium && (!u.premiumExpiresAt || new Date(u.premiumExpiresAt) > new Date()));
-    return res.json({
-      success: true,
-      totalUsers: users.length,
-      premiumUsers: premiumUsers.length,
-      filesCount: files.length,
-      pendingMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
-      totalPurchases: purchases.length
-    });
-  } catch (e) {
-    console.error('dashboard stats error', e.message);
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1014,7 +1032,7 @@ if (!fs.existsSync(SCENARIOS_FILE)) fs.writeFileSync(SCENARIOS_FILE, JSON.string
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     cb(null, `${id}-${safe}`);
   }
@@ -1026,72 +1044,88 @@ function readFilesMeta(){
 }
 function writeFilesMeta(arr){ fs.writeFileSync(FILES_JSON, JSON.stringify(arr, null, 2)); }
 
-// Download tokens and purchases file handling
-const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+// Purchases file helpers
 const PURCHASES_FILE = path.join(__dirname, 'data', 'purchases.json');
-if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
 if (!fs.existsSync(PURCHASES_FILE)) fs.writeFileSync(PURCHASES_FILE, JSON.stringify([], null, 2));
 
-function readTokens() {
-  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } 
-  catch(e) { return {}; }
+function readPurchases(){
+  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } catch(e){ console.warn('Failed to read purchases:', e.message); return []; }
 }
-function writeTokens(data) { 
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(data, null, 2)); 
+function writePurchases(arr){ fs.writeFileSync(PURCHASES_FILE, JSON.stringify(arr, null, 2)); }
+
+// Tokens file helpers
+const TOKENS_FILE = path.join(__dirname, 'data', 'tokens.json');
+if (!fs.existsSync(TOKENS_FILE)) fs.writeFileSync(TOKENS_FILE, JSON.stringify({}, null, 2));
+
+function readTokens(){
+  try { return JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8') || '{}'); } catch(e){ console.warn('Failed to read tokens:', e.message); return {}; }
 }
-function readPurchases() {
-  try { return JSON.parse(fs.readFileSync(PURCHASES_FILE, 'utf8') || '[]'); } 
-  catch(e) { return []; }
-}
-function writePurchases(data) { 
-  fs.writeFileSync(PURCHASES_FILE, JSON.stringify(data, null, 2)); 
+function writeTokens(obj){ fs.writeFileSync(TOKENS_FILE, JSON.stringify(obj, null, 2)); }
+
+// Access violations logging
+const ACCESS_VIOLATIONS_FILE = path.join(__dirname, 'data', 'access-violations.json');
+if (!fs.existsSync(ACCESS_VIOLATIONS_FILE)) {
+  fs.writeFileSync(ACCESS_VIOLATIONS_FILE, JSON.stringify({ violations: [] }, null, 2));
 }
 
-// Public: list files available for purchasers (legacy behavior)
-app.get('/api/files', requirePaidUser, (req, res) => {
-  try {
-    const files = readFilesMeta();
-    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
-    const ownedIds = purchases.map(p => p.fileId);
-    const owned = files.filter(f => ownedIds.includes(f.id));
-    return res.json({ success: true, files: owned });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
-});
+function readAccessViolations(){
+  try { return JSON.parse(fs.readFileSync(ACCESS_VIOLATIONS_FILE, 'utf8') || '{"violations":[]}'); }
+  catch(e){ return { violations: [] }; }
+}
 
-// Premium: list all published files (no per-file purchase required)
-app.get('/api/premium/files', requirePremium, (req, res) => {
-  try {
-    const files = readFilesMeta().filter(f => f.published);
-    return res.json({ success: true, files });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
-});
+function writeAccessViolations(data){
+  fs.writeFileSync(ACCESS_VIOLATIONS_FILE, JSON.stringify(data, null, 2));
+}
 
-// Admin: upload a file with metadata (title, price, description)
-app.post('/api/admin/upload', adminAuth, upload.single('file'), (req, res) => {
+function logAccessViolation(req, details = {}){
   try {
-    const { title, price, description } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'file is required (multipart form-data field name: file)' });
-    const meta = readFilesMeta();
-    const id = crypto.randomUUID();
-    const item = {
-      id,
-      title: title || req.file.originalname,
-      description: description || '',
-      price: Number(price || 0),
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      uploadedAt: new Date().toISOString()
+    const MAX_WARNINGS = Number(process.env.ACCESS_VIOLATION_LIMIT) || 3;
+    const WINDOW_MS = Number(process.env.ACCESS_VIOLATION_WINDOW_MS) || (24 * 60 * 60 * 1000);
+    const BLOCK_DURATION_MS = Number(process.env.ACCESS_VIOLATION_BLOCK_MS) || (24 * 60 * 60 * 1000);
+    const ip = getClientIP(req);
+    const now = Date.now();
+    const entry = {
+      id: uuidv4(),
+      at: new Date().toISOString(),
+      ip,
+      method: req.method,
+      path: req.originalUrl,
+      userAgent: req.headers['user-agent'] || '',
+      email: details.email || '',
+      fileId: details.fileId || '',
+      reason: details.reason || 'access_denied',
+      status: 'pending',
+      warning: true
     };
-    meta.push(item);
-    writeFilesMeta(meta);
-    return res.json({ success: true, file: item });
-  } catch (e) { console.error('upload error', e.message); return res.status(500).json({ error: e.message }); }
-});
+    const store = readAccessViolations();
+    store.violations = store.violations || [];
+    store.violations.push(entry);
+
+    const recent = store.violations.filter(v =>
+      v.ip === ip &&
+      v.reason === entry.reason &&
+      (now - new Date(v.at).getTime()) <= WINDOW_MS
+    );
+
+    const remaining = Math.max(0, MAX_WARNINGS - recent.length);
+
+    if (recent.length >= MAX_WARNINGS) {
+      blockIP(ip, BLOCK_DURATION_MS, 'Repeated access violations');
+      entry.status = 'blocked';
+      entry.warning = false;
+      entry.action = 'auto-block';
+      entry.blockedUntil = new Date(now + BLOCK_DURATION_MS).toISOString();
+    }
+
+    if (store.violations.length > 5000) store.violations = store.violations.slice(-5000);
+    writeAccessViolations(store);
+    logSecurityEvent('access-violation', ip, { reason: entry.reason, path: entry.path, email: entry.email, fileId: entry.fileId });
+    return { warning: entry.warning, blocked: entry.status === 'blocked', remaining };
+  } catch (e) {
+    console.error('logAccessViolation error', e.message);
+  }
+  return { warning: true, blocked: false, remaining: 0 };
+}
 
 // Admin: delete file metadata and file
 app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
@@ -1112,8 +1146,8 @@ app.delete('/api/admin/files/:id', adminAuth, (req, res) => {
 // grant purchases via provider webhooks or admin grants. This improves security by avoiding
 // client-side simulated purchases.
 
-// Download a file if a valid token exists for that file
-app.get('/download/:id', (req, res) => {
+// Download a file by id if a valid token exists for that file (legacy path)
+app.get('/download/file/:id', (req, res) => {
   try {
     const id = req.params.id;
     const token = req.query.token || req.headers['x-download-token'];
@@ -1133,112 +1167,42 @@ app.get('/download/:id', (req, res) => {
 
 // (uploads/data initialization handled earlier in file)
 
-// Read saved transactions from disk (mpesa, paypal, kcb_manual, etc.)
-function readTransactions() {
-  try {
-    const file = './transactions.json';
-    if (!fs.existsSync(file)) return [];
-    const raw = fs.readFileSync(file, 'utf8') || '[]';
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('readTransactions error', e.message);
-    return [];
-  }
-}
-
-// Summarize a raw transaction into a compact, admin-friendly shape
-function summarizeTransaction(tx, files = []) {
-  const base = {
-    provider: tx.provider || 'unknown',
-    createdAt: tx.timestamp || tx.time || new Date().toISOString(),
-    status: tx.status || 'pending',
-    amount: tx.amount || null,
-    currency: tx.currency || null,
-    email: tx.email || null,
-    phone: tx.phone || null,
-    reference: tx.reference || null,
-    receipt: tx.receipt || null,
-    note: tx.note || null
-  };
-
-  const cleanLower = (s) => (s ? String(s).toLowerCase() : '');
-
-  // Provider-specific enrichment
-  if ((tx.provider || '').toLowerCase() === 'mpesa') {
-    const payload = tx.payload || {};
-    const body = payload.Body || payload.body || payload;
-    const stk = (body && (body.stkCallback || body.STKCallback)) || body || {};
-    const items = (stk.CallbackMetadata && stk.CallbackMetadata.Item) || [];
-    const findItem = (name) => items.find(i => cleanLower(i.Name) === name || cleanLower(i.name) === name);
-    const amount = findItem('amount')?.Value || null;
-    const phone = findItem('phonenumber')?.Value || findItem('msisdn')?.Value || null;
-    const receipt = findItem('mpesareceiptnumber')?.Value || null;
-    const account = findItem('accountreference')?.Value || findItem('account')?.Value || null;
-    const resultCode = stk.ResultCode;
-    const status = resultCode === 0 ? 'success' : (resultCode === 1032 ? 'timeout' : 'failed');
-
-    base.amount = amount || base.amount;
-    base.currency = 'KES';
-    base.phone = phone || base.phone;
-    base.email = base.email || (phone ? `${phone}@mpesa.local` : null);
-    base.reference = account || base.reference;
-    base.receipt = receipt || base.receipt;
-    base.status = status || base.status;
-    base.description = stk.ResultDesc || base.description;
-  }
-
-  if ((tx.provider || '').toLowerCase() === 'paypal') {
-    const payload = tx.payload || {};
-    const resource = payload.resource || payload.body || payload;
-    const pu = (resource.purchase_units || resource.purchaseUnits || [])[0] || {};
-    const amountObj = pu.amount || {};
-    const amount = Number(amountObj.value || base.amount) || null;
-    const currency = amountObj.currency_code || base.currency || 'USD';
-    const reference = pu.custom_id || pu.reference_id || pu.invoice_id || base.reference;
-    const email = resource?.payer?.email_address || base.email;
-    const status = resource?.status || payload?.event_type || base.status;
-
-    base.amount = amount;
-    base.currency = currency;
-    base.reference = reference;
-    base.email = email;
-    base.status = status;
-  }
-
-  if ((tx.provider || '').toLowerCase() === 'kcb_manual') {
-    base.status = tx.status || base.status;
-    base.amount = tx.amount || base.amount;
-    base.currency = base.currency || 'KES';
-    base.email = tx.email || base.email;
-    base.reference = tx.reference || base.reference;
-    base.account = tx.account || null;
-  }
-
-  // Map reference to a file name if possible
-  if (base.reference) {
-    const match = files.find(f => f.id === base.reference);
-    if (match) base.fileTitle = match.title;
-  }
-
-  return base;
-}
-
 // Middleware: require that the requester is a purchaser. Checks for purchaser email
 // in header `x-user-email`, query `email` or request body `email`. Returns 402
 // if no purchase found for that email. This enforces that file listings are
 // accessible only to paying users.
 function requirePaidUser(req, res, next) {
   try {
-    let email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) {
-      const payload = verifyTokenFromReq(req);
-      if (payload && payload.email) email = payload.email;
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).json({ error: 'Access denied. IP blocked.' });
     }
-    if (!email) return res.status(402).json({ error: 'Payment required: include purchaser email in x-user-email header or ?email= or sign in' });
+
+    if (isAdminRequest(req)) {
+      req.purchaserEmail = process.env.ADMIN_USER || 'admin';
+      req.isStaff = true;
+      return next();
+    }
+    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
+    if (!email) {
+      const warn = logAccessViolation(req, { reason: 'missing_email', fileId: '', email: '' });
+      return res.status(402).json({
+        error: 'Payment required: include purchaser email in x-user-email header or ?email=',
+        warning: warn.warning,
+        remainingAttempts: warn.remaining
+      });
+    }
     const e = String(email).toLowerCase();
     const purchases = readPurchases();
     const ok = Array.isArray(purchases) && purchases.find(p => p.email && String(p.email).toLowerCase() === e);
-    if (!ok) return res.status(402).json({ error: 'No purchases found for this email' });
+    if (!ok) {
+      const warn = logAccessViolation(req, { reason: 'purchase_not_found', email: e, fileId: '' });
+      return res.status(402).json({
+        error: 'No purchases found for this email',
+        warning: warn.warning,
+        remainingAttempts: warn.remaining
+      });
+    }
     req.purchaserEmail = e;
     return next();
   } catch (e) {
@@ -1247,177 +1211,8 @@ function requirePaidUser(req, res, next) {
   }
 }
 
-// Middleware: require premium access (admin bypass allowed)
-function requirePremium(req, res, next) {
-  try {
-    // Admin bypass: check for admin auth
-    const auth = req.headers.authorization;
-    if (auth && auth.startsWith('Basic ')) {
-      const creds = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-      const [user, pass] = creds.split(':');
-      if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
-        req.isAdmin = true;
-        return next();
-      }
-    }
-    
-    // Check for user email and premium status
-    const email = (req.headers['x-user-email'] || req.query.email || (req.body && req.body.email));
-    if (!email) return res.status(402).json({ error: 'Premium access required: please sign in', premiumRequired: true });
-    
-    const e = String(email).toLowerCase();
-    if (!hasPremium(e)) {
-      return res.status(402).json({ 
-        error: 'Premium subscription required', 
-        premiumRequired: true,
-        upgradeUrl: `${process.env.BASE_URL || ''}/premium`
-      });
-    }
-    
-    req.userEmail = e;
-    return next();
-  } catch (e) {
-    console.error('requirePremium error', e && e.message);
-    return res.status(500).json({ error: 'server error' });
-  }
-}
-
 function readScenarios(){ try { return JSON.parse(fs.readFileSync(SCENARIOS_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeScenarios(d){ fs.writeFileSync(SCENARIOS_FILE, JSON.stringify(d, null, 2)); }
-
-// Grant premium access to a user (by email) for specified days
-function grantPremium(email, days = 30, reason = 'payment', grantedBy = 'system') {
-  try {
-    if (!email) return null;
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return null;
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-    user.isPremium = true;
-    user.premiumExpiresAt = expiresAt;
-    user.premiumGrantedAt = new Date().toISOString();
-    user.premiumReason = reason;
-    user.premiumGrantedBy = grantedBy;
-    writeUsers(users);
-    // Send premium welcome email with terms and content details
-    sendPremiumWelcomeEmail(email);
-    return user;
-  } catch (e) {
-    console.error('grantPremium error', e.message);
-    return null;
-  }
-}
-
-// Check if user has active premium
-function hasPremium(email) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user || !user.isPremium) return false;
-    if (user.premiumExpiresAt && new Date(user.premiumExpiresAt) < new Date()) {
-      user.isPremium = false;
-      writeUsers(users);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// Send welcome email with terms, laws, conditions, and premium content description
-function sendPremiumWelcomeEmail(email) {
-  const subject = 'Welcome to SmartInvest Premium — Terms & Content Access';
-  const html = `
-    <h2>Welcome to SmartInvest Premium!</h2>
-    <p>Thank you for joining SmartInvest Africa Premium. Your account now has full access to exclusive content.</p>
-    
-    <h3>Premium Content Includes:</h3>
-    <ul>
-      <li><strong>Investment Academy:</strong> 50+ video lessons covering Investing 101, Trading Essentials, SME Funding, and Digital Assets</li>
-      <li><strong>Advanced Tools:</strong> Portfolio tracker, risk profiler, AI-powered recommendations</li>
-      <li><strong>VIP Community:</strong> Exclusive forum, weekly webinars, and direct mentor access</li>
-      <li><strong>Premium Files:</strong> Downloadable resources, templates, and guides</li>
-    </ul>
-
-    <h3>Terms and Conditions:</h3>
-    <p>By using SmartInvest Premium, you agree to:</p>
-    <ul>
-      <li>Use content for personal educational purposes only</li>
-      <li>Not share, redistribute, or resell any premium content</li>
-      <li>Respect intellectual property rights of all materials</li>
-      <li>Comply with all applicable laws and regulations in your jurisdiction</li>
-    </ul>
-
-    <h3>Legal Framework:</h3>
-    <p>SmartInvest Africa operates under:</p>
-    <ul>
-      <li>Data Protection: GDPR and local data protection laws</li>
-      <li>Financial Services: Licensed under applicable African financial regulations</li>
-      <li>Consumer Protection: Full compliance with consumer rights legislation</li>
-      <li>Anti-Money Laundering (AML): KYC procedures as required by law</li>
-    </ul>
-
-    <h3>Disclaimer:</h3>
-    <p>Investment education and tools are provided for informational purposes. SmartInvest Africa does not provide financial advice. 
-    All investment decisions are your responsibility. Past performance does not guarantee future results.</p>
-
-    <p>For full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Terms & Conditions</a></p>
-    
-    <p>Questions? Contact us at ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
-  `;
-  const text = `Welcome to SmartInvest Premium! You now have access to: Investment Academy (50+ lessons), Advanced Tools, VIP Community, and Premium Files. By using our service you agree to our Terms & Conditions and applicable laws. Full terms at ${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html`;
-  sendNotificationMail({ to: email, subject, html, text });
-}
-
-// Send password reset email with user activity logs
-function sendPasswordResetEmail(email, resetToken) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return;
-    
-    const logs = user.activityLogs || [];
-    const recentLogs = logs.slice(-10).reverse();
-    const logHtml = recentLogs.map(l => `<li>${l.timestamp}: ${l.action} ${l.ip ? '(IP: ' + l.ip + ')' : ''}</li>`).join('');
-    
-    const subject = 'Password Reset Request — SmartInvest';
-    const resetUrl = `${process.env.BASE_URL || 'https://smartinvest.africa'}/reset-password?token=${resetToken}`;
-    const html = `
-      <h2>Password Reset Request</h2>
-      <p>We received a request to reset your password for ${email}.</p>
-      <p><a href="${resetUrl}" style="background: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a></p>
-      <p>This link expires in 1 hour.</p>
-      
-      <h3>Recent Account Activity:</h3>
-      <ul>${logHtml || '<li>No recent activity</li>'}</ul>
-      
-      <p><small>If you didn't request this reset, please ignore this email and contact support immediately.</small></p>
-    `;
-    const text = `Password reset requested for ${email}. Reset link: ${resetUrl} (expires in 1 hour). Recent activity: ${recentLogs.map(l => l.timestamp + ': ' + l.action).join('; ')}`;
-    sendNotificationMail({ to: email, subject, html, text });
-  } catch (e) {
-    console.error('sendPasswordResetEmail error', e.message);
-  }
-}
-
-// Log user activity
-function logUserActivity(email, action, ip = null) {
-  try {
-    const users = readUsers();
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return;
-    user.activityLogs = user.activityLogs || [];
-    user.activityLogs.push({ timestamp: new Date().toISOString(), action, ip });
-    // Keep only last 100 logs - use splice for efficiency when removing multiple items
-    if (user.activityLogs.length > 100) {
-      user.activityLogs.splice(0, user.activityLogs.length - 100);
-    }
-    writeUsers(users);
-  } catch (e) {
-    console.error('logUserActivity error', e.message);
-  }
-}
 
 // Grant a purchase for a fileId and email (idempotent)
 function grantPurchase(fileId, email, provider='manual', meta={}){
@@ -1426,12 +1221,7 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
     const files = readFilesMeta(); if (!files.find(f=>f.id===fileId)) return null;
     if (!email) email = (meta.email || '').toLowerCase();
     const purchases = readPurchases();
-    const exists = purchases.find(p => 
-      p.fileId === fileId && 
-      email && 
-      p.email && 
-      p.email.toLowerCase() === email.toLowerCase()
-    );
+    const exists = purchases.find(p => p.fileId === fileId && p.email && email && p.email.toLowerCase() === email.toLowerCase());
     if (exists) return exists;
     const entry = { id: uuidv4(), fileId, email: email? email.toLowerCase() : '', provider, at: new Date().toISOString(), meta };
     purchases.push(entry);
@@ -1447,15 +1237,16 @@ function grantPurchase(fileId, email, provider='manual', meta={}){
 
 // Multer setup (already defined earlier)
 
-// Scenarios endpoints: store/load/delete simple calculator scenarios (premium required)
-app.get('/api/scenarios', requirePremium, (req, res) => {
+// Scenarios endpoints: store/load/delete simple calculator scenarios
+// SECURITY FIX #2: Protect scenario endpoints from abuse
+app.get('/api/scenarios', adminAuth, (req, res) => {
   try {
     const list = readScenarios();
     return res.json({ success: true, scenarios: list });
   } catch (e) { console.error('scenarios list error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/scenarios/:id', requirePremium, (req, res) => {
+app.get('/api/scenarios/:id', adminAuth, (req, res) => {
   try {
     const id = req.params.id;
     const list = readScenarios();
@@ -1465,7 +1256,7 @@ app.get('/api/scenarios/:id', requirePremium, (req, res) => {
   } catch (e) { console.error('get scenario error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/scenarios', requirePremium, express.json(), (req, res) => {
+app.post('/api/scenarios', adminAuth, express.json(), (req, res) => {
   try {
     const body = req.body || {};
     const name = body.name || ('scenario-' + Date.now());
@@ -1521,38 +1312,44 @@ app.get('/api/admin/files', adminAuth, (req, res) => {
   try { const files = readFilesMeta(); return res.json({ success: true, files }); } catch(e){ return res.status(500).json({ error: e.message }); }
 });
 
-// Route '/api/files' is defined earlier for legacy purchaser listing.
-// Prefer '/api/premium/files' for premium-wide listing.
+// Public: list published files — restricted to purchasers. Returns published files
+// that the purchaser has access to.
+app.get('/api/files', requirePaidUser, (req, res) => {
+  try {
+    const files = readFilesMeta().filter(f => f.published);
+    if (req.isStaff) {
+      return res.json({ success: true, files });
+    }
+    const purchases = readPurchases().filter(p => p.email && String(p.email).toLowerCase() === req.purchaserEmail);
+    const ownedIds = purchases.map(p => p.fileId);
+    const owned = files.filter(f => ownedIds.includes(f.id));
+    return res.json({ success: true, files: owned });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
 
 // Public catalog: list published files (title, price, id) for browsing before purchase
 app.get('/api/catalog', (req, res) => {
   try {
     const files = readFilesMeta()
       .filter(f => f.published)
-      .map(f => ({ id: f.id, title: f.title, price: f.price, description: f.description }));
+      .map(f => ({
+        id: f.id,
+        title: f.title,
+        price: f.price,
+        description: f.description,
+        size: f.size,
+        pdfInfo: f.pdfInfo ? {
+          title: f.pdfInfo.title,
+          description: f.pdfInfo.description,
+          pages: f.pdfInfo.pages
+        } : null
+      }));
     return res.json({ success: true, files });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
-});
-
-// Public catalog: single item details by id (published only)
-app.get('/api/catalog/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const file = readFilesMeta().find(f => f.id === id && f.published);
-    if (!file) return res.status(404).json({ error: 'not found' });
-    const out = {
-      id: file.id,
-      title: file.title,
-      description: file.description,
-      price: file.price,
-      createdAt: file.createdAt || file.uploadedAt,
-      size: file.size,
-      mime: file.mime || null
-    };
-    return res.json({ success: true, file: out });
-  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // Admin: update file metadata
@@ -1576,8 +1373,23 @@ if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, JSON.stringif
 function readMessages(){ try { return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8')||'[]'); } catch(e){ return []; } }
 function writeMessages(d){ fs.writeFileSync(MESSAGES_FILE, JSON.stringify(d, null, 2)); }
 
+// SECURITY FIX #3: Add rate limiting to message endpoint
+// Limit: 10 messages per 15 minutes per IP address
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 messages per window
+  message: 'Too many messages from this IP address. Please try again later.',
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  skip: (req) => {
+    // Don't rate limit admin users
+    return req.headers.authorization && req.headers.authorization.startsWith('Basic ');
+  }
+});
+
 // Public: post a message (name optional, email optional)
-app.post('/api/messages', express.json(), (req, res) => {
+// SECURITY FIX #3: Applied rate limiting to prevent spam
+app.post('/api/messages', messageLimiter, express.json(), (req, res) => {
   try {
     const { name, email, message } = req.body || {};
     if (!message || !String(message).trim()) return res.status(400).json({ error: 'message required' });
@@ -1590,13 +1402,25 @@ app.post('/api/messages', express.json(), (req, res) => {
     sendNotificationMail({ subject: 'New site message', text: `${entry.name} wrote: ${entry.message}`, html: `<p><strong>${entry.name}</strong>: ${entry.message}</p>` });
     return res.json({ success: true, message: entry });
   } catch (e) { console.error('post message error', e.message); return res.status(500).json({ error: e.message }); }
+        if (!isValidPhone(phone)) return res.status(400).json({ error: 'invalid phone' });
+        if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid amount' });
+        if (accountReference && !isSafeText(accountReference, 64)) return res.status(400).json({ error: 'invalid account reference' });
 });
 
-// Public: list messages (visible to everyone)
+// User: list only their own messages (requires email)
 app.get('/api/messages', (req, res) => {
   try {
+    const userEmail = req.query.email || req.headers['x-user-email'];
+    
+    if (!userEmail) {
+      return res.status(400).json({ error: 'email required to view messages' });
+    }
+    
     const msgs = readMessages();
-    return res.json({ success: true, messages: msgs });
+    // Only return messages from this specific user
+    const userMessages = msgs.filter(m => m.email && m.email.toLowerCase() === userEmail.toLowerCase());
+    
+    return res.json({ success: true, messages: userMessages });
   } catch (e) { console.error('list messages error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
@@ -1629,124 +1453,85 @@ app.post('/api/admin/messages/:id/reply', adminAuth, express.json(), (req, res) 
   } catch (e) { console.error('reply message error', e.message); return res.status(500).json({ error: e.message }); }
 });
 
-// Storage Complex Endpoints - Admin Only
-// Get all storage complex data
-app.get('/api/admin/storage-complex', adminAuth, (req, res) => {
-  try {
-    const data = storageComplex.getAllStorageData();
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'view_storage_complex', { ip: req.ip });
-    return res.json({ success: true, data });
-  } catch (e) { 
-    console.error('storage complex error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Get storage complex by type
-app.get('/api/admin/storage-complex/:type', adminAuth, (req, res) => {
-  try {
-    const type = req.params.type;
-    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
-    if (!validTypes.includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
-    }
-    const data = storageComplex.getStorageByType(type);
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'view_storage_type', { type, ip: req.ip });
-    return res.json({ success: true, type, data });
-  } catch (e) { 
-    console.error('storage complex type error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Get storage complex statistics
-app.get('/api/admin/storage-stats', adminAuth, (req, res) => {
-  try {
-    const stats = storageComplex.getStorageStats();
-    return res.json({ success: true, stats });
-  } catch (e) { 
-    console.error('storage stats error', e.message); 
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
-// Clear storage by type (admin only)
-app.post('/api/admin/storage-complex/:type/clear', adminAuth, (req, res) => {
-  try {
-    const type = req.params.type;
-    const validTypes = ['cache', 'crashes', 'users', 'admin', 'logs'];
-    if (!validTypes.includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Must be one of: cache, crashes, users, admin, logs' });
-    }
-    const success = storageComplex.clearStorageByType(type);
-    const adminEmail = (req.user && req.user.email) || ADMIN_EMAIL;
-    storageComplex.addAdminEntry(adminEmail, 'clear_storage_type', { type, ip: req.ip });
-    return res.json({ success, message: `${type} storage cleared` });
-  } catch (e) { 
-    console.error('clear storage error', e.message); 
-    storageComplex.addCrashEntry(e, { endpoint: '/api/admin/storage-complex/:type/clear' });
-    return res.status(500).json({ error: e.message }); 
-  }
-});
-
 // Admin: grant purchase to an email for a file (manual grant)
 app.post('/api/admin/files/:id/grant', adminAuth, (req, res) => {
   try {
     const id = req.params.id; const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'email required' });
+    const users = readUsers();
+    const normalizedEmail = normalizeEmail(email);
+    const matches = users.filter(u => normalizeEmail(u.email) === normalizedEmail);
+    if (matches.length > 1) return res.status(409).json({ error: 'contact conflict detected for email' });
+    if (matches.length === 0) return res.status(400).json({ error: 'email not registered' });
     const files = readFilesMeta(); const file = files.find(f=>f.id===id);
     if (!file) return res.status(404).json({ error: 'file not found' });
     const purchases = readPurchases();
-    purchases.push({ id: uuidv4(), fileId: id, email: email.toLowerCase(), grantedBy: req.headers['x-admin']||'admin', at: new Date().toISOString() });
+    purchases.push({ id: uuidv4(), fileId: id, email: matches[0].email.toLowerCase(), grantedBy: req.headers['x-admin']||'admin', at: new Date().toISOString() });
     writePurchases(purchases);
     sendNotificationMail({ to: email, subject: `Access granted to ${file.title}`, text: `You have been granted access to download ${file.title}.` });
     return res.json({ success: true });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
 });
 
-// Public: request download token
-// - Allows if the email owns a purchase for the file, OR the email has active premium
-app.post('/api/download/request', express.json(), (req, res) => {
+// Public: request download token (email must match a purchase)
+app.post('/api/download/request', downloadLimiter, express.json(), (req, res) => {
   try {
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).json({ error: 'Access denied. IP blocked.' });
+    }
     const { fileId, email } = req.body;
-    if (!fileId || !email) return res.status(400).json({ error: 'fileId and email required' });
-    const e = email.toLowerCase();
-    const purchases = readPurchases();
-    const owns = purchases.find(p => p.fileId === fileId && p.email === e);
-    const premiumOk = hasPremium(e);
-    if (!owns && !premiumOk) return res.status(402).json({ error: 'Access denied: premium or purchase required' });
+    if (!fileId) return res.status(400).json({ error: 'fileId required' });
+    const files = readFilesMeta();
+    const file = files.find(f => f.id === fileId && f.published);
+    if (!file) return res.status(404).json({ error: 'file not found' });
+    const staffRequest = isAdminRequest(req);
+    const isFree = Number(file.price || 0) <= 0;
+    if (!staffRequest && !isFree && !email) return res.status(400).json({ error: 'email required for paid downloads' });
+    const normalizedEmail = email ? String(email).toLowerCase() : (process.env.ADMIN_USER || 'admin');
+
+    if (!staffRequest && !isFree) {
+      const purchases = readPurchases();
+      const ok = purchases.find(p => p.fileId === fileId && p.email === normalizedEmail);
+      if (!ok) {
+        const warn = logAccessViolation(req, { reason: 'purchase_not_found', email: normalizedEmail, fileId });
+        return res.status(402).json({
+          error: 'purchase not found',
+          warning: warn.warning,
+          remainingAttempts: warn.remaining
+        });
+      }
+    }
     const tokens = readTokens();
     const token = uuidv4();
     const expireAt = Date.now() + (60*60*1000); // 1 hour
-    tokens[token] = { fileId, email: e, expireAt };
+    tokens[token] = { fileId, email: normalizedEmail, expireAt };
     writeTokens(tokens);
     const url = `${req.protocol}://${req.get('host')}/download/${token}`;
     return res.json({ success: true, url, expiresAt: new Date(expireAt).toISOString() });
   } catch(e){ console.error(e); return res.status(500).json({ error: e.message }); }
 });
 
-// Premium: get full metadata for a file by id (for premium users)
-app.get('/api/files/:id', requirePremium, (req, res) => {
-  try {
-    const { id } = req.params;
-    const file = readFilesMeta().find(f => f.id === id && f.published);
-    if (!file) return res.status(404).json({ error: 'not found' });
-    return res.json({ success: true, file });
-  } catch (e) { return res.status(500).json({ error: e.message }); }
-});
-
 // Serve download by token
 app.get('/download/:token', (req, res) => {
   try {
+    if (isIPBlocked(getClientIP(req))) {
+      logSecurityEvent('blocked-request', getClientIP(req), { url: req.originalUrl, method: req.method });
+      return res.status(403).send('Access denied. IP blocked.');
+    }
     const token = req.params.token;
     const tokens = readTokens();
     const entry = tokens[token];
-    if (!entry) return res.status(404).send('Invalid or expired token');
-    if (Date.now() > entry.expireAt) { delete tokens[token]; writeTokens(tokens); return res.status(410).send('Token expired'); }
+    if (!entry) {
+      logAccessViolation(req, { reason: 'invalid_token', email: '', fileId: '' });
+      return res.status(404).send('Invalid or expired token');
+    }
+    if (Date.now() > entry.expireAt) {
+      delete tokens[token];
+      writeTokens(tokens);
+      logAccessViolation(req, { reason: 'expired_token', email: entry.email || '', fileId: entry.fileId || '' });
+      return res.status(410).send('Token expired');
+    }
     const files = readFilesMeta(); const file = files.find(f=>f.id===entry.fileId);
     if (!file) return res.status(404).send('File not found');
     const filePath = path.join(UPLOADS_DIR, file.filename);
@@ -1756,6 +1541,65 @@ app.get('/download/:token', (req, res) => {
   } catch(e){ console.error('download error', e.message); return res.status(500).send('Server error'); }
 });
 
+// Admin: review access violations
+app.get('/api/admin/access-violations', adminAuth, (req, res) => {
+  try {
+    const store = readAccessViolations();
+    const violations = (store.violations || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+    return res.json({ success: true, violations });
+  } catch (e) {
+    console.error('access violations list error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: take action on access violations
+app.post('/api/admin/access-violations/:id/action', adminAuth, express.json(), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, note, blockDuration } = req.body || {};
+    const store = readAccessViolations();
+    const violations = store.violations || [];
+    const idx = violations.findIndex(v => v.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'violation not found' });
+
+    const entry = violations[idx];
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!['block', 'authorize', 'dismiss'].includes(normalizedAction)) {
+      return res.status(400).json({ error: 'invalid action' });
+    }
+
+    if (normalizedAction === 'block') {
+      const durationMs = Number(blockDuration) || (24 * 60 * 60 * 1000);
+      if (entry.ip) blockIP(entry.ip, durationMs, 'Unauthorized access attempt');
+      entry.status = 'blocked';
+      entry.blockedUntil = new Date(Date.now() + durationMs).toISOString();
+    }
+
+    if (normalizedAction === 'authorize') {
+      if (entry.ip) unblockIP(entry.ip, 'Admin authorized');
+      entry.status = 'authorized';
+    }
+
+    if (normalizedAction === 'dismiss') {
+      entry.status = 'dismissed';
+    }
+
+    entry.action = normalizedAction;
+    entry.note = note || '';
+    entry.actionAt = new Date().toISOString();
+    entry.actionBy = process.env.ADMIN_USER || 'admin';
+
+    violations[idx] = entry;
+    store.violations = violations;
+    writeAccessViolations(store);
+    return res.json({ success: true, violation: entry });
+  } catch (e) {
+    console.error('access violation action error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // CSV export of KCB manual transfers
 app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
   try {
@@ -1763,18 +1607,211 @@ app.get('/api/admin/kcb-export', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const rows = arr.filter(t => t.provider === 'kcb_manual');
     const header = ['timestamp','name','email','amount','reference','status','paidAt','note'];
-    // Optimize: single-pass CSV generation instead of nested maps
-    const csvRows = rows.map(r => {
-      const values = [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')];
-      return values.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
-    });
-    const csv = [header.join(','), ...csvRows].join('\n');
+    const csv = [header.join(',')].concat(rows.map(r => {
+      return [r.timestamp, r.name, r.email, r.amount, (r.reference||''), (r.status||''), (r.paidAt||''), (r.note||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    })).join('\n');
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="kcb-transfers.csv"');
     res.send(csv);
   } catch (e) {
     console.error('export error', e.message);
     return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: Get comprehensive statistics
+app.get('/api/admin/stats', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const purchases = readPurchases();
+    const files = readFilesMeta();
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    const messagesFile = './data/messages.json';
+    const messages = fs.existsSync(messagesFile) ? JSON.parse(fs.readFileSync(messagesFile)) : [];
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : {};
+
+    const stats = {
+      totalUsers: users.length,
+      premiumUsers: users.filter(u => u.isPremium).length,
+      adminUsers: users.filter(u => u.isAdmin).length,
+      freeUsers: users.filter(u => !u.isPremium).length,
+      totalFiles: files.length,
+      publishedFiles: files.filter(f => f.published).length,
+      draftFiles: files.filter(f => !f.published).length,
+      totalPurchases: purchases.length,
+      totalMessages: messages.length,
+      unreadMessages: messages.filter(m => !m.replies || m.replies.length === 0).length,
+      totalTransactions: transactions.length,
+      pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+      completedTransactions: transactions.filter(t => t.status === 'paid' || t.status === 'completed').length,
+      totalVisitors: (analytics.visitors || []).length,
+      totalSignups: (analytics.signups || []).length,
+      totalLogins: (analytics.logins || []).length,
+      recentLogins: users.filter(u => u.lastLoginAt && new Date(u.lastLoginAt) > new Date(Date.now() - 7*24*60*60*1000)).length,
+      pendingVerifications: transactions.filter(t => t.provider === 'kcb_manual' && t.status === 'pending').length
+    };
+
+    return res.json({ success: true, stats });
+  } catch (err) {
+    console.error('stats error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get analytics data
+app.get('/api/admin/analytics', adminAuth, (req, res) => {
+  try {
+    const analyticsFile = './data/user-analytics.json';
+    const analytics = fs.existsSync(analyticsFile) ? JSON.parse(fs.readFileSync(analyticsFile)) : { visitors: [], signups: [], logins: [] };
+    
+    return res.json({ success: true, analytics });
+  } catch (err) {
+    console.error('analytics error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all transactions
+app.get('/api/admin/transactions', adminAuth, (req, res) => {
+  try {
+    const transactionsFile = './transactions.json';
+    const transactions = fs.existsSync(transactionsFile) ? JSON.parse(fs.readFileSync(transactionsFile)) : [];
+    
+    return res.json({ success: true, transactions });
+  } catch (err) {
+    console.error('transactions error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all purchases
+app.get('/api/admin/purchases', adminAuth, (req, res) => {
+  try {
+    const purchases = readPurchases();
+    return res.json({ success: true, purchases });
+  } catch (err) {
+    console.error('purchases error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Export all users to CSV
+app.get('/api/admin/users-export', adminAuth, (req, res) => {
+  try {
+    const users = readUsers();
+    const header = ['id', 'email', 'fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'isPremium', 'isAdmin', 'createdAt', 'lastLoginAt'];
+    const csv = [header.join(',')].concat(users.map(u => {
+      return [
+        u.id,
+        u.email,
+        u.fullName || '',
+        u.mobileNumber || '',
+        u.country || '',
+        u.paymentMethod || '',
+        u.amount || 0,
+        u.isPremium ? 'Yes' : 'No',
+        u.isAdmin ? 'Yes' : 'No',
+        u.createdAt || '',
+        u.lastLoginAt || ''
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    })).join('\n');
+    
+          if (!isValidName(name)) return res.status(400).json({ error: 'invalid name' });
+          if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) return res.status(400).json({ error: 'invalid amount' });
+          if (reference && !isSafeText(reference, 80)) return res.status(400).json({ error: 'invalid reference' });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="users-export.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error('user export error', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: Delete user
+app.delete('/api/admin/users/:userId', adminAuth, (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { reason, hard } = req.body || {};
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent deleting primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER) {
+      return res.status(403).json({ error: 'Cannot delete primary admin account' });
+    }
+    
+    if (hard === true) {
+      const deletedUser = users.splice(userIndex, 1)[0];
+      writeUsers(users);
+      return res.json({ success: true, message: 'User deleted', user: { id: deletedUser.id, email: deletedUser.email } });
+    }
+
+    users[userIndex].deleted = true;
+    users[userIndex].deletedAt = new Date().toISOString();
+    users[userIndex].deleteReason = reason || 'No reason provided';
+    writeUsers(users);
+
+    if (subManager.deleteUser) {
+      subManager.deleteUser(users[userIndex].id, reason);
+    }
+
+    return res.json({ success: true, message: 'User soft-deleted', user: { id: users[userIndex].id, email: users[userIndex].email } });
+  } catch (err) {
+    console.error('delete user error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Update user information
+app.patch('/api/admin/users/:userId', adminAuth, express.json(), (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const updates = req.body;
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    
+    // Prevent modifying admin status of primary admin
+    if (users[userIndex].email === process.env.ADMIN_USER && updates.isAdmin === false) {
+      return res.status(403).json({ error: 'Cannot modify primary admin status' });
+    }
+    
+    const conflict = findContactConflict(users, {
+      email: updates.email || users[userIndex].email,
+      mobileNumber: updates.mobileNumber || users[userIndex].mobileNumber
+    }, users[userIndex].id);
+    if (conflict.conflict) {
+      return res.status(409).json({ error: conflict.message });
+    }
+
+    // Update allowed fields
+    const allowedFields = ['fullName', 'mobileNumber', 'country', 'paymentMethod', 'amount', 'taxInfo'];
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        users[userIndex][field] = updates[field];
+      }
+    });
+    
+    users[userIndex].updatedAt = new Date().toISOString();
+    users[userIndex].updatedBy = process.env.ADMIN_USER || 'admin';
+    
+    writeUsers(users);
+    
+    const { passwordHash, ...safeUser } = users[userIndex];
+    return res.json({ success: true, message: 'User updated', user: safeUser });
+  } catch (err) {
+    console.error('update user error', err.message);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -1787,45 +1824,14 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
     const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
     const pending = arr.filter(t => t.provider === 'kcb_manual' && t.status === 'pending');
     const results = { matched: [], unmatched: [] };
-    
-    // Build lookup maps for O(1) matching instead of O(n²) nested loops
-    const pendingByRefAmount = new Map();
-    const pendingByAmount = new Map();
-    
-    pending.forEach(p => {
-      const ref = (p.reference || '').toString().trim();
-      const amt = Number(p.amount);
-      if (ref) {
-        const key = `${ref}:${amt}`;
-        pendingByRefAmount.set(key, p);
-      }
-      // For amount-only matching, store array of candidates with same amount
-      if (!pendingByAmount.has(amt)) {
-        pendingByAmount.set(amt, []);
-      }
-      pendingByAmount.get(amt).push(p);
-    });
-    
     incoming.forEach(entry => {
       const ref = (entry.reference || entry.ref || '').toString().trim();
       const amt = Number(entry.amount || entry.value || 0);
       let found = null;
-      
-      // Try exact match by reference + amount first (O(1) lookup)
-      if (ref) {
-        const key = `${ref}:${amt}`;
-        found = pendingByRefAmount.get(key);
-      }
-      
-      // Fall back to amount-only match - find first unmatched candidate
+      if (ref) found = pending.find(p => (p.reference||'').toString().trim() === ref && p.amount == amt);
       if (!found) {
-        const candidates = pendingByAmount.get(amt) || [];
-        found = candidates.find(c => 
-          !c._matched && 
-          (!entry.email || c.email === entry.email)
-        );
+        found = pending.find(p => Number(p.amount) === amt && (entry.email ? p.email === entry.email : true));
       }
-      
       if (found) {
         const idx = arr.findIndex(x=>x.timestamp===found.timestamp && x.provider==='kcb_manual');
         arr[idx].status = 'paid';
@@ -1834,11 +1840,6 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
         results.matched.push({ transaction: arr[idx], entry });
         // notify user
         sendNotificationMail({ to: arr[idx].email, subject: 'SmartInvest — Transfer reconciled', text: `Your bank transfer of KES ${arr[idx].amount} was matched and marked as received.` });
-        
-        // Mark as matched to prevent double-matching
-        found._matched = true;
-        if (ref) pendingByRefAmount.delete(`${ref}:${amt}`);
-        // Don't delete the entire amount mapping - just mark this candidate as matched
       } else {
         results.unmatched.push(entry);
       }
@@ -1853,545 +1854,1740 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 
 // Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
 
+// ========== SUBSCRIPTION & ACCESS CONTROL ENDPOINTS ==========
+
+// User Login/Registration - Create or retrieve user
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, userId } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email required' });
+    }
+
+    // Try to find existing user
+    let user = subManager.getUserByEmail(email);
+    
+    if (!user) {
+      // Create new user
+      user = subManager.createUser({
+        email,
+        name: email.split('@')[0],
+        phone: '',
+        location: '',
+        taxId: ''
+      });
+      
+      if (user.error) {
+        return res.status(400).json(user);
+      }
+      
+      console.log(`[AUTH] New user created: ${user.id} (${email})`);
+    } else {
+      // Update last login
+      user.lastLogin = new Date().toISOString();
+      subManager.updateUser(user.id, { updatedAt: new Date().toISOString() });
+      console.log(`[AUTH] User logged in: ${user.id} (${email})`);
+    }
+
+    // Add subscription details
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription
+    };
+
+    subManager.logAccess(user.id, 'LOGIN', 'dashboard', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[AUTH] Login error:', err.message);
+    return res.status(500).json({ error: 'Login failed', message: err.message });
+  }
+});
+
+// Get user data
+app.get('/api/users/:userId', (req, res) => {
+  try {
+    const user = subManager.getUser(req.params.userId);
+    
+    if (!user) {
+      subManager.logAccess(req.params.userId, 'GET_USER', 'user-data', 'not-found', req.ip);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const subscription = subManager.getUserSubscription(user.id);
+    const userWithSub = {
+      ...user,
+      subscriptionDetails: subscription,
+      isPremium: subManager.isPremiumUser(user.id)
+    };
+
+    subManager.logAccess(user.id, 'GET_USER', 'user-data', 'success', req.ip);
+    
+    return res.json({ success: true, user: userWithSub });
+  } catch (err) {
+    console.error('[USERS] Get user error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve user', message: err.message });
+  }
+});
+
+// Check calculator access (CRITICAL: NO BYPASSES)
+app.post('/api/calculators/:calcType/access', (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { calcType } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    const user = subManager.getUser(userId);
+    if (!user) {
+      subManager.logAccess(userId, 'ACCESS_CHECK', calcType, 'user-not-found', req.ip);
+      return res.status(401).json({ access: false, reason: 'User not found' });
+    }
+
+    // Free calculators: Investment, Amortization, Insurance
+    const freeCalcs = ['investment', 'amortization', 'insurance'];
+    if (freeCalcs.includes(calcType)) {
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'free-calc', req.ip);
+      return res.json({ access: true, type: 'free', reason: 'Free calculator' });
+    }
+
+    // Premium calculators: Bonds, Pension, Actuarial, Risk, Business, Audit
+    const premiumCalcs = ['bonds', 'pension', 'actuarial', 'risk', 'business', 'audit'];
+    if (premiumCalcs.includes(calcType)) {
+      // AUTHORITATIVE CHECK: isPremiumUser does full validation
+      const isPremium = subManager.isPremiumUser(userId);
+      
+      if (!isPremium) {
+        subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'not-premium', req.ip);
+        return res.status(403).json({ 
+          access: false, 
+          type: 'premium', 
+          reason: 'Premium subscription required' 
+        });
+      }
+
+      subManager.logAccess(userId, 'ACCESS_GRANTED', calcType, 'premium-calc', req.ip);
+      return res.json({ access: true, type: 'premium', reason: 'Premium subscriber' });
+    }
+
+    subManager.logAccess(userId, 'ACCESS_DENIED', calcType, 'unknown-calc', req.ip);
+    return res.status(400).json({ access: false, reason: 'Unknown calculator' });
+  } catch (err) {
+    console.error('[CALCULATORS] Access check error:', err.message);
+    return res.status(500).json({ error: 'Access check failed', message: err.message });
+  }
+});
+
+// ========== ADMIN SUBSCRIPTION MANAGEMENT ==========
+
+// Create subscription for user (ADMIN ONLY)
+app.post('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const { userId, amount, paymentMethod, paymentReference, validFrom, validUntil, reason, notes } = req.body;
+
+    const subscription = subManager.createSubscription({
+      userId,
+      amount,
+      paymentMethod,
+      paymentReference,
+      validFrom,
+      validUntil,
+      reason,
+      notes,
+      grantedBy: 'admin'
+    });
+
+    if (subscription.error) {
+      return res.status(400).json(subscription);
+    }
+
+    console.log(`[ADMIN] Subscription created for user ${userId}`);
+    subManager.logAccess(userId, 'SUBSCRIPTION_CREATED', 'admin', 'success', req.ip);
+
+    return res.json({ success: true, subscription });
+  } catch (err) {
+    console.error('[ADMIN] Create subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to create subscription', message: err.message });
+  }
+});
+
+// Get all subscriptions (ADMIN ONLY)
+app.get('/api/admin/subscriptions', adminAuth, (req, res) => {
+  try {
+    const filters = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.userId) filters.userId = req.query.userId;
+
+    const subscriptions = subManager.getAllSubscriptions(filters);
+    return res.json({ success: true, subscriptions });
+  } catch (err) {
+    console.error('[ADMIN] Get subscriptions error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve subscriptions' });
+  }
+});
+
+// Extend subscription (ADMIN ONLY)
+app.put('/api/admin/subscriptions/:subId/extend', adminAuth, (req, res) => {
+  try {
+    const { days } = req.body;
+    if (!days || days < 0) {
+      return res.status(400).json({ error: 'Valid days value required' });
+    }
+
+    const result = subManager.extendSubscription(req.params.subId, days);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} extended by ${days} days`);
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Extend subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to extend subscription' });
+  }
+});
+
+// Revoke subscription (ADMIN ONLY)
+app.post('/api/admin/subscriptions/:subId/revoke', adminAuth, (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    // Get subscription to find user
+    const subscriptions = subManager.getAllSubscriptions();
+    const sub = subscriptions.find(s => s.id === req.params.subId);
+    
+    if (!sub) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    const result = subManager.revokeSubscription(req.params.subId, reason);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+
+    console.log(`[ADMIN] Subscription ${req.params.subId} revoked. Reason: ${reason}`);
+    subManager.logAccess(sub.userId, 'SUBSCRIPTION_REVOKED', 'admin', 'revoked', req.ip);
+
+    return res.json(result);
+  } catch (err) {
+    console.error('[ADMIN] Revoke subscription error:', err.message);
+    return res.status(500).json({ error: 'Failed to revoke subscription' });
+  }
+});
+
+
+// Note: debug endpoints like `/api/pay/mpesa/token` removed to avoid exposing sensitive tokens.
+
+// Serve specific HTML files (prevent exposing sensitive files like .env)
+app.get('/', (req, res) => {
+// ========== EMAIL MANAGEMENT ENDPOINTS ==========
+
+// Admin: Send welcome email to a user
+app.post('/api/admin/email/send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendWelcomeEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Welcome email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send welcome email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to a user
+app.post('/api/admin/email/send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+    return res.json({ success: sent, message: sent ? 'Terms & Conditions email sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send terms email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send bulk welcome emails to all users or filtered users
+app.post('/api/admin/email/bulk-send-welcome', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body; // optional: { isPremium: true }, { type: 'subscriber' }, etc.
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    // Apply filters if provided
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+      if (filter.type === 'registered') {
+        targetUsers = users.filter(u => u.createdAt);
+      }
+    }
+
+    console.log(`📧 Sending welcome emails to ${targetUsers.length} users...`);
+    const result = await emailService.sendBulkWelcomeEmails(targetUsers);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk email send completed',
+      results: result,
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send welcome error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send terms and conditions to all users
+app.post('/api/admin/email/bulk-send-terms', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { filter } = req.body;
+    
+    const users = readUsers();
+    let targetUsers = users;
+
+    if (filter) {
+      if (filter.isPremium === true) {
+        targetUsers = users.filter(u => u.isPremium);
+      } else if (filter.isPremium === false) {
+        targetUsers = users.filter(u => !u.isPremium);
+      }
+    }
+
+    console.log(`⚖️  Sending Terms & Conditions emails to ${targetUsers.length} users...`);
+    
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const user of targetUsers) {
+      const sent = await emailService.sendTermsAndConditionsEmail(user.email, user);
+      if (sent) successCount++;
+      else failureCount++;
+      await new Promise(resolve => setTimeout(resolve, 500)); // Avoid rate limiting
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Bulk Terms & Conditions send completed',
+      results: { successCount, failureCount },
+      totalTargeted: targetUsers.length
+    });
+  } catch (err) {
+    console.error('bulk send terms error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Send subscription confirmation email
+app.post('/api/admin/email/send-subscription-confirmation', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { userId, subscriptionData } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const users = readUsers();
+    const user = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    
+    if (!user) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+
+    const sent = await emailService.sendSubscriptionConfirmationEmail(user.email, subscriptionData || {});
+    return res.json({ success: sent, message: sent ? 'Subscription confirmation sent' : 'Failed to send email' });
+  } catch (err) {
+    console.error('send subscription email error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get email service status
+app.get('/api/admin/email/status', adminAuth, (req, res) => {
+  try {
+    const status = {
+      initialized: emailService.initialized,
+      transporter: emailService.transporter ? 'configured' : 'not configured',
+      smtpUser: process.env.SMTP_USER ? 'set' : 'not set',
+      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+      timestamp: new Date().toISOString()
+    };
+    return res.json(status);
+  } catch (err) {
+    console.error('email status error', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== STATIC ROUTES ==========
+
+app.get('/share/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'share.html'));
+});
+
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-expanded.html'));
+});
+
+app.get('/terms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'terms.html'));
+});
+
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
-// Premium Academy Content API (requires premium subscription)
-app.get('/api/academy/courses', requirePremium, (req, res) => {
-  const courses = [
-    { id: 'investing-101', title: 'Investing 101', level: 'Beginner', lessons: 15, duration: '3 hours' },
-    { id: 'trading-essentials', title: 'Trading Essentials', level: 'Intermediate', lessons: 20, duration: '5 hours' },
-    { id: 'sme-funding', title: 'SME Funding Readiness', level: 'SME', lessons: 12, duration: '4 hours' },
-    { id: 'digital-assets', title: 'Digital Assets & Crypto', level: 'Advanced', lessons: 18, duration: '6 hours' }
-  ];
-  return res.json({ success: true, courses });
+// ============================================================================
+// INTEGRATE NEW CONTENT MANAGEMENT & ANALYTICS ENDPOINTS
+// ============================================================================
+contentAPI.courseEndpoints(app, adminAuth);
+contentAPI.insightsEndpoints(app, adminAuth);
+contentAPI.toolsEndpoints(app, adminAuth);
+contentAPI.smeEndpoints(app, adminAuth);
+contentAPI.communityEndpoints(app, adminAuth);
+contentAPI.analyticsEndpoints(app, adminAuth);
+contentAPI.publicEndpoints(app);
+
+// ============================================================================
+// INTEGRATE SHARE LINKS, PRODUCT FILES, AND USER SEARCH
+// ============================================================================
+const shareLinkAPI = require('./api/share-link-api');
+const productFilesAPI = require('./api/product-files-api');
+const userSearchAPI = require('./api/user-search-api');
+const liveEmailAPI = require('./api/live-email-api');
+const socialMediaAPI = require('./api/social-media-api');
+const comprehensiveAPI = require('./api/comprehensive-api');
+
+app.use('/api/share', shareLinkAPI);
+app.use('/api/admin/product-files', adminAuth, productFilesAPI);
+app.use('/api/admin/users', adminAuth, userSearchAPI);
+app.use('/api/email', liveEmailAPI);
+app.use('/api/social-media', socialMediaAPI);
+app.put('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+app.post('/api/admin/social-media/update-all', adminAuth, socialMediaAPI);
+
+// Smart Invest Intelligent Features API Routes
+app.use('/api', comprehensiveAPI);
+app.delete('/api/admin/social-media/:platform', adminAuth, socialMediaAPI);
+
+// ============================================================================
+// P2P PAYMENT SYSTEM & AFFILIATE PROGRAM
+// ============================================================================
+const p2pSystem = require('./api/p2p-payment-system');
+const affiliateSystem = require('./api/affiliate-system');
+const adsSystem = require('./api/ads-payment-system');
+
+// P2P Payment Endpoints (LIVE)
+app.post('/api/p2p/initiate', express.json(), async (req, res) => {
+  try {
+    const result = await p2pSystem.initiateP2PPayment(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
 });
 
-app.get('/api/academy/courses/:id', requirePremium, (req, res) => {
-  const courseContent = {
-    'investing-101': { title: 'Investing 101', modules: ['Basics', 'Risk Management', 'Diversification'] },
-    'trading-essentials': { title: 'Trading Essentials', modules: ['Market Analysis', 'Trading Psychology', 'Risk Control'] },
-    'sme-funding': { title: 'SME Funding Readiness', modules: ['Pitching', 'Valuation', 'Investor Relations'] },
-    'digital-assets': { title: 'Digital Assets & Crypto', modules: ['Custody', 'Security', 'Strategy'] }
-  };
-  const course = courseContent[req.params.id];
-  if (!course) return res.status(404).json({ error: 'Course not found' });
-  return res.json({ success: true, course });
+app.post('/api/p2p/complete', express.json(), async (req, res) => {
+  try {
+    const { reference, mpesaReceipt } = req.body;
+    const result = await p2pSystem.completeP2PTransaction(reference, mpesaReceipt);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
 });
 
-// Premium Tools API
-app.get('/api/tools/portfolio', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'Portfolio tracker data', isPremium: true });
+app.get('/api/p2p/transactions/:phone', async (req, res) => {
+  try {
+    const transactions = await p2pSystem.getUserTransactions(req.params.phone, req.query.email);
+    res.json({ success: true, transactions });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
 });
 
-app.get('/api/tools/risk-profiler', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'Risk profiler data', isPremium: true });
+app.get('/api/p2p/admin/transactions', adminAuth, async (req, res) => {
+  try {
+    const transactions = await p2pSystem.getAllTransactions(req.query);
+    res.json({ success: true, transactions });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.get('/api/tools/recommendations', requirePremium, (req, res) => {
-  return res.json({ success: true, message: 'AI recommendations', isPremium: true });
+app.get('/api/p2p/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await p2pSystem.getTransactionStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Affiliate Program Endpoints
+app.post('/api/affiliate/register', express.json(), async (req, res) => {
+  try {
+    const result = await affiliateSystem.registerAffiliate(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/dashboard/:code', async (req, res) => {
+  try {
+    const dashboard = await affiliateSystem.getAffiliateDashboard(req.params.code);
+    res.json(dashboard);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/commissions/:code', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const commissions = await affiliateSystem.getCommissionsHistory(req.params.code, limit);
+    res.json(commissions);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/withdraw', express.json(), async (req, res) => {
+  try {
+    const { affiliateCode, amount, method } = req.body;
+    const result = await affiliateSystem.requestWithdrawal(affiliateCode, amount, method);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/admin/process-withdrawal', adminAuth, express.json(), async (req, res) => {
+  try {
+    const { affiliateCode, withdrawalId, status } = req.body;
+    const result = await affiliateSystem.processWithdrawal(affiliateCode, withdrawalId, status);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/affiliate/admin/all', adminAuth, async (req, res) => {
+  try {
+    const affiliates = await affiliateSystem.getAllAffiliates(req.query);
+    res.json({ success: true, affiliates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/affiliate/upgrade-tier/:code', express.json(), async (req, res) => {
+  try {
+    const result = await affiliateSystem.upgradeAffiliateTier(req.params.code);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
 });
 
 // ============================================================================
-// MODERN PAYMENT SYSTEM API ENDPOINTS
+// ADS PAYMENT SYSTEM (LIVE)
 // ============================================================================
 
-// Helper: require user authentication (lighter than requirePremium)
-function requireAuth(req, res, next) {
-  const payload = verifyTokenFromReq(req);
-  if (!payload || !payload.email) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  req.user = { email: payload.email, admin: payload.admin || false };
-  return next();
-}
-
-// Helper: write transactions to file
-function writeTransactions(transactions) {
+// Get ad packages and pricing
+app.get('/api/ads/packages', async (req, res) => {
   try {
-    const file = './transactions.json';
-    fs.writeFileSync(file, JSON.stringify(transactions, null, 2));
-  } catch (e) {
-    console.error('writeTransactions error', e.message);
+    const packagesInfo = {
+      banner: {
+        name: 'Banner Ad',
+        positions: ['top', 'bottom', 'sidebar'],
+        pricing: { day: 5, week: 30, month: 100, quarter: 250, year: 900 },
+        dimensions: '728x90 or 300x250'
+      },
+      featured: {
+        name: 'Featured Listing',
+        positions: ['homepage', 'category'],
+        pricing: { day: 10, week: 60, month: 200, quarter: 500, year: 1800 },
+        features: ['Top placement', 'Highlighted border', 'Priority display']
+      },
+      popup: {
+        name: 'Popup Ad',
+        positions: ['entry', 'exit'],
+        pricing: { day: 15, week: 90, month: 300, quarter: 750, year: 2500 },
+        frequency: 'Once per session'
+      },
+      sponsored: {
+        name: 'Sponsored Content',
+        positions: ['blog', 'insights', 'tools'],
+        pricing: { week: 100, month: 350, quarter: 900, year: 3000 },
+        features: ['Full article', 'Author byline', 'Social sharing']
+      },
+      video: {
+        name: 'Video Ad',
+        positions: ['pre-roll', 'mid-roll'],
+        pricing: { day: 20, week: 120, month: 400, quarter: 1000, year: 3500 },
+        duration: 'Up to 30 seconds'
+      }
+    };
+    res.json({ success: true, packages: packagesInfo });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-}
+});
 
-// 1. Process Payment (POST /api/payments/process)
-app.post('/api/payments/process', requireAuth, async (req, res) => {
+// Calculate ad cost
+app.post('/api/ads/calculate-cost', express.json(), async (req, res) => {
   try {
-    const { amount, currency, method, phone, email, description, reference } = req.body;
+    const { packageType, duration, quantity } = req.body;
+    const cost = await adsSystem.calculateAdCost(packageType, duration, quantity);
+    res.json({ success: true, cost });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Initiate ad payment (LIVE)
+app.post('/api/ads/initiate-payment', express.json(), async (req, res) => {
+  try {
+    const result = await adsSystem.initiateAdPayment(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Complete ad payment (LIVE)
+app.post('/api/ads/complete-payment', express.json(), async (req, res) => {
+  try {
+    const { reference, mpesaReceipt } = req.body;
+    const result = await adsSystem.completeAdPayment(reference, mpesaReceipt);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Get active ads for display
+app.get('/api/ads/active', async (req, res) => {
+  try {
+    const position = req.query.position;
+    const ads = await adsSystem.getActiveAds(position);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get user's ads
+app.get('/api/ads/my-ads', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'] || req.query.email;
+    if (!userEmail) {
+      return res.status(400).json({ success: false, error: 'Email required' });
+    }
+    const ads = await adsSystem.getAdvertiserAds(userEmail);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get user's ad payments
+app.get('/api/ads/my-payments', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'] || req.query.email;
+    if (!userEmail) {
+      return res.status(400).json({ success: false, error: 'Email required' });
+    }
+    const allPayments = await adsSystem.getAllPayments();
+    const userPayments = allPayments.filter(p => p.advertiser.email === userEmail);
+    res.json({ success: true, payments: userPayments });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Record ad impression
+app.post('/api/ads/impression/:adId', async (req, res) => {
+  try {
+    await adsSystem.recordImpression(req.params.adId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Record ad click
+app.post('/api/ads/click/:adId', async (req, res) => {
+  try {
+    await adsSystem.recordClick(req.params.adId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get advertiser's ads
+app.get('/api/ads/advertiser/:email', async (req, res) => {
+  try {
+    const ads = await adsSystem.getAdvertiserAds(req.params.email);
+    res.json({ success: true, ads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Approve ad
+app.post('/api/ads/admin/approve/:adId', adminAuth, async (req, res) => {
+  try {
+    const result = await adsSystem.approveAd(req.params.adId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Get all ad payments
+app.get('/api/ads/admin/payments', adminAuth, async (req, res) => {
+  try {
+    const payments = await adsSystem.getAllPayments(req.query);
+    res.json({ success: true, payments });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Get ads statistics
+app.get('/api/ads/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await adsSystem.getAdsStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============= BLOCKCHAIN INVESTMENT DASHBOARD API =============
+
+// Premium endpoint: Get blockchain market data (NSE, Crypto prices)
+app.get('/api/blockchain/market-data', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
     
-    // Validation
-    if (!amount || !currency || !method) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing required fields: amount, currency, method' 
-      });
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
     }
     
-    // Generate transaction ID
-    const transactionId = `txn_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    
-    // Create transaction record
-    const transaction = {
-      id: transactionId,
-      userId: req.user.email,
-      amount: parseFloat(amount),
-      currency,
-      method,
-      status: 'processing',
-      description: description || '',
-      email: email || req.user.email,
-      phone: phone || '',
-      reference: reference || `SMI-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
-      timestamp: new Date().toISOString(),
-      provider: method,
-      createdAt: new Date().toISOString()
+    // Return current market data (mock data for now, can be connected to live APIs)
+    const marketData = {
+      success: true,
+      data: {
+        nseIndex: '2,050.45',
+        marketCap: '$45.2B',
+        listedCompanies: 67,
+        cryptoPrices: {
+          BTC: '$42,500',
+          ETH: '$2,250',
+          MATIC: '$0.85',
+          SOL: '$105',
+          ADA: '$0.75',
+          XRP: '$2.15'
+        },
+        lastUpdated: new Date().toISOString()
+      }
     };
     
-    // Read existing transactions
-    const transactions = readTransactions();
-    transactions.push(transaction);
-    writeTransactions(transactions);
-    
-    // Simulate payment processing based on method
-    // In production, integrate with actual payment gateways
-    let processingMessage = '';
-    switch (method) {
-      case 'mpesa':
-        processingMessage = 'M-Pesa STK push initiated. Check your phone.';
-        // In production: call actual M-Pesa API
-        break;
-      case 'paystack':
-        processingMessage = 'Redirecting to Paystack payment page...';
-        // In production: create Paystack transaction
-        break;
-      case 'stripe':
-        processingMessage = 'Stripe payment session created.';
-        // In production: create Stripe payment intent
-        break;
-      case 'paypal':
-        processingMessage = 'Redirecting to PayPal...';
-        // In production: create PayPal order
-        break;
-      case 'flutterwave':
-        processingMessage = 'Flutterwave payment initiated.';
-        // In production: create Flutterwave transaction
-        break;
-      default:
-        processingMessage = 'Payment processing...';
-    }
-    
-    return res.json({
-      success: true,
-      transactionId,
-      reference: transaction.reference,
-      amount: transaction.amount,
-      currency: transaction.currency,
-      status: 'processing',
-      message: processingMessage
-    });
-    
+    res.json(marketData);
   } catch (err) {
-    console.error('Payment processing error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Payment processing failed', 
-      message: err.message 
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 2. Record Transaction (POST /api/payments/record)
-app.post('/api/payments/record', requireAuth, (req, res) => {
+// Premium endpoint: Get derivatives analysis
+app.get('/api/blockchain/derivatives', async (req, res) => {
   try {
-    const { transactionId, amount, currency, method, status, email, phone, reference, description } = req.body;
+    const userEmail = req.headers['x-user-email'];
     
-    if (!transactionId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'transactionId is required' 
-      });
-    }
-    
-    const transactions = readTransactions();
-    const existingTx = transactions.find(tx => tx.id === transactionId || tx.reference === reference);
-    
-    if (existingTx) {
-      // Update existing transaction
-      existingTx.status = status || existingTx.status;
-      existingTx.email = email || existingTx.email;
-      existingTx.phone = phone || existingTx.phone;
-      existingTx.updatedAt = new Date().toISOString();
-      if (description) existingTx.description = description;
-    } else {
-      // Create new record
-      transactions.push({
-        id: transactionId,
-        userId: req.user.email,
-        amount: parseFloat(amount) || 0,
-        currency: currency || 'USD',
-        method: method || 'unknown',
-        status: status || 'pending',
-        description: description || '',
-        email: email || req.user.email,
-        phone: phone || '',
-        reference: reference || transactionId,
-        timestamp: new Date().toISOString(),
-        provider: method || 'unknown',
-        createdAt: new Date().toISOString()
-      });
-    }
-    
-    writeTransactions(transactions);
-    
-    return res.json({
-      success: true,
-      message: 'Transaction recorded successfully'
-    });
-    
-  } catch (err) {
-    console.error('Transaction recording error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to record transaction' 
-    });
-  }
-});
-
-// 3. Get User Transaction History (GET /api/payments/user/history)
-app.get('/api/payments/user/history', requireAuth, (req, res) => {
-  try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 10));
-    const searchQuery = (req.query.search || '').toLowerCase();
-    const statusFilter = req.query.status;
-    
-    const allTransactions = readTransactions();
-    
-    // Filter by user email
-    let userTransactions = allTransactions.filter(tx => 
-      tx.userId === req.user.email || tx.email === req.user.email
-    );
-    
-    // Apply search filter
-    if (searchQuery) {
-      userTransactions = userTransactions.filter(tx => 
-        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
-        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
-        (tx.id && tx.id.toLowerCase().includes(searchQuery))
-      );
-    }
-    
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      userTransactions = userTransactions.filter(tx => 
-        tx.status === statusFilter
-      );
-    }
-    
-    // Sort by timestamp (newest first)
-    userTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // Pagination
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedTransactions = userTransactions.slice(start, end);
-    
-    // Format transactions for frontend
-    const formattedTransactions = paginatedTransactions.map(tx => ({
-      id: tx.id,
-      amount: tx.amount,
-      currency: tx.currency || 'USD',
-      method: tx.method || tx.provider || 'unknown',
-      status: tx.status || 'pending',
-      description: tx.description || `Payment via ${tx.method || tx.provider}`,
-      email: tx.email,
-      phone: tx.phone,
-      reference: tx.reference,
-      timestamp: tx.timestamp || tx.createdAt,
-      receiptUrl: tx.receipt || tx.receiptUrl || null,
-      note: tx.note || null
-    }));
-    
-    return res.json({
-      success: true,
-      transactions: formattedTransactions,
-      pagination: {
-        page,
-        pageSize,
-        total: userTransactions.length,
-        totalPages: Math.ceil(userTransactions.length / pageSize)
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
       }
-    });
-    
-  } catch (err) {
-    console.error('Get user history error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve transaction history' 
-    });
-  }
-});
-
-// 4. Get All Transactions - Admin Only (GET /api/payments/admin/all)
-app.get('/api/payments/admin/all', adminAuth, (req, res) => {
-  try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 15));
-    const searchQuery = (req.query.search || '').toLowerCase();
-    const statusFilter = req.query.status;
-    
-    let allTransactions = readTransactions();
-    
-    // Apply search filter
-    if (searchQuery) {
-      allTransactions = allTransactions.filter(tx => 
-        (tx.description && tx.description.toLowerCase().includes(searchQuery)) ||
-        (tx.reference && tx.reference.toLowerCase().includes(searchQuery)) ||
-        (tx.email && tx.email.toLowerCase().includes(searchQuery)) ||
-        (tx.id && tx.id.toLowerCase().includes(searchQuery)) ||
-        (tx.userId && tx.userId.toLowerCase().includes(searchQuery))
-      );
     }
     
-    // Apply status filter
-    if (statusFilter && statusFilter !== 'all') {
-      allTransactions = allTransactions.filter(tx => 
-        tx.status === statusFilter
-      );
-    }
-    
-    // Sort by timestamp (newest first)
-    allTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // Pagination
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedTransactions = allTransactions.slice(start, end);
-    
-    // Format transactions for admin view
-    const formattedTransactions = paginatedTransactions.map(tx => ({
-      id: tx.id,
-      userId: tx.userId || tx.email,
-      amount: tx.amount,
-      currency: tx.currency || 'USD',
-      method: tx.method || tx.provider || 'unknown',
-      status: tx.status || 'pending',
-      description: tx.description || `Payment via ${tx.method || tx.provider}`,
-      email: tx.email,
-      phone: tx.phone,
-      reference: tx.reference,
-      timestamp: tx.timestamp || tx.createdAt,
-      receiptUrl: tx.receipt || tx.receiptUrl || null,
-      note: tx.note || null,
-      paidAt: tx.paidAt || null,
-      updatedAt: tx.updatedAt || null
-    }));
-    
-    return res.json({
-      success: true,
-      transactions: formattedTransactions,
-      pagination: {
-        page,
-        pageSize,
-        total: allTransactions.length,
-        totalPages: Math.ceil(allTransactions.length / pageSize)
+    const strategies = [
+      {
+        id: 1,
+        name: 'Bull Call Spread',
+        type: 'option-spread',
+        maxProfit: 'Limited',
+        maxLoss: 'Net premium paid',
+        breakeven: 'Long call strike + net premium',
+        riskLevel: 'medium',
+        volatility: 'neutral'
+      },
+      {
+        id: 2,
+        name: 'Iron Condor',
+        type: 'income-strategy',
+        maxProfit: 'Net credit received',
+        maxLoss: 'Width of spreads - credit',
+        breakeven: '2 breakevens',
+        riskLevel: 'high',
+        volatility: 'neutral'
+      },
+      {
+        id: 3,
+        name: 'LEAPS Call',
+        type: 'long-term-option',
+        maxProfit: 'Unlimited',
+        maxLoss: 'Premium paid',
+        breakeven: 'Strike + premium',
+        riskLevel: 'high',
+        volatility: 'long'
       }
-    });
-    
-  } catch (err) {
-    console.error('Get admin transactions error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to retrieve transactions' 
-    });
-  }
-});
-
-// 5. Export Transactions to CSV - Admin Only (GET /api/payments/export/csv)
-app.get('/api/payments/export/csv', adminAuth, (req, res) => {
-  try {
-    const allTransactions = readTransactions();
-    
-    // Sort by timestamp (newest first)
-    allTransactions.sort((a, b) => 
-      new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)
-    );
-    
-    // CSV Headers
-    const headers = [
-      'Transaction ID',
-      'User ID/Email',
-      'Amount',
-      'Currency',
-      'Payment Method',
-      'Status',
-      'Description',
-      'Email',
-      'Phone',
-      'Reference',
-      'Timestamp',
-      'Receipt URL',
-      'Note'
     ];
     
-    // CSV Rows
-    const rows = allTransactions.map(tx => [
-      tx.id || '',
-      tx.userId || tx.email || '',
-      tx.amount || '0',
-      tx.currency || 'USD',
-      tx.method || tx.provider || 'unknown',
-      tx.status || 'pending',
-      (tx.description || '').replace(/,/g, ';'), // Escape commas
-      tx.email || '',
-      tx.phone || '',
-      tx.reference || '',
-      tx.timestamp || tx.createdAt || '',
-      tx.receipt || tx.receiptUrl || '',
-      (tx.note || '').replace(/,/g, ';') // Escape commas
-    ]);
-    
-    // Build CSV content
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    // Set headers for CSV download
-    const filename = `smartinvest-transactions-${new Date().toISOString().split('T')[0]}.csv`;
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    return res.send(csvContent);
-    
+    res.json({ success: true, strategies });
   } catch (err) {
-    console.error('Export CSV error:', err.message);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to export transactions' 
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get property data
+app.get('/api/blockchain/properties', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    const properties = [
+      {
+        id: 1,
+        name: 'Residential Property - Nairobi',
+        type: 'residential',
+        purchasePrice: 250000,
+        currentValue: 280000,
+        annualMaintenance: 5000,
+        rentalIncome: 18000,
+        roi: '5.2%',
+        capRate: '5.8%'
+      },
+      {
+        id: 2,
+        name: 'Vehicle - Toyota Land Cruiser',
+        type: 'vehicle',
+        purchasePrice: 45000,
+        currentValue: 38000,
+        annualDepreciation: 6200,
+        annualMaintenance: 3500,
+        depreciationRate: '13.8%'
+      },
+      {
+        id: 3,
+        name: 'Office Equipment',
+        type: 'equipment',
+        purchasePrice: 12000,
+        currentValue: 8400,
+        usefulLife: 5,
+        yearsRemaining: 2,
+        annualDepreciation: 2400
+      }
+    ];
+    
+    res.json({ success: true, properties });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets
+app.get('/api/blockchain/intangible-assets', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    const assets = [
+      {
+        id: 1,
+        name: 'SmartInvest Brand',
+        type: 'brand-equity',
+        estimatedValue: 120000,
+        valuationMethod: 'market-comparable',
+        yearAcquired: 2019,
+        annualGrowth: '8.5%'
+      },
+      {
+        id: 2,
+        name: 'Patent - Investment Algorithm',
+        type: 'patent',
+        estimatedValue: 75000,
+        expirationDate: '2034',
+        protectionRegions: ['Kenya', 'East Africa'],
+        royaltyPotential: '12000/year'
+      },
+      {
+        id: 3,
+        name: 'Customer Database',
+        type: 'customer-relationships',
+        estimatedValue: 85000,
+        numberOfCustomers: 2450,
+        customerLifetimeValue: 45000,
+        retentionRate: '82%'
+      },
+      {
+        id: 4,
+        name: 'Trading Algorithm Source Code',
+        type: 'software',
+        estimatedValue: 95000,
+        developmentCost: 150000,
+        yearsToBreakeven: 2,
+        competitiveAdvantage: 'high'
+      }
+    ];
+    
+    res.json({ success: true, assets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get NSE forum threads
+app.get('/api/blockchain/forum-threads', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return forum threads (mock data for now)
+    const threads = [
+      {
+        id: 1,
+        title: 'NSE Index Reaches All-Time High',
+        replies: 156,
+        views: 1234,
+        postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        category: 'market-news'
+      },
+      {
+        id: 2,
+        title: 'Best Dividend Stocks in Kenya 2024',
+        replies: 89,
+        views: 892,
+        postedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        category: 'stock-analysis'
+      },
+      {
+        id: 3,
+        title: 'Banking Sector Performance Analysis',
+        replies: 234,
+        views: 2456,
+        postedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        category: 'sector-analysis'
+      },
+      {
+        id: 4,
+        title: 'Fundamental Analysis: Safaricom\'s Growth Prospects',
+        replies: 167,
+        views: 1890,
+        postedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        category: 'stock-analysis'
+      },
+      {
+        id: 5,
+        title: 'Portfolio Diversification Strategy for NSE',
+        replies: 145,
+        views: 1567,
+        postedAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        category: 'strategy'
+      }
+    ];
+    
+    res.json({ success: true, threads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Analytics: Track blockchain dashboard views
+app.post('/api/analytics/blockchain-dashboard', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    
+    // Log analytics event (can be saved to file or database)
+    const analyticsEvent = {
+      event: 'blockchain-dashboard-view',
+      email: email.toLowerCase(),
+      timestamp: new Date().toISOString(),
+      userAgent: req.headers['user-agent']
+    };
+    
+    // In production, save this to analytics database
+    console.log('Analytics:', analyticsEvent);
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Premium endpoint: Get financial derivatives information
+app.get('/api/blockchain/derivatives', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access if user email provided
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return derivatives data
+    const derivatives = {
+      success: true,
+      data: {
+        futures: {
+          description: 'Standardized contracts for future delivery',
+          types: ['Perpetual Futures', 'Quarterly Futures', 'Spot Futures'],
+          leverage: 'Up to 100x',
+          risks: ['Liquidation Risk', 'Funding Rates', 'Execution Risk'],
+          examples: ['BTC/USDT Perpetual', 'ETH Quarterly Futures']
+        },
+        options: {
+          description: 'Right to buy (call) or sell (put) at fixed price',
+          strategies: ['Covered Calls', 'Protective Puts', 'Spreads', 'Straddles', 'Iron Condor'],
+          greeks: {
+            delta: 'Rate of change with underlying price',
+            gamma: 'Rate of change of delta',
+            theta: 'Time decay',
+            vega: 'Volatility sensitivity',
+            rho: 'Interest rate sensitivity'
+          },
+          leverage: 'Varies by strategy'
+        },
+        swaps: {
+          description: 'Exchange of cash flows between parties',
+          types: ['Interest Rate Swaps', 'Basis Swaps', 'Tenor Swaps', 'Currency Swaps'],
+          counterpartyRisk: 'Significant',
+          marketSize: '$500+ Trillion notional'
+        },
+        forwards: {
+          description: 'Customized contracts between two parties',
+          advantages: ['Flexible terms', 'Customizable', 'No exchange fees'],
+          disadvantages: ['Counterparty risk', 'Illiquid', 'Settlement risk'],
+          types: ['Currency Forwards', 'Commodity Forwards', 'Equity Forwards']
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(derivatives);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get real assets and property data
+app.get('/api/blockchain/properties', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return property data
+    const properties = {
+      success: true,
+      data: {
+        realEstate: {
+          assetTypes: ['Residential', 'Commercial', 'Industrial', 'Mixed-Use'],
+          expectedYield: '6-12%',
+          liquidityPeriod: '3-12 months',
+          maintenanceCosts: '1-2% of property value annually',
+          taxBenefits: ['Depreciation', 'Mortgage Interest', 'Property Tax Deduction'],
+          factors: ['Location', 'Market Conditions', 'Interest Rates', 'Tenant Quality']
+        },
+        commodities: {
+          types: ['Precious Metals', 'Energy', 'Agriculture', 'Livestock'],
+          trading: ['Spot Market', 'Futures Contracts', 'ETFs'],
+          storageConsiderations: 'Physical assets require secure storage',
+          insurance: 'Essential for valuable commodities',
+          volatility: 'High - subject to supply/demand shocks'
+        },
+        naturalResources: {
+          types: ['Timber', 'Mining', 'Agriculture', 'Water Rights'],
+          timeline: '5-40 years for returns',
+          esgConsiderations: 'Environmental compliance critical',
+          regulatoryRisks: 'Government permits, environmental approval',
+          maintenance: 'Active asset management required'
+        },
+        infrastructure: {
+          types: ['Toll Roads', 'Airports', 'Utilities', 'Telecommunications'],
+          expectedYield: '4-8%',
+          cashFlow: 'Stable long-term contracts',
+          capitalRequired: '$100M+ typically',
+          maintenance: 'Continuous capital expenditure required'
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(properties);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Calculate maintenance costs
+app.post('/api/blockchain/maintenance-costs', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { assetValue, assetType, maintenanceRate, capitalExpenditure } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!assetValue || !assetType) {
+      return res.status(400).json({ error: 'assetValue and assetType required' });
+    }
+    
+    // Calculate maintenance costs
+    const rate = maintenanceRate || (assetType === 'realEstate' ? 0.015 : assetType === 'equipment' ? 0.10 : 0.05);
+    const annualMaintenance = assetValue * rate;
+    const capEx = capitalExpenditure || (assetValue * 0.05);
+    const emergencyReserve = (annualMaintenance + capEx) * 0.25;
+    const totalAnnualCost = annualMaintenance + capEx + emergencyReserve;
+    const totalMonthly = totalAnnualCost / 12;
+    
+    const result = {
+      success: true,
+      calculation: {
+        assetValue: assetValue,
+        assetType: assetType,
+        maintenanceRate: (rate * 100).toFixed(2) + '%',
+        annualMaintenance: annualMaintenance.toFixed(2),
+        capitalExpenditure: capEx.toFixed(2),
+        emergencyReserve: emergencyReserve.toFixed(2),
+        totalAnnualCost: totalAnnualCost.toFixed(2),
+        monthlyAllocation: totalMonthly.toFixed(2),
+        percentageOfValue: ((totalAnnualCost / assetValue) * 100).toFixed(2) + '%'
+      },
+      recommendations: {
+        maintenanceSchedule: 'Quarterly preventive, with annual deep inspection',
+        budgeting: `Set aside $${totalMonthly.toFixed(2)} monthly for maintenance`,
+        documentation: 'Maintain detailed maintenance records for asset value preservation',
+        insurance: 'Ensure adequate coverage for unexpected repairs'
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets information
+app.get('/api/blockchain/intangible-assets', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return intangible assets data
+    const intangibles = {
+      success: true,
+      data: {
+        patents: {
+          description: 'Exclusive rights to inventions',
+          protectionPeriod: '20 years from filing date',
+          valuationMethods: ['Relief from Royalty', 'Cost Approach', 'Income Approach'],
+          maintenanceCosts: 'Ongoing patent fees required',
+          risks: ['Obsolescence', 'Invalidation', 'Infringement litigation']
+        },
+        trademarks: {
+          description: 'Brand name and logo rights',
+          protectionPeriod: 'Potentially indefinite with renewals (7-10 years)',
+          valuationBasis: ['Brand Recognition', 'Customer Loyalty', 'Premium Pricing'],
+          maintenanceCosts: 'Renewal and enforcement costs',
+          value: 'Percentage of revenue attributed to brand premium'
+        },
+        copyrights: {
+          description: 'Ownership of creative works',
+          protectionPeriod: 'Life of author + 70 years',
+          assetTypes: ['Software', 'Music', 'Books', 'Film', 'Artwork'],
+          revenueStreams: ['Licensing', 'Royalties', 'Direct Sales'],
+          risks: ['Piracy', 'Format Obsolescence', 'Copyright Expiration']
+        },
+        softwareAndIP: {
+          description: 'Digital intellectual property',
+          valuationFactors: ['User Base', 'Market Position', 'Technology Moat', 'Licensing Revenue'],
+          maintenanceCosts: 'Continuous updates and security patches',
+          risks: ['Competitive threats', 'Technology disruption', 'Cybersecurity']
+        },
+        goodwill: {
+          description: 'Business value beyond tangible assets',
+          valuationTime: 'Established during acquisitions',
+          components: ['Customer Base', 'Reputation', 'Relationships', 'Management Team'],
+          accountingTreatment: 'Amortized over useful life or tested for impairment',
+          risks: ['Key person dependencies', 'Customer concentration', 'Market changes']
+        },
+        customerRelationships: {
+          description: 'Value of established customer base',
+          metrics: ['Customer Lifetime Value', 'Churn Rate', 'Retention Cost'],
+          valuationApproach: 'Based on discounted future cash flows from customers',
+          managementFocus: 'Retention and expansion strategies'
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(intangibles);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get financial methodologies and frameworks
+app.get('/api/blockchain/financial-methodologies', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return methodologies
+    const methodologies = {
+      success: true,
+      data: {
+        riskMetrics: {
+          valueAtRisk: {
+            abbreviation: 'VaR',
+            description: 'Maximum loss at given confidence level over time period',
+            calculation: 'Percentile of loss distribution',
+            application: 'Regulatory capital requirements, risk monitoring'
+          },
+          expectedShortfall: {
+            abbreviation: 'ES/CVaR',
+            description: 'Average loss when VaR threshold exceeded',
+            advantage: 'Captures tail risk better than VaR',
+            application: 'More rigorous risk assessment'
+          },
+          stressTest: {
+            description: 'Portfolio impact under extreme scenarios',
+            scenarios: ['Market Crash', 'Rate Spike', 'Volatility Explosion', 'Liquidity Crisis'],
+            frequency: 'Quarterly or monthly'
+          }
+        },
+        portfolioTheories: {
+          modernPortfolioTheory: {
+            foundation: 'Markowitz mean-variance optimization',
+            principle: 'Diversification reduces risk',
+            output: 'Efficient frontier of optimal portfolios',
+            limitation: 'Assumes normal distribution, historical volatility'
+          },
+          riskParityApproach: {
+            principle: 'Equal risk contribution from each asset',
+            advantage: 'Better risk-adjusted returns historically',
+            leverage: 'Often uses leverage to achieve returns',
+            rebalancing: 'Dynamic based on volatility changes'
+          },
+          blackLittermanModel: {
+            enhancement: 'Incorporates investor views with market equilibrium',
+            advantage: 'More intuitive adjustments than pure mean-variance',
+            process: 'Prior (market) + Views = Posterior allocation',
+            confidence: 'Weighted by conviction in views'
+          }
+        },
+        valuationModels: {
+          discountedCashFlow: {
+            principle: 'Asset value = PV of future cash flows',
+            discount: 'Weighted Average Cost of Capital (WACC)',
+            advantage: 'Theoretically sound, fundamental approach',
+            limitation: 'Sensitive to terminal value assumptions'
+          },
+          relativeValuation: {
+            methods: ['P/E Multiple', 'EV/EBITDA', 'Price/Book', 'Price/Sales'],
+            advantage: 'Market-based, less dependent on assumptions',
+            limitation: 'Requires comparable companies'
+          },
+          optionPricing: {
+            blackScholes: 'Closed-form solution for European options',
+            binomial: 'Flexible for American options and complex instruments',
+            monteCarlo: 'For complex derivatives and path-dependent payoffs'
+          }
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(methodologies);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get financial methodologies and frameworks
+app.get('/api/blockchain/financial-methodologies', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return methodologies
+    const methodologies = {
+      success: true,
+      data: {
+        riskMetrics: {
+          valueAtRisk: {
+            abbreviation: 'VaR',
+            description: 'Maximum loss at given confidence level over time period',
+            calculation: 'Percentile of loss distribution',
+            application: 'Regulatory capital requirements, risk monitoring'
+          },
+          expectedShortfall: {
+            abbreviation: 'ES/CVaR',
+            description: 'Average loss when VaR threshold exceeded',
+            advantage: 'Captures tail risk better than VaR',
+            application: 'More rigorous risk assessment'
+          },
+          stressTest: {
+            description: 'Portfolio impact under extreme scenarios',
+            scenarios: ['Market Crash', 'Rate Spike', 'Volatility Explosion', 'Liquidity Crisis'],
+            frequency: 'Quarterly or monthly'
+          }
+        },
+        portfolioTheories: {
+          modernPortfolioTheory: {
+            foundation: 'Markowitz mean-variance optimization',
+            principle: 'Diversification reduces risk',
+            output: 'Efficient frontier of optimal portfolios',
+            limitation: 'Assumes normal distribution, historical volatility'
+          },
+          riskParityApproach: {
+            principle: 'Equal risk contribution from each asset',
+            advantage: 'Better risk-adjusted returns historically',
+            leverage: 'Often uses leverage to achieve returns',
+            rebalancing: 'Dynamic based on volatility changes'
+          },
+          blackLittermanModel: {
+            enhancement: 'Incorporates investor views with market equilibrium',
+            advantage: 'More intuitive adjustments than pure mean-variance',
+            process: 'Prior (market) + Views = Posterior allocation',
+            confidence: 'Weighted by conviction in views'
+          }
+        },
+        valuationModels: {
+          discountedCashFlow: {
+            principle: 'Asset value = PV of future cash flows',
+            discount: 'Weighted Average Cost of Capital (WACC)',
+            advantage: 'Theoretically sound, fundamental approach',
+            limitation: 'Sensitive to terminal value assumptions'
+          },
+          relativeValuation: {
+            methods: ['P/E Multiple', 'EV/EBITDA', 'Price/Book', 'Price/Sales'],
+            advantage: 'Market-based, less dependent on assumptions',
+            limitation: 'Requires comparable companies'
+          },
+          optionPricing: {
+            blackScholes: 'Closed-form solution for European options',
+            binomial: 'Flexible for American options and complex instruments',
+            monteCarlo: 'For complex derivatives and path-dependent payoffs'
+          }
+        }
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(methodologies);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get portfolio risk metrics (VaR, Sharpe ratio, etc.)
+app.get('/api/blockchain/risk-metrics', async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    // Return risk metrics data
+    const riskMetrics = {
+      success: true,
+      data: {
+        valueAtRisk: {
+          '95%': -2.15,  // 95% VaR
+          '99%': -3.42   // 99% VaR
+        },
+        expectedShortfall: {
+          '95%': -3.05,
+          '99%': -4.28
+        },
+        sharpeRatio: 0.75,
+        sortinoRatio: 1.12,
+        treynorRatio: 0.65,
+        beta: 0.95,
+        correlation: {
+          stocks: 1.0,
+          bonds: -0.15,
+          commodities: 0.05,
+          crypto: 0.45
+        },
+        volatility: 0.12,
+        maxDrawdown: -0.18,
+        recoveryTime: 6 // months
+      },
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json(riskMetrics);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get derivatives pricing model (Black-Scholes)
+app.post('/api/blockchain/derivatives/pricing', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { spotPrice, strikePrice, timeToExpiry, riskFreeRate, volatility, optionType } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!spotPrice || !strikePrice || !timeToExpiry || !volatility) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    // Simple Black-Scholes implementation
+    const d1 = (Math.log(spotPrice / strikePrice) + (riskFreeRate + Math.pow(volatility, 2) / 2) * timeToExpiry) / (volatility * Math.sqrt(timeToExpiry));
+    const d2 = d1 - volatility * Math.sqrt(timeToExpiry);
+    
+    const N = (x) => 0.5 * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))));
+    
+    const callPrice = spotPrice * N(d1) - strikePrice * Math.exp(-riskFreeRate * timeToExpiry) * N(d2);
+    const putPrice = strikePrice * Math.exp(-riskFreeRate * timeToExpiry) * N(-d2) - spotPrice * N(-d1);
+    
+    const result = {
+      success: true,
+      pricing: {
+        spotPrice: spotPrice,
+        strikePrice: strikePrice,
+        callPrice: callPrice.toFixed(4),
+        putPrice: putPrice.toFixed(4),
+        timeToExpiry: timeToExpiry,
+        volatility: (volatility * 100).toFixed(2) + '%'
+      },
+      greeks: {
+        delta: N(d1).toFixed(4),
+        gamma: (N(d1) / (spotPrice * volatility * Math.sqrt(timeToExpiry))).toFixed(6),
+        theta: (-spotPrice * N(d1) * volatility / (2 * Math.sqrt(timeToExpiry))).toFixed(4),
+        vega: (spotPrice * N(d1) * Math.sqrt(timeToExpiry) / 100).toFixed(4),
+        rho: (strikePrice * timeToExpiry * Math.exp(-riskFreeRate * timeToExpiry) * N(d2) / 100).toFixed(4)
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Property document upload/management
+app.post('/api/blockchain/properties/document', adminAuth, async (req, res) => {
+  try {
+    const { propertyId, documentType, documentName } = req.body;
+    
+    if (!propertyId || !documentType) {
+      return res.status(400).json({ error: 'propertyId and documentType required' });
+    }
+    
+    // Document management response (file upload would happen here)
+    const result = {
+      success: true,
+      message: 'Document registered',
+      document: {
+        id: Date.now().toString(),
+        propertyId: propertyId,
+        type: documentType,
+        name: documentName || 'Document_' + Date.now(),
+        uploadedAt: new Date().toISOString(),
+        url: `/documents/${propertyId}/${Date.now()}`
+      }
+    };
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Premium endpoint: Get intangible assets amortization schedule
+app.post('/api/blockchain/intangible-assets/amortization', express.json(), async (req, res) => {
+  try {
+    const userEmail = req.headers['x-user-email'];
+    const { assetValue, usefulLife, assetType, acquisitionDate } = req.body;
+    
+    // Check premium access
+    if (userEmail) {
+      const users = readUsers();
+      const user = users.find(u => normalizeEmail(u.email) === normalizeEmail(userEmail));
+      const isPremium = user && subManager.isPremiumUser(user.id);
+      
+      if (!isPremium) {
+        return res.status(403).json({ success: false, error: 'Premium access required' });
+      }
+    }
+    
+    if (!assetValue || !usefulLife) {
+      return res.status(400).json({ error: 'assetValue and usefulLife required' });
+    }
+    
+    // Calculate amortization schedule
+    const straightLineExpense = assetValue / usefulLife;
+    const schedule = [];
+    
+    for (let year = 1; year <= usefulLife; year++) {
+      schedule.push({
+        year: year,
+        annualExpense: straightLineExpense.toFixed(2),
+        cumulativeExpense: (straightLineExpense * year).toFixed(2),
+        bookValue: (assetValue - straightLineExpense * year).toFixed(2)
+      });
+    }
+    
+    res.json({
+      success: true,
+      asset: {
+        type: assetType || 'Intangible Asset',
+        acquisitionValue: assetValue,
+        usefulLife: usefulLife,
+        acquisitionDate: acquisitionDate || new Date().toISOString()
+      },
+      amortizationSchedule: schedule,
+      annualExpense: straightLineExpense.toFixed(2)
     });
-  }
-});
-
-// Admin action endpoints for transaction management
-app.post('/api/payments/admin/verify', adminAuth, (req, res) => {
-  try {
-    const { transactionId } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'completed';
-    tx.verifiedAt = new Date().toISOString();
-    tx.verifiedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nVerified by ${req.user.email} on ${new Date().toISOString()}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction verified' });
   } catch (err) {
-    console.error('Verify transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to verify transaction' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post('/api/payments/admin/dispute', adminAuth, (req, res) => {
+// Premium tier management: Get premium benefits
+app.get('/api/blockchain/premium-benefits', async (req, res) => {
   try {
-    const { transactionId, reason } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
+    const tiers = {
+      success: true,
+      tiers: {
+        basic: {
+          name: 'Basic Premium',
+          price: 2999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'Advanced calculators (15+ tools)',
+            'Market analysis reports (weekly)',
+            'Portfolio tracking (real-time)',
+            'Expert chat support',
+            'Exclusive investment opportunities',
+            'Community access'
+          ],
+          limits: {
+            portfolios: 1,
+            documents: 100,
+            reports: 4
+          }
+        },
+        pro: {
+          name: 'Professional Premium',
+          price: 7999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'All Basic features',
+            'Unlimited calculators',
+            'Daily market analysis',
+            'Risk metrics (VaR, Sharpe ratio)',
+            'Derivatives pricing (Black-Scholes)',
+            'Property management tools',
+            'Intangible assets tracking',
+            'API access (500 calls/month)',
+            'Priority support'
+          ],
+          limits: {
+            portfolios: 5,
+            documents: 1000,
+            reports: 52,
+            apiCalls: 500
+          }
+        },
+        enterprise: {
+          name: 'Enterprise Premium',
+          price: 29999,
+          currency: 'KES',
+          period: 'monthly',
+          features: [
+            'All Professional features',
+            'Unlimited API calls',
+            'Custom risk models',
+            'Portfolio optimization',
+            'Team collaboration',
+            'Dedicated account manager',
+            'Custom reporting',
+            'Advanced tax strategies',
+            'Advisor consultation hours (10/month)'
+          ],
+          limits: {
+            portfolios: 'Unlimited',
+            documents: 'Unlimited',
+            reports: 'Unlimited',
+            apiCalls: 'Unlimited',
+            users: 10
+          }
+        }
+      }
+    };
     
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'disputed';
-    tx.disputedAt = new Date().toISOString();
-    tx.disputedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nDisputed by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction marked as disputed' });
+    res.json(tiers);
   } catch (err) {
-    console.error('Dispute transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to dispute transaction' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post('/api/payments/admin/refund', adminAuth, (req, res) => {
-  try {
-    const { transactionId, reason } = req.body;
-    if (!transactionId) {
-      return res.status(400).json({ success: false, error: 'transactionId required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.status = 'refunded';
-    tx.refundedAt = new Date().toISOString();
-    tx.refundedBy = req.user.email;
-    tx.note = (tx.note || '') + `\nRefunded by ${req.user.email} on ${new Date().toISOString()}: ${reason || 'No reason provided'}`;
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Transaction refunded' });
-  } catch (err) {
-    console.error('Refund transaction error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to refund transaction' });
-  }
-});
+// Chat Support API Routes
+app.use('/api/chat', chatAPIRouter);
 
-app.post('/api/payments/admin/note', adminAuth, (req, res) => {
-  try {
-    const { transactionId, note } = req.body;
-    if (!transactionId || !note) {
-      return res.status(400).json({ success: false, error: 'transactionId and note required' });
-    }
-    
-    const transactions = readTransactions();
-    const tx = transactions.find(t => t.id === transactionId);
-    
-    if (!tx) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    
-    tx.note = (tx.note || '') + `\n[${new Date().toISOString()}] ${req.user.email}: ${note}`;
-    tx.updatedAt = new Date().toISOString();
-    
-    writeTransactions(transactions);
-    
-    return res.json({ success: true, message: 'Note added successfully' });
-  } catch (err) {
-    console.error('Add note error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to add note' });
-  }
-});
+// Export app for Vercel serverless
+module.exports = app;
 
-// ============================================================================
-// END OF MODERN PAYMENT SYSTEM API
-// ============================================================================
-
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
+// Start server only if not in serverless environment
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Payment API listening on ${PORT}`));
+}

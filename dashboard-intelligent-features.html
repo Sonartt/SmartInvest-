@@ -1,0 +1,651 @@
+<!-- SmartInvest Dashboard Components - Intelligent Features -->
+<!-- This file integrates all the dashboard widgets for the 15 intelligent features -->
+
+<div id="intelligent-dashboard" style="display:none;">
+  
+  <!-- Tab Navigation -->
+  <div class="dashboard-tabs">
+    <button class="tab-btn active" onclick="switchIntelligentTab('health')">Financial Health</button>
+    <button class="tab-btn" onclick="switchIntelligentTab('recommendations')">Recommendations</button>
+    <button class="tab-btn" onclick="switchIntelligentTab('goals')">Goals</button>
+    <button class="tab-btn" onclick="switchIntelligentTab('alerts')">Alerts</button>
+    <button class="tab-btn" onclick="switchIntelligentTab('market')">Market Data</button>
+    <button class="tab-btn" onclick="switchIntelligentTab('analytics')">Analytics</button>
+  </div>
+
+  <!-- Financial Health Tab -->
+  <div id="health-tab" class="dashboard-content active">
+    <div class="card">
+      <h2>Financial Health Score</h2>
+      <div class="health-score">
+        <div class="score-circle">
+          <span id="health-score" class="score-value">--</span>
+          <span class="score-label">/ 100</span>
+        </div>
+        <div class="score-details">
+          <div class="score-bar">
+            <p class="score-label">Diversification: <span id="score-diversification">--</span>%</p>
+            <div class="progress-bar"><div id="bar-diversification" class="progress-fill"></div></div>
+          </div>
+          <div class="score-bar">
+            <p class="score-label">Emergency Fund: <span id="score-emergency">--</span>%</p>
+            <div class="progress-bar"><div id="bar-emergency" class="progress-fill"></div></div>
+          </div>
+          <div class="score-bar">
+            <p class="score-label">Savings Rate: <span id="score-savings">--</span>%</p>
+            <div class="progress-bar"><div id="bar-savings" class="progress-fill"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations Tab -->
+  <div id="recommendations-tab" class="dashboard-content">
+    <div class="card">
+      <h2>Personalized Recommendations</h2>
+      <div id="recommendations-list" class="recommendations-grid">
+        <!-- Filled by API -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Goals Tab -->
+  <div id="goals-tab" class="dashboard-content">
+    <div class="card">
+      <h2>Investment Goals</h2>
+      <button class="btn-primary" onclick="openGoalModal()">+ Create Goal</button>
+      <div id="goals-list" class="goals-grid">
+        <!-- Filled by API -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts Tab -->
+  <div id="alerts-tab" class="dashboard-content">
+    <div class="card">
+      <h2>Smart Alerts</h2>
+      <div class="alerts-filter">
+        <button class="filter-btn active" onclick="filterAlerts('all')">All</button>
+        <button class="filter-btn" onclick="filterAlerts('price')">Price</button>
+        <button class="filter-btn" onclick="filterAlerts('tax')">Tax</button>
+        <button class="filter-btn" onclick="filterAlerts('security')">Security</button>
+      </div>
+      <div id="alerts-list" class="alerts-list">
+        <!-- Filled by API -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Data Tab -->
+  <div id="market-tab" class="dashboard-content">
+    <div class="card">
+      <h2>Live Market Data</h2>
+      <div class="market-indices">
+        <h3>Market Indices</h3>
+        <div id="indices-list" class="indices-grid">
+          <!-- Filled by API -->
+        </div>
+      </div>
+      <div class="market-performers">
+        <h3>Top Performers</h3>
+        <div id="gainers-list" class="performers-grid">
+          <!-- Filled by API -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Tab -->
+  <div id="analytics-tab" class="dashboard-content">
+    <div class="card">
+      <h2>Portfolio Analytics</h2>
+      <div class="analytics-grid">
+        <div class="metric-card">
+          <h3>Total Return</h3>
+          <p id="metric-return" class="metric-value">--</p>
+        </div>
+        <div class="metric-card">
+          <h3>Sharpe Ratio</h3>
+          <p id="metric-sharpe" class="metric-value">--</p>
+        </div>
+        <div class="metric-card">
+          <h3>Max Drawdown</h3>
+          <p id="metric-drawdown" class="metric-value">--</p>
+        </div>
+        <div class="metric-card">
+          <h3>Volatility</h3>
+          <p id="metric-volatility" class="metric-value">--</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Styles for Intelligent Dashboard -->
+<style>
+.dashboard-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  border-bottom-color: #7C3AED;
+  color: #7C3AED;
+}
+
+.tab-btn:hover {
+  color: #7C3AED;
+}
+
+.dashboard-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.dashboard-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.health-score {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #EC4899);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.score-details {
+  flex: 1;
+}
+
+.score-bar {
+  margin-bottom: 15px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7C3AED, #EC4899);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.recommendation-card {
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+
+.recommendation-card h4 {
+  margin: 0 0 10px 0;
+  color: #7C3AED;
+}
+
+.recommendation-card p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.goals-grid, .performers-grid, .indices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.goal-card, .performer-card, .index-card {
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+}
+
+.goal-card h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.progress-bar {
+  margin: 10px 0;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.metric-card {
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.metric-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.metric-value {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  color: #7C3AED;
+}
+
+.alerts-filter {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.filter-btn.active {
+  background: #7C3AED;
+  color: white;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.alert-item {
+  padding: 12px;
+  border-left: 4px solid #7C3AED;
+  background: #f9f9f9;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.alert-item.warning {
+  border-left-color: #F59E0B;
+}
+
+.alert-item.danger {
+  border-left-color: #EF4444;
+}
+
+.alert-item.success {
+  border-left-color: #10B981;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: #7C3AED;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.btn-primary:hover {
+  background: #6D28D9;
+}
+
+@media (max-width: 768px) {
+  .health-score {
+    flex-direction: column;
+  }
+
+  .dashboard-tabs {
+    overflow-x: auto;
+  }
+
+  .recommendations-grid,
+  .goals-grid,
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<!-- JavaScript for Intelligent Dashboard -->
+<script>
+// Tab switching
+function switchIntelligentTab(tabName) {
+  // Hide all tabs
+  const tabs = document.querySelectorAll('.dashboard-content');
+  tabs.forEach(tab => tab.classList.remove('active'));
+
+  // Remove active from all buttons
+  const buttons = document.querySelectorAll('.tab-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+
+  // Show selected tab
+  const selectedTab = document.getElementById(tabName + '-tab');
+  if (selectedTab) {
+    selectedTab.classList.add('active');
+  }
+
+  // Mark button as active
+  event.target.classList.add('active');
+
+  // Load data for the tab
+  loadTabData(tabName);
+}
+
+// Load data based on tab
+async function loadTabData(tabName) {
+  try {
+    switch(tabName) {
+      case 'health':
+        loadHealthScore();
+        break;
+      case 'recommendations':
+        loadRecommendations();
+        break;
+      case 'goals':
+        loadGoals();
+        break;
+      case 'alerts':
+        loadAlerts();
+        break;
+      case 'market':
+        loadMarketData();
+        break;
+      case 'analytics':
+        loadAnalytics();
+        break;
+    }
+  } catch (error) {
+    console.error('Error loading tab data:', error);
+  }
+}
+
+// Load financial health score
+async function loadHealthScore() {
+  try {
+    // For demo, use mock data
+    const mockHealthScore = {
+      score: 78,
+      grade: 'B',
+      breakdown: {
+        diversification: 80,
+        emergency: 70,
+        savings: 75,
+        growth: 85,
+        debt: 60,
+        knowledge: 90
+      }
+    };
+
+    document.getElementById('health-score').textContent = mockHealthScore.score;
+    document.getElementById('score-diversification').textContent = mockHealthScore.breakdown.diversification;
+    document.getElementById('score-emergency').textContent = mockHealthScore.breakdown.emergency;
+    document.getElementById('score-savings').textContent = mockHealthScore.breakdown.savings;
+
+    document.getElementById('bar-diversification').style.width = mockHealthScore.breakdown.diversification + '%';
+    document.getElementById('bar-emergency').style.width = mockHealthScore.breakdown.emergency + '%';
+    document.getElementById('bar-savings').style.width = mockHealthScore.breakdown.savings + '%';
+  } catch (error) {
+    console.error('Error loading health score:', error);
+  }
+}
+
+// Load recommendations
+async function loadRecommendations() {
+  try {
+    const mockRecommendations = [
+      {
+        title: 'Increase Diversification',
+        description: 'Your portfolio is concentrated in tech stocks. Consider adding healthcare or utilities.',
+        impact: 'High',
+        priority: 'High'
+      },
+      {
+        title: 'Rebalance Portfolio',
+        description: 'Your equity allocation has drifted to 65%. Target is 60%.',
+        impact: 'Medium',
+        priority: 'Medium'
+      },
+      {
+        title: 'Tax-Loss Harvesting',
+        description: 'Opportunities to offset gains with realized losses.',
+        impact: 'Medium',
+        priority: 'High'
+      }
+    ];
+
+    const container = document.getElementById('recommendations-list');
+    container.innerHTML = mockRecommendations.map(rec => `
+      <div class="recommendation-card">
+        <h4>${rec.title}</h4>
+        <p>${rec.description}</p>
+        <p><strong>Priority:</strong> ${rec.priority}</p>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading recommendations:', error);
+  }
+}
+
+// Load goals
+async function loadGoals() {
+  try {
+    const mockGoals = [
+      {
+        name: 'Retirement',
+        target: '$5,000,000',
+        progress: 45,
+        timeline: '15 years'
+      },
+      {
+        name: 'Home Purchase',
+        target: '$500,000',
+        progress: 65,
+        timeline: '3 years'
+      },
+      {
+        name: 'Education Fund',
+        target: '$300,000',
+        progress: 30,
+        timeline: '8 years'
+      }
+    ];
+
+    const container = document.getElementById('goals-list');
+    container.innerHTML = mockGoals.map(goal => `
+      <div class="goal-card">
+        <h4>${goal.name}</h4>
+        <p><strong>Target:</strong> ${goal.target}</p>
+        <p><strong>Timeline:</strong> ${goal.timeline}</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${goal.progress}%"></div>
+        </div>
+        <p><strong>${goal.progress}%</strong> Complete</p>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading goals:', error);
+  }
+}
+
+// Load alerts
+async function loadAlerts() {
+  try {
+    const mockAlerts = [
+      {
+        type: 'price',
+        message: 'TCS stock hit your target price of ₹3,456',
+        timestamp: '2 hours ago',
+        severity: 'info'
+      },
+      {
+        type: 'tax',
+        message: 'Tax-loss harvesting opportunity available',
+        timestamp: '1 day ago',
+        severity: 'success'
+      },
+      {
+        type: 'rebalancing',
+        message: 'Portfolio drift detected. Quarterly rebalancing due.',
+        timestamp: '3 days ago',
+        severity: 'warning'
+      }
+    ];
+
+    const container = document.getElementById('alerts-list');
+    container.innerHTML = mockAlerts.map(alert => `
+      <div class="alert-item ${alert.severity}">
+        <div>
+          <strong>${alert.message}</strong>
+          <p style="margin: 5px 0; color: #999;">${alert.timestamp}</p>
+        </div>
+        <button onclick="dismissAlert(this)" style="background: none; border: none; cursor: pointer; font-size: 20px;">×</button>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading alerts:', error);
+  }
+}
+
+// Load market data
+async function loadMarketData() {
+  try {
+    const mockIndices = [
+      { name: 'NIFTY 50', value: '18,456.25', change: '+125.50', changePercent: '+0.68%' },
+      { name: 'SENSEX', value: '61,234.80', change: '+245.30', changePercent: '+0.40%' },
+      { name: 'NIFTY MIDCAP', value: '8,945.65', change: '+89.20', changePercent: '+1.01%' }
+    ];
+
+    const container = document.getElementById('indices-list');
+    container.innerHTML = mockIndices.map(index => `
+      <div class="index-card">
+        <h4>${index.name}</h4>
+        <p style="font-size: 18px; color: #7C3AED; margin: 10px 0;">${index.value}</p>
+        <p style="color: #10B981;">${index.change} (${index.changePercent})</p>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading market data:', error);
+  }
+}
+
+// Load analytics
+async function loadAnalytics() {
+  try {
+    const mockMetrics = {
+      totalReturn: '+18.5%',
+      sharpeRatio: '1.24',
+      maxDrawdown: '-8.3%',
+      volatility: '12.5%'
+    };
+
+    document.getElementById('metric-return').textContent = mockMetrics.totalReturn;
+    document.getElementById('metric-sharpe').textContent = mockMetrics.sharpeRatio;
+    document.getElementById('metric-drawdown').textContent = mockMetrics.maxDrawdown;
+    document.getElementById('metric-volatility').textContent = mockMetrics.volatility;
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+  }
+}
+
+// Filter alerts
+function filterAlerts(filter) {
+  const buttons = document.querySelectorAll('.filter-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // Reload alerts with filter
+  loadAlerts();
+}
+
+// Dismiss alert
+function dismissAlert(button) {
+  button.closest('.alert-item').remove();
+}
+
+// Open goal modal
+function openGoalModal() {
+  alert('Goal creation modal would open here');
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
+  const dashboard = document.getElementById('intelligent-dashboard');
+  if (dashboard) {
+    dashboard.style.display = 'block';
+    loadHealthScore();
+  }
+});
+</script>

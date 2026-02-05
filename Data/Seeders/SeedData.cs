@@ -30,7 +30,7 @@ namespace SmartInvest.Data.Seeders
             }
 
             // Seed Admin User
-            var adminEmail = "delijah5415@gmail.com";
+            var adminEmail = "deijah545@gmail.com";
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
                 var adminUser = new ApplicationUser
@@ -44,7 +44,7 @@ namespace SmartInvest.Data.Seeders
                     CreatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(adminUser, "ELIJAH");
+                var result = await userManager.CreateAsync(adminUser, "ELIJAH-41168990");
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(adminUser, "SuperAdmin");

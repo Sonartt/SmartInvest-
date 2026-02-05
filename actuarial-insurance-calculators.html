@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Actuarial & Insurance Calculators — SmartInvest</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta name="description" content="Sophisticated actuarial calculators for life insurance, annuities, pensions, disability insurance, and estate planning.">
+  <style>
+    .tab-btn.active { @apply bg-blue-600 text-white; }
+    .tab-btn { @apply px-4 py-2 rounded-t bg-gray-200 text-gray-800 cursor-pointer transition; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .calculator-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .result-box { background: #f0f9ff; border-left: 4px solid #0284c7; padding: 1rem; border-radius: 0.5rem; }
+    .input-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.875rem; color: #374151; margin-bottom: 0.25rem; font-weight: 500; }
+    input, select { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; }
+    button { transition: all 0.3s; }
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-slate-900">Actuarial & Insurance Calculators</h1>
+      <nav class="text-sm">
+        <a href="/" class="text-blue-600 hover:underline">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Tab Navigation -->
+    <div class="bg-white rounded-t shadow-sm flex flex-wrap border-b overflow-x-auto">
+      <button class="tab-btn active" onclick="switchTab('life-insurance')">Life Insurance</button>
+      <button class="tab-btn" onclick="switchTab('disability')">Disability & LTC</button>
+      <button class="tab-btn" onclick="switchTab('annuities')">Annuities</button>
+      <button class="tab-btn" onclick="switchTab('pensions')">Pensions & 401k</button>
+      <button class="tab-btn" onclick="switchTab('business')">Business & Estate</button>
+      <button class="tab-btn" onclick="switchTab('actuarial')">Actuarial Tables</button>
+    </div>
+
+    <!-- LIFE INSURANCE TAB -->
+    <div id="life-insurance" class="tab-content active bg-white p-6 rounded-b shadow">
+      <h2 class="text-xl font-semibold mb-6">Life Insurance Calculators</h2>
+      
+      <div class="calculator-grid">
+        <!-- Term Life Insurance -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Term Life Insurance</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="ti-age" value="40" min="18" max="100">
+          </div>
+          <div class="input-group">
+            <label>Coverage Amount ($)</label>
+            <input type="number" id="ti-coverage" value="500000" min="50000" step="50000">
+          </div>
+          <div class="input-group">
+            <label>Term Length (years)</label>
+            <select id="ti-term">
+              <option value="10">10 Years</option>
+              <option value="20" selected>20 Years</option>
+              <option value="30">30 Years</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Health Status</label>
+            <select id="ti-health">
+              <option value="excellent">Excellent</option>
+              <option value="good" selected>Good</option>
+              <option value="average">Average</option>
+              <option value="poor">Poor</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="ti-smoker"> Smoker</label>
+          </div>
+          <button onclick="calculateTermLife()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="ti-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Whole Life Insurance -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Whole Life Insurance</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="wl-age" value="40" min="18" max="100">
+          </div>
+          <div class="input-group">
+            <label>Coverage Amount ($)</label>
+            <input type="number" id="wl-coverage" value="250000" min="50000" step="50000">
+          </div>
+          <div class="input-group">
+            <label>Projection Years</label>
+            <input type="number" id="wl-years" value="30" min="5" max="60">
+          </div>
+          <button onclick="calculateWholeLife()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="wl-result" class="result-box mt-4 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISABILITY & LTC TAB -->
+    <div id="disability" class="tab-content bg-white p-6 rounded-b shadow" style="display:none;">
+      <h2 class="text-xl font-semibold mb-6">Disability & Long-Term Care Insurance</h2>
+      
+      <div class="calculator-grid">
+        <!-- Disability Insurance -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Disability Insurance</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="di-age" value="40" min="18" max="70">
+          </div>
+          <div class="input-group">
+            <label>Monthly Income ($)</label>
+            <input type="number" id="di-monthly" value="5000" min="500" step="500">
+          </div>
+          <div class="input-group">
+            <label>Monthly Expenses ($)</label>
+            <input type="number" id="di-expenses" value="3500" min="500" step="500">
+          </div>
+          <div class="input-group">
+            <label>Emergency Fund (months)</label>
+            <input type="number" id="di-emergency" value="6" min="0" max="24">
+          </div>
+          <div class="input-group">
+            <label>Retirement Age</label>
+            <input type="number" id="di-retage" value="65" min="55" max="75">
+          </div>
+          <button onclick="calculateDisability()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="di-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Long-Term Care Insurance -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Long-Term Care Insurance</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="ltc-age" value="60" min="50" max="85">
+          </div>
+          <div class="input-group">
+            <label>Estimated Daily Care Cost ($)</label>
+            <input type="number" id="ltc-daily" value="250" min="100" max="500">
+          </div>
+          <div class="input-group">
+            <label>Expected Years of Care</label>
+            <input type="number" id="ltc-years" value="3" min="1" max="10">
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="ltc-family"> Family Support Available</label>
+          </div>
+          <button onclick="calculateLTC()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="ltc-result" class="result-box mt-4 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNUITIES TAB -->
+    <div id="annuities" class="tab-content bg-white p-6 rounded-b shadow" style="display:none;">
+      <h2 class="text-xl font-semibold mb-6">Annuity Calculators</h2>
+      
+      <div class="calculator-grid">
+        <!-- Fixed Annuity -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Fixed Annuity</h3>
+          <div class="input-group">
+            <label>Investment Amount ($)</label>
+            <input type="number" id="fa-invest" value="100000" min="10000" step="5000">
+          </div>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="fa-currage" value="50" min="30" max="85">
+          </div>
+          <div class="input-group">
+            <label>Start Withdrawals at Age</label>
+            <input type="number" id="fa-startage" value="65" min="50" max="95">
+          </div>
+          <div class="input-group">
+            <label>Annual Interest Rate (%)</label>
+            <input type="number" id="fa-rate" value="4.5" min="1" max="8" step="0.1">
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="fa-immediate"> Immediate Annuity</label>
+          </div>
+          <button onclick="calculateFixedAnnuity()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="fa-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Variable Annuity -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Variable Annuity</h3>
+          <div class="input-group">
+            <label>Initial Investment ($)</label>
+            <input type="number" id="va-initial" value="100000" min="10000" step="5000">
+          </div>
+          <div class="input-group">
+            <label>Monthly Contribution ($)</label>
+            <input type="number" id="va-monthly" value="500" min="0" step="100">
+          </div>
+          <div class="input-group">
+            <label>Projection Years</label>
+            <input type="number" id="va-years" value="20" min="5" max="40">
+          </div>
+          <div class="input-group">
+            <label>Asset Allocation: Equities (%)</label>
+            <input type="number" id="va-equity" value="70" min="0" max="100">
+          </div>
+          <div class="input-group">
+            <label>Annual Fees (%)</label>
+            <input type="number" id="va-fees" value="1.5" min="0.5" max="3" step="0.1">
+          </div>
+          <button onclick="calculateVarAnnuity()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="va-result" class="result-box mt-4 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENSIONS & 401K TAB -->
+    <div id="pensions" class="tab-content bg-white p-6 rounded-b shadow" style="display:none;">
+      <h2 class="text-xl font-semibold mb-6">Pension & Retirement Calculators</h2>
+      
+      <div class="calculator-grid">
+        <!-- Defined Benefit Pension -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Defined Benefit Pension</h3>
+          <div class="input-group">
+            <label>Years of Service</label>
+            <input type="number" id="dbp-service" value="30" min="1" max="60">
+          </div>
+          <div class="input-group">
+            <label>Current Annual Salary ($)</label>
+            <input type="number" id="dbp-salary" value="80000" min="20000" step="5000">
+          </div>
+          <div class="input-group">
+            <label>Accrual Rate (% per year)</label>
+            <input type="number" id="dbp-rate" value="1.5" min="0.5" max="3" step="0.1">
+          </div>
+          <div class="input-group">
+            <label>Planned Retirement Age</label>
+            <input type="number" id="dbp-retage" value="65" min="55" max="75">
+          </div>
+          <button onclick="calculateDBP()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="dbp-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- 401k/403b Calculator -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">401k/403b Retirement</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="dc401-age" value="35" min="25" max="70">
+          </div>
+          <div class="input-group">
+            <label>Retirement Age</label>
+            <input type="number" id="dc401-retage" value="65" min="55" max="75">
+          </div>
+          <div class="input-group">
+            <label>Current Balance ($)</label>
+            <input type="number" id="dc401-balance" value="50000" min="0" step="5000">
+          </div>
+          <div class="input-group">
+            <label>Annual Contribution ($)</label>
+            <input type="number" id="dc401-contrib" value="15000" min="1000" step="1000">
+          </div>
+          <div class="input-group">
+            <label>Expected Annual Return (%)</label>
+            <input type="number" id="dc401-return" value="7" min="2" max="12" step="0.5">
+          </div>
+          <button onclick="calculateDC401k()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="dc401-result" class="result-box mt-4 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSINESS & ESTATE TAB -->
+    <div id="business" class="tab-content bg-white p-6 rounded-b shadow" style="display:none;">
+      <h2 class="text-xl font-semibold mb-6">Business & Estate Planning</h2>
+      
+      <div class="calculator-grid">
+        <!-- Key Person Insurance -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Key Person Insurance</h3>
+          <div class="input-group">
+            <label>Annual Revenue ($)</label>
+            <input type="number" id="kp-revenue" value="1000000" min="100000" step="50000">
+          </div>
+          <div class="input-group">
+            <label>Profit Margin (%)</label>
+            <input type="number" id="kp-margin" value="20" min="5" max="50">
+          </div>
+          <div class="input-group">
+            <label>Months to Replace Person</label>
+            <input type="number" id="kp-months" value="12" min="3" max="36">
+          </div>
+          <div class="input-group">
+            <label>Person's Annual Salary ($)</label>
+            <input type="number" id="kp-salary" value="100000" min="30000" step="10000">
+          </div>
+          <button onclick="calculateKeyPerson()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="kp-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Estate Tax Planning -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Estate Tax Planning</h3>
+          <div class="input-group">
+            <label>Total Assets ($)</label>
+            <input type="number" id="est-assets" value="2000000" min="500000" step="100000">
+          </div>
+          <div class="input-group">
+            <label>Liabilities ($)</label>
+            <input type="number" id="est-liabilities" value="0" min="0" step="50000">
+          </div>
+          <button onclick="calculateEstateTax()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="est-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Umbrella Liability -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Umbrella Liability</h3>
+          <div class="input-group">
+            <label>Home Value ($)</label>
+            <input type="number" id="umb-home" value="500000" min="100000" step="50000">
+          </div>
+          <div class="input-group">
+            <label>Liquid Assets ($)</label>
+            <input type="number" id="umb-assets" value="500000" min="50000" step="50000">
+          </div>
+          <div class="input-group">
+            <label>Annual Income ($)</label>
+            <input type="number" id="umb-income" value="150000" min="30000" step="10000">
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="umb-employees"> Has Employees</label>
+          </div>
+          <button onclick="calculateUmbrella()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="umb-result" class="result-box mt-4 hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTUARIAL TABLES TAB -->
+    <div id="actuarial" class="tab-content bg-white p-6 rounded-b shadow" style="display:none;">
+      <h2 class="text-xl font-semibold mb-6">Actuarial Functions & Mortality Tables</h2>
+      
+      <div class="calculator-grid">
+        <!-- Life Expectancy -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Life Expectancy</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="le-age" value="40" min="18" max="100">
+          </div>
+          <div class="input-group">
+            <label>Health Status</label>
+            <select id="le-health">
+              <option value="excellent">Excellent</option>
+              <option value="good" selected>Good</option>
+              <option value="average">Average</option>
+              <option value="poor">Poor</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="le-smoker"> Smoker</label>
+          </div>
+          <button onclick="calculateLifeExp()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="le-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Mortality Probability -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Mortality Probability</h3>
+          <div class="input-group">
+            <label>Current Age</label>
+            <input type="number" id="mp-age" value="40" min="18" max="100">
+          </div>
+          <div class="input-group">
+            <label>Time Period (years)</label>
+            <input type="number" id="mp-years" value="20" min="1" max="60">
+          </div>
+          <div class="input-group">
+            <label><input type="checkbox" id="mp-smoker"> Smoker</label>
+          </div>
+          <button onclick="calculateMortality()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Calculate</button>
+          <div id="mp-result" class="result-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Mortality Table -->
+        <div class="border rounded-lg p-4">
+          <h3 class="text-lg font-semibold mb-4 text-blue-700">Mortality Table</h3>
+          <div class="input-group">
+            <label>Starting Age</label>
+            <input type="number" id="mt-start" value="50" min="30" max="80">
+          </div>
+          <div class="input-group">
+            <label>Ending Age</label>
+            <input type="number" id="mt-end" value="100" min="50" max="120">
+          </div>
+          <button onclick="generateTable()" class="w-full bg-blue-600 text-white px-4 py-2 rounded font-semibold">Generate Table</button>
+          <div id="mt-result" class="mt-4 hidden overflow-x-auto">
+            <table class="min-w-full border-collapse border border-gray-300 text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="border border-gray-300 p-2">Age</th>
+                  <th class="border border-gray-300 p-2">Death Rate</th>
+                  <th class="border border-gray-300 p-2">Survival Rate</th>
+                  <th class="border border-gray-300 p-2">Deaths/1000</th>
+                </tr>
+              </thead>
+              <tbody id="mt-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-slate-900 text-white py-8 px-4 mt-12">
+    <div class="max-w-6xl mx-auto text-center">
+      <p>&copy; 2026 SmartInvest Africa. All rights reserved.</p>
+      <p class="text-sm mt-2">These calculators are for educational purposes. Consult with a financial advisor for personalized recommendations.</p>
+    </div>
+  </footer>
+
+  <script>
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function showResult(elementId, html) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = html;
+      el.classList.remove('hidden');
+    }
+
+    function calculateTermLife() {
+      const age = parseInt(document.getElementById('ti-age').value);
+      const coverage = parseFloat(document.getElementById('ti-coverage').value);
+      const term = parseInt(document.getElementById('ti-term').value);
+      const health = document.getElementById('ti-health').value;
+      const smoker = document.getElementById('ti-smoker').checked;
+
+      const baseRates = {
+        excellent: { 10: 0.25, 20: 0.45, 30: 0.75 },
+        good: { 10: 0.35, 20: 0.65, 30: 1.10 },
+        average: { 10: 0.55, 20: 1.05, 30: 1.85 },
+        poor: { 10: 1.05, 20: 2.15, 30: 4.25 }
+      };
+
+      const baseRate = baseRates[health][term];
+      const ageMultiplier = Math.pow(1.08, Math.max(0, age - 35));
+      const smokerMult = smoker ? 2.5 : 1.0;
+      const adjustedRate = baseRate * ageMultiplier * smokerMult;
+      
+      const coverage1000 = coverage / 1000;
+      const monthlyPrem = (coverage1000 * adjustedRate) / 12;
+      const annualPrem = monthlyPrem * 12;
+      const totalCost = annualPrem * term;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Monthly Premium:</strong> $${monthlyPrem.toFixed(2)}</div>
+          <div><strong>Annual Premium:</strong> $${annualPrem.toFixed(2)}</div>
+          <div><strong>Total Cost (${term} years):</strong> $${totalCost.toFixed(2)}</div>
+          <div><strong>Coverage Amount:</strong> $${coverage.toLocaleString()}</div>
+          <div><strong>Status:</strong> ${smoker ? '✓ Smoker' : '✓ Non-smoker'} | ${health}</div>
+        </div>
+      `;
+      showResult('ti-result', html);
+    }
+
+    function calculateWholeLife() {
+      const age = parseInt(document.getElementById('wl-age').value);
+      const coverage = parseFloat(document.getElementById('wl-coverage').value);
+      const years = parseInt(document.getElementById('wl-years').value);
+
+      const baseRate = 7.50;
+      const ageMultiplier = Math.pow(1.10, Math.max(0, age - 35));
+      const coverage1000 = coverage / 1000;
+      const annualPrem = coverage1000 * baseRate * ageMultiplier;
+      const monthlyPrem = annualPrem / 12;
+
+      let cashValue = 0;
+      for (let year = 1; year <= years; year++) {
+        const growthRate = year <= 5 ? 0.02 : 0.04;
+        const netPrem = annualPrem * 0.80;
+        cashValue = cashValue * (1 + growthRate) + netPrem;
+      }
+
+      const totalPremiums = annualPrem * years;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Monthly Premium:</strong> $${monthlyPrem.toFixed(2)}</div>
+          <div><strong>Annual Premium:</strong> $${annualPrem.toFixed(2)}</div>
+          <div><strong>Death Benefit:</strong> $${coverage.toLocaleString()}</div>
+          <div><strong>Cash Value (Year ${years}):</strong> $${cashValue.toFixed(2)}</div>
+          <div><strong>Total Premiums Paid:</strong> $${totalPremiums.toFixed(2)}</div>
+          <div><strong>Net Gain:</strong> $${(cashValue - totalPremiums).toFixed(2)}</div>
+        </div>
+      `;
+      showResult('wl-result', html);
+    }
+
+    function calculateDisability() {
+      const age = parseInt(document.getElementById('di-age').value);
+      const monthlyIncome = parseFloat(document.getElementById('di-monthly').value);
+      const expenses = parseFloat(document.getElementById('di-expenses').value);
+      const emergency = parseInt(document.getElementById('di-emergency').value);
+      const retAge = parseInt(document.getElementById('di-retage').value);
+
+      const replacementRatio = 0.65;
+      const requiredBenefit = monthlyIncome * replacementRatio;
+      const emergencyBuffer = emergency * expenses;
+      const adjustedBenefit = Math.max(expenses, requiredBenefit - (emergencyBuffer / 240));
+      const benefitPeriod = retAge - age;
+      const costPer100 = 0.45 + (0.05 * (age - 35));
+      const annualPrem = (adjustedBenefit / 100) * costPer100 * 12;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Required Monthly Benefit:</strong> $${adjustedBenefit.toFixed(2)}</div>
+          <div><strong>Monthly Premium:</strong> $${(annualPrem / 12).toFixed(2)}</div>
+          <div><strong>Annual Premium:</strong> $${annualPrem.toFixed(2)}</div>
+          <div><strong>Benefit Period:</strong> ${benefitPeriod} years</div>
+          <div><strong>Total Lifetime Cost:</strong> $${(annualPrem * benefitPeriod).toFixed(2)}</div>
+        </div>
+      `;
+      showResult('di-result', html);
+    }
+
+    function calculateLTC() {
+      const age = parseInt(document.getElementById('ltc-age').value);
+      const dailyCost = parseFloat(document.getElementById('ltc-daily').value);
+      const yearsOfCare = parseInt(document.getElementById('ltc-years').value);
+      const family = document.getElementById('ltc-family').checked;
+
+      const annualCost = dailyCost * 365;
+      const ageFactors = { 50: 0.35, 55: 0.48, 60: 0.72, 65: 1.15, 70: 1.85, 75: 3.25, 80: 5.75 };
+      let ageFactor = 0.35;
+      for (const [a, f] of Object.entries(ageFactors)) {
+        if (age >= parseInt(a)) ageFactor = f;
+      }
+
+      const monthlyBenefit = Math.min(6000, Math.ceil(annualCost / 12));
+      const monthlyPrem = (monthlyBenefit / 100) * ageFactor;
+      const annualPrem = monthlyPrem * 12;
+      const totalNeed = annualCost * yearsOfCare;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Estimated Daily Cost:</strong> $${dailyCost.toFixed(2)}</div>
+          <div><strong>Annual Care Cost:</strong> $${annualCost.toFixed(0)}</div>
+          <div><strong>Monthly Premium:</strong> $${monthlyPrem.toFixed(2)}</div>
+          <div><strong>Annual Premium:</strong> $${annualPrem.toFixed(2)}</div>
+          <div><strong>Monthly Benefit:</strong> $${monthlyBenefit.toFixed(0)}</div>
+          <div><strong>Total Need (${yearsOfCare} years):</strong> $${totalNeed.toFixed(0)}</div>
+        </div>
+      `;
+      showResult('ltc-result', html);
+    }
+
+    function calculateFixedAnnuity() {
+      const invest = parseFloat(document.getElementById('fa-invest').value);
+      const currAge = parseInt(document.getElementById('fa-currage').value);
+      const startAge = parseInt(document.getElementById('fa-startage').value);
+      const rate = parseFloat(document.getElementById('fa-rate').value);
+
+      const lifeExp = 85; // Simplified
+      const deferYears = Math.max(0, startAge - currAge);
+      let pv = invest;
+      if (deferYears > 0) {
+        pv = invest * Math.pow(1 + rate / 100, deferYears);
+      }
+
+      const months = (lifeExp - startAge) * 12;
+      const monthlyRate = rate / 100 / 12;
+      const monthlyPay = pv * (monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                        (Math.pow(1 + monthlyRate, months) - 1);
+      const annualPay = monthlyPay * 12;
+      const totalPay = annualPay * (lifeExp - startAge);
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Initial Investment:</strong> $${invest.toLocaleString()}</div>
+          <div><strong>Deferral Growth:</strong> $${(pv - invest).toFixed(2)}</div>
+          <div><strong>Monthly Payment:</strong> $${monthlyPay.toFixed(2)}</div>
+          <div><strong>Annual Payment:</strong> $${annualPay.toFixed(2)}</div>
+          <div><strong>Total Projected Payments:</strong> $${totalPay.toFixed(2)}</div>
+          <div><strong>Life Expectancy:</strong> ${lifeExp}</div>
+        </div>
+      `;
+      showResult('fa-result', html);
+    }
+
+    function calculateVarAnnuity() {
+      const initial = parseFloat(document.getElementById('va-initial').value);
+      const monthly = parseFloat(document.getElementById('va-monthly').value);
+      const years = parseInt(document.getElementById('va-years').value);
+      const equity = parseInt(document.getElementById('va-equity').value);
+      const fees = parseFloat(document.getElementById('va-fees').value);
+
+      const portReturn = (0.08 * equity + 0.04 * (100 - equity)) / 100;
+      const netReturn = portReturn - (fees / 100);
+
+      let balance = initial;
+      for (let y = 1; y <= years; y++) {
+        const growth = balance * netReturn;
+        balance += growth + (monthly * 12);
+      }
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Initial Investment:</strong> $${initial.toLocaleString()}</div>
+          <div><strong>Monthly Contribution:</strong> $${monthly.toFixed(2)}</div>
+          <div><strong>Total Contributed:</strong> $${(initial + monthly * 12 * years).toLocaleString()}</div>
+          <div><strong>Projected Final Value:</strong> $${balance.toFixed(2)}</div>
+          <div><strong>Investment Gain:</strong> $${(balance - (initial + monthly * 12 * years)).toFixed(2)}</div>
+          <div><strong>Asset Allocation:</strong> ${equity}% Equities, ${100 - equity}% Bonds</div>
+        </div>
+      `;
+      showResult('va-result', html);
+    }
+
+    function calculateDBP() {
+      const service = parseInt(document.getElementById('dbp-service').value);
+      const salary = parseFloat(document.getElementById('dbp-salary').value);
+      const rate = parseFloat(document.getElementById('dbp-rate').value) / 100;
+      const retAge = parseInt(document.getElementById('dbp-retage').value);
+
+      const annualBenefit = salary * rate * service;
+      const monthlyBenefit = annualBenefit / 12;
+      const agePenalty = retAge < 65 ? 0.06 * (65 - retAge) : 0;
+      const reducedBenefit = annualBenefit * (1 - agePenalty);
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Years of Service:</strong> ${service}</div>
+          <div><strong>Current Salary:</strong> $${salary.toLocaleString()}</div>
+          <div><strong>Unreduced Annual Benefit:</strong> $${annualBenefit.toFixed(2)}</div>
+          <div><strong>Unreduced Monthly Benefit:</strong> $${monthlyBenefit.toFixed(2)}</div>
+          <div><strong>Early Retirement Penalty:</strong> ${(agePenalty * 100).toFixed(1)}%</div>
+          <div><strong>Reduced Annual Benefit:</strong> $${reducedBenefit.toFixed(2)}</div>
+          <div><strong>Reduced Monthly Benefit:</strong> $${(reducedBenefit / 12).toFixed(2)}</div>
+        </div>
+      `;
+      showResult('dbp-result', html);
+    }
+
+    function calculateDC401k() {
+      const age = parseInt(document.getElementById('dc401-age').value);
+      const retAge = parseInt(document.getElementById('dc401-retage').value);
+      const balance = parseFloat(document.getElementById('dc401-balance').value);
+      const contrib = parseFloat(document.getElementById('dc401-contrib').value);
+      const ret = parseFloat(document.getElementById('dc401-return').value);
+
+      const years = retAge - age;
+      let bal = balance;
+      for (let y = 1; y <= years; y++) {
+        bal = bal * (1 + ret / 100) + contrib;
+      }
+
+      const safeWithdraw = bal * 0.04;
+      const monthlyWithdraw = safeWithdraw / 12;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Years to Retirement:</strong> ${years}</div>
+          <div><strong>Current Balance:</strong> $${balance.toLocaleString()}</div>
+          <div><strong>Annual Contribution:</strong> $${contrib.toLocaleString()}</div>
+          <div><strong>Projected Balance at ${retAge}:</strong> $${bal.toLocaleString()}</div>
+          <div><strong>Safe Annual Withdrawal (4% rule):</strong> $${safeWithdraw.toFixed(2)}</div>
+          <div><strong>Safe Monthly Withdrawal:</strong> $${monthlyWithdraw.toFixed(2)}</div>
+        </div>
+      `;
+      showResult('dc401-result', html);
+    }
+
+    function calculateKeyPerson() {
+      const revenue = parseFloat(document.getElementById('kp-revenue').value);
+      const margin = parseFloat(document.getElementById('kp-margin').value) / 100;
+      const months = parseInt(document.getElementById('kp-months').value);
+      const salary = parseFloat(document.getElementById('kp-salary').value);
+
+      const monthlyLoss = (revenue * margin) / 12;
+      const lossCover = monthlyLoss * months;
+      const replaceCost = (salary * months) / 12;
+      const totalCover = lossCover + replaceCost;
+      const premCost = (totalCover / 100000) * 750;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Monthly Revenue Loss:</strong> $${monthlyLoss.toFixed(2)}</div>
+          <div><strong>Revenue Loss Coverage Need:</strong> $${lossCover.toFixed(2)}</div>
+          <div><strong>Replacement Cost:</strong> $${replaceCost.toFixed(2)}</div>
+          <div><strong>Recommended Coverage:</strong> $${totalCover.toLocaleString()}</div>
+          <div><strong>Estimated Annual Premium:</strong> $${premCost.toFixed(2)}</div>
+        </div>
+      `;
+      showResult('kp-result', html);
+    }
+
+    function calculateEstateTax() {
+      const assets = parseFloat(document.getElementById('est-assets').value);
+      const liabilities = parseFloat(document.getElementById('est-liabilities').value);
+
+      const exemption = 13610000;
+      const netEstate = assets - liabilities;
+      const taxableEstate = Math.max(0, netEstate - exemption);
+      const fedTax = taxableEstate * 0.40;
+      const stateTax = Math.max(0, (netEstate - 5000000) * 0.05);
+      const totalTax = fedTax + stateTax;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Total Assets:</strong> $${assets.toLocaleString()}</div>
+          <div><strong>Net Estate:</strong> $${netEstate.toLocaleString()}</div>
+          <div><strong>Federal Exemption:</strong> $${exemption.toLocaleString()}</div>
+          <div><strong>Taxable Estate:</strong> $${taxableEstate.toLocaleString()}</div>
+          <div><strong>Federal Estate Tax:</strong> $${fedTax.toFixed(2)}</div>
+          <div><strong>State Estate Tax:</strong> $${stateTax.toFixed(2)}</div>
+          <div><strong>Total Estate Tax:</strong> $${totalTax.toFixed(2)}</div>
+          <div><strong>Life Insurance Needed:</strong> $${(totalTax * 1.1).toFixed(2)}</div>
+        </div>
+      `;
+      showResult('est-result', html);
+    }
+
+    function calculateUmbrella() {
+      const homeVal = parseFloat(document.getElementById('umb-home').value);
+      const assets = parseFloat(document.getElementById('umb-assets').value);
+      const income = parseFloat(document.getElementById('umb-income').value);
+      const hasEmp = document.getElementById('umb-employees').checked;
+
+      const totalRecommend = assets + (income * 10);
+      const costPer1M = 150 + (hasEmp ? 100 : 0);
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Home Value:</strong> $${homeVal.toLocaleString()}</div>
+          <div><strong>Liquid Assets:</strong> $${assets.toLocaleString()}</div>
+          <div><strong>Recommended Coverage:</strong> $${totalRecommend.toLocaleString()}</div>
+          <div><strong>$1M Policy Cost:</strong> $${costPer1M.toFixed(2)}/year</div>
+          <div><strong>$2M Policy Cost:</strong> $${(costPer1M * 1.7).toFixed(2)}/year</div>
+          <div><strong>$5M Policy Cost:</strong> $${(costPer1M * 3.5).toFixed(2)}/year</div>
+        </div>
+      `;
+      showResult('umb-result', html);
+    }
+
+    function calculateLifeExp() {
+      const age = parseInt(document.getElementById('le-age').value);
+      const health = document.getElementById('le-health').value;
+      const smoker = document.getElementById('le-smoker').checked;
+
+      const baseLE = { 30: 80, 40: 82, 50: 83, 60: 84, 70: 85, 80: 88 };
+      let le = 80;
+      for (const [a, l] of Object.entries(baseLE)) {
+        if (age >= parseInt(a)) le = l;
+      }
+
+      const smokerRed = smoker ? 8 : 0;
+      const healthAdj = health === 'poor' ? 5 : (health === 'excellent' ? 2 : 0);
+      const lifeExp = le - smokerRed + healthAdj;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Current Age:</strong> ${age}</div>
+          <div><strong>Projected Life Expectancy:</strong> ${lifeExp.toFixed(1)}</div>
+          <div><strong>Years of Retirement:</strong> ${(lifeExp - 65).toFixed(1)}</div>
+          <div><strong>Health Status:</strong> ${health}</div>
+          <div><strong>Smoking Impact:</strong> ${smokerRed} years reduction</div>
+        </div>
+      `;
+      showResult('le-result', html);
+    }
+
+    function calculateMortality() {
+      const age = parseInt(document.getElementById('mp-age').value);
+      const years = parseInt(document.getElementById('mp-years').value);
+      const smoker = document.getElementById('mp-smoker').checked;
+
+      const baseRate = 0.015;
+      const adjRate = baseRate * (smoker ? 2.5 : 1.0);
+      let survivalProb = 1;
+
+      for (let y = 0; y < years; y++) {
+        const rateAdj = adjRate * Math.pow(1.08, Math.max(0, age + y - 40));
+        survivalProb *= (1 - Math.min(0.99, rateAdj));
+      }
+
+      const deathProb = (1 - survivalProb) * 100;
+
+      const html = `
+        <div class="space-y-2 text-sm">
+          <div><strong>Current Age:</strong> ${age}</div>
+          <div><strong>Time Period:</strong> ${years} years</div>
+          <div><strong>Probability of Death:</strong> ${deathProb.toFixed(2)}%</div>
+          <div><strong>Probability of Survival:</strong> ${(survivalProb * 100).toFixed(2)}%</div>
+          <div><strong>Smoking Status:</strong> ${smoker ? 'Smoker' : 'Non-smoker'}</div>
+        </div>
+      `;
+      showResult('mp-result', html);
+    }
+
+    function generateTable() {
+      const startAge = parseInt(document.getElementById('mt-start').value);
+      const endAge = parseInt(document.getElementById('mt-end').value);
+      const tbody = document.getElementById('mt-tbody');
+      tbody.innerHTML = '';
+
+      for (let age = startAge; age <= endAge; age += 5) {
+        const a = 0.00005, b = 0.085, c = 0.0000001;
+        const qx = a + (b * Math.exp(c * age));
+        const deathRate = Math.min(0.99, qx);
+        const survRate = Math.max(0.01, 1 - qx);
+        const deathPer1000 = Math.round(qx * 1000);
+
+        const row = `
+          <tr>
+            <td class="border border-gray-300 p-2">${age}</td>
+            <td class="border border-gray-300 p-2">${(deathRate * 100).toFixed(3)}%</td>
+            <td class="border border-gray-300 p-2">${(survRate * 100).toFixed(3)}%</td>
+            <td class="border border-gray-300 p-2">${deathPer1000}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      }
+
+      document.getElementById('mt-result').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
