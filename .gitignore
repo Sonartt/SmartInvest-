@@ -16,6 +16,18 @@ transactions.json
 secrets/
 credentials/
 
+# Build artifacts
+dist/
+build/
+bin/
+obj/
+*.dll
+*.exe
+
+# Uploads and generated content
+uploads/
+data/content/
+
 # IDE files
 .vscode/settings.json
 .idea/
