@@ -70,11 +70,28 @@
   <footer class="bg-slate-900 text-white py-8 px-4 mt-12">
     <div class="max-w-7xl mx-auto text-center">
       <p>&copy; 2026 SmartInvest Africa. All rights reserved.</p>
-      <div class="mt-2 text-sm text-purple-100">Contact: 0114383762 • delijah5415@gmail.com</div>
+      <div class="mt-2 text-sm text-purple-100" id="weatherContactLine">Contact: --</div>
       <div class="mt-1 text-xs text-purple-200">Status: Production (Early Access)</div>
     </div>
   </footer>
 
+  <script>
+    async function loadWeatherContact() {
+      try {
+        const res = await fetch('/api/public-config');
+        const data = await res.json();
+        const line = document.getElementById('weatherContactLine');
+        if (!line) return;
+        const parts = [data.supportPhone, data.supportEmail].filter(Boolean);
+        line.textContent = parts.length ? `Contact: ${parts.join(' • ')}` : 'Contact: --';
+      } catch (e) {
+        const line = document.getElementById('weatherContactLine');
+        if (line) line.textContent = 'Contact: --';
+      }
+    }
+
+    loadWeatherContact();
+  </script>
   <script src="/public/js/weather-dashboard.js"></script>
 </body>
 </html>

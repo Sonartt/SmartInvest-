@@ -47,6 +47,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Public configuration for frontend contact displays (no secrets)
+app.get('/api/public-config', (_req, res) => {
+  const supportEmail = process.env.SUPPORT_EMAIL || process.env.NOTIFY_EMAIL || process.env.SMTP_FROM || null;
+  const supportPhone = process.env.MPESA_NUMBER || null;
+  return res.json({
+    supportEmail,
+    supportPhone
+  });
+});
+
 // Admin authentication - requires valid JWT with admin flag OR Basic auth with ADMIN_USER/ADMIN_PASS from .env
 function adminAuth(req, res, next) {
   const adminUserEnv = process.env.ADMIN_USER;
@@ -78,6 +88,15 @@ function adminAuth(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized: admin access required' });
 }
 
+// Admin: verify access (used by admin dashboard access control script)
+app.get('/api/admin/verify-access', adminAuth, (req, res) => {
+  return res.json({
+    success: true,
+    isAdmin: true,
+    email: req.user?.email || process.env.ADMIN_USER || null
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Helper: get OAuth token for M-Pesa (Daraja)
@@ -104,9 +123,11 @@ app.post('/api/pay/mpesa', async (req, res) => {
     if (!phone) return res.status(400).json({ error: 'phone required' });
     const token = await getMpesaAuth();
     // Prefer explicit MPESA_NUMBER; fall back to older env keys where present
-    // Use explicit MPESA_NUMBER if provided; otherwise use the provided gateway number 0114383762 as fallback
-    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL || '0114383762';
+    const shortcode = process.env.MPESA_NUMBER || process.env.MPESA_SHORTCODE || process.env.MPESA_PAYBILL;
+    if (!shortcode) throw new Error('MPESA shortcode not configured');
     const passkey = process.env.MPESA_PASSKEY || '';
+    const callbackUrl = process.env.MPESA_CALLBACK_URL;
+    if (!callbackUrl) throw new Error('MPESA callback URL not configured');
 
     const endpoint = process.env.MPESA_ENV === 'production'
       ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
@@ -120,7 +141,7 @@ app.post('/api/pay/mpesa', async (req, res) => {
       PartyA: phone,
       PartyB: shortcode,
       PhoneNumber: phone,
-      CallBackURL: process.env.MPESA_CALLBACK_URL || 'https://example.com/mpesa/callback',
+      CallBackURL: callbackUrl,
       AccountReference: accountReference || process.env.MPESA_ACCOUNT_REF || 'SmartInvest',
       TransactionDesc: 'Payment'
     };
@@ -488,7 +509,7 @@ async function sendNotificationMail(opts={}){
   if (!to) return;
   try {
     const info = await mailer.sendMail({
-      from: process.env.SMTP_FROM || `no-reply@${process.env.KCB_ACCOUNT_NAME||'smartinvest'}.example`,
+      from: process.env.SMTP_FROM || process.env.NOTIFY_EMAIL,
       to,
       subject: opts.subject || 'SmartInvest Notification',
       text: opts.text || '',
@@ -770,6 +791,13 @@ app.post('/api/pay/kcb/manual', (req, res) => {
     const { name, email, amount, reference } = req.body;
     if (!name || !email || !amount) return res.status(400).json({ error: 'name, email and amount required' });
 
+    const bankName = process.env.KCB_BANK_NAME;
+    const accountName = process.env.KCB_ACCOUNT_NAME;
+    const accountNumber = process.env.KCB_ACCOUNT_NUMBER;
+    if (!bankName || !accountName || !accountNumber) {
+      return res.status(500).json({ error: 'KCB bank details not configured' });
+    }
+
     const tx = {
       provider: 'kcb_manual',
       timestamp: new Date().toISOString(),
@@ -779,9 +807,9 @@ app.post('/api/pay/kcb/manual', (req, res) => {
       reference: reference || '',
       status: 'pending',
       account: {
-        bank: process.env.KCB_BANK_NAME || 'KCB Bank',
-        accountName: process.env.KCB_ACCOUNT_NAME || 'SmartInvest Africa',
-        accountNumber: process.env.KCB_ACCOUNT_NUMBER || '0000000000'
+        bank: bankName,
+        accountName,
+        accountNumber
       }
     };
 
@@ -1364,7 +1392,7 @@ function sendPremiumWelcomeEmail(email) {
 
     <p>For full terms: <a href="${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html">View Terms & Conditions</a></p>
     
-    <p>Questions? Contact us at ${process.env.SUPPORT_EMAIL || 'support@smartinvest.africa'}</p>
+    <p>Questions? Contact us at ${process.env.SUPPORT_EMAIL || process.env.NOTIFY_EMAIL || process.env.SMTP_FROM || ''}</p>
   `;
   const text = `Welcome to SmartInvest Premium! You now have access to: Investment Academy (50+ lessons), Advanced Tools, VIP Community, and Premium Files. By using our service you agree to our Terms & Conditions and applicable laws. Full terms at ${process.env.BASE_URL || 'https://smartinvest.africa'}/terms.html`;
   sendNotificationMail({ to: email, subject, html, text });

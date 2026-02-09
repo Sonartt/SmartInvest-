@@ -152,9 +152,128 @@ async function main() {
     },
   });
 
+  await prisma.diplomacyMission.upsert({
+    where: { id: "mission-nairobi" },
+    update: {},
+    create: {
+      id: "mission-nairobi",
+      name: "Nairobi Headquarters",
+      country: "Kenya",
+      city: "Nairobi",
+      region: "East Africa",
+      type: "EMBASSY",
+      status: "ACTIVE",
+      focusArea: "Protocol and coordination",
+    },
+  });
+
+  await prisma.diplomacyMission.upsert({
+    where: { id: "mission-addis" },
+    update: {},
+    create: {
+      id: "mission-addis",
+      name: "African Union Mission",
+      country: "Ethiopia",
+      city: "Addis Ababa",
+      region: "East Africa",
+      type: "PERMANENT_MISSION",
+      status: "ACTIVE",
+      focusArea: "Multilateral coordination",
+    },
+  });
+
+  await prisma.diplomacyTreaty.upsert({
+    where: { id: "treaty-trade-uganda" },
+    update: {},
+    create: {
+      id: "treaty-trade-uganda",
+      title: "Cross Border Trade Facilitation",
+      partner: "Uganda",
+      sector: "Trade",
+      status: "RATIFIED",
+      nextMilestone: "Joint committee Q2",
+      summary: "Regional customs and logistics coordination.",
+    },
+  });
+
+  await prisma.diplomacyTreaty.upsert({
+    where: { id: "treaty-climate-france" },
+    update: {},
+    create: {
+      id: "treaty-climate-france",
+      title: "Climate Adaptation Facility",
+      partner: "France",
+      sector: "Climate",
+      status: "SIGNED",
+      nextMilestone: "Funding release",
+      summary: "Resilience financing and adaptation support.",
+    },
+  });
+
+  await prisma.diplomacyDelegation.upsert({
+    where: { id: "delegation-trade-mission" },
+    update: {},
+    create: {
+      id: "delegation-trade-mission",
+      name: "Regional Trade Mission",
+      focus: "Logistics and regional manufacturing",
+      hostCity: "Kigali",
+      hostCountry: "Rwanda",
+      leadMinistry: "Ministry of Trade",
+      status: "CONFIRMED",
+      startDate: new Date("2026-03-18T00:00:00Z"),
+      endDate: new Date("2026-03-22T00:00:00Z"),
+      objectives: "Promote cross-border manufacturing and logistics partnerships.",
+    },
+  });
+
+  await prisma.diplomacyDelegation.upsert({
+    where: { id: "delegation-climate" },
+    update: {},
+    create: {
+      id: "delegation-climate",
+      name: "Climate Finance Roundtable",
+      focus: "Green financing and resilience",
+      hostCity: "Nairobi",
+      hostCountry: "Kenya",
+      leadMinistry: "Climate Desk",
+      status: "PLANNED",
+      startDate: new Date("2026-04-04T00:00:00Z"),
+      endDate: new Date("2026-04-05T00:00:00Z"),
+      objectives: "Align donor commitments and finance flows.",
+    },
+  });
+
+  await prisma.diplomacyDocument.upsert({
+    where: { id: "doc-briefing-1" },
+    update: {},
+    create: {
+      id: "doc-briefing-1",
+      title: "Country Briefing Pack",
+      category: "BRIEFING_NOTE",
+      classification: "RESTRICTED",
+      ownerDept: "Policy Planning",
+      summary: "Overview of bilateral priorities and engagement notes.",
+    },
+  });
+
+  await prisma.diplomacyDocument.upsert({
+    where: { id: "doc-protocol-1" },
+    update: {},
+    create: {
+      id: "doc-protocol-1",
+      title: "Protocol Checklist",
+      category: "PROTOCOL_GUIDE",
+      classification: "RESTRICTED",
+      ownerDept: "Protocol Office",
+      summary: "Arrival, ceremony, and delegation hosting requirements.",
+    },
+  });
+
   console.log("✅ Seed data created. Users: admin@example.com, editor@example.com, reviewer@example.com, analyst@example.com, ic@example.com");
   console.log("   Workflows: content-draft (DRAFT), content-approved (APPROVED)");
   console.log("   License: license-demo for datasets market-data, risk-scores");
+  console.log("   Diplomacy: missions, treaties, delegations, documents");
 }
 
 main()

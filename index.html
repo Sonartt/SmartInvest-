@@ -281,6 +281,45 @@
             font-size: 2rem;
             margin-block-end: 1rem;
         }
+
+        .diplomacy-panel {
+            background: linear-gradient(135deg, #0b3d2e 0%, #0f1a2b 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diplomacy-panel::after {
+            content: '';
+            position: absolute;
+            inset-block-start: -30px;
+            inset-inline-end: -30px;
+            inline-size: 140px;
+            block-size: 140px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0) 70%);
+        }
+
+        .diplomacy-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .diplomacy-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .diplomacy-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 12px;
+        }
     </style>
 </head>
 <body>
@@ -311,6 +350,7 @@
                     <li class="nav-item"><a class="nav-link" href="/catalog.html">Products</a></li>
                     <li class="nav-item"><a class="nav-link" href="/pricing.html">Pricing</a></li>
                     <li class="nav-item"><a class="nav-link" href="/faq.html">FAQ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/diplomacy/index.html">Diplomacy</a></li>
                     <li class="nav-item"><a class="nav-link" href="/contact.html">Contact</a></li>
                     <li class="nav-item ms-lg-2"><a class="nav-link" href="/login.html">Sign In</a></li>
                     <li class="nav-item"><a class="btn btn-primary btn-sm" href="/signup.html">Get Started</a></li>
@@ -468,6 +508,29 @@
         </div>
     </section>
 
+    <section class="container my-5">
+        <div class="diplomacy-panel">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h2 class="mb-3">Kenya Diplomacy Portal</h2>
+                    <p class="mb-4">Coordinate economic diplomacy, consular support, and mission activities alongside investment intelligence. The diplomacy portal is designed for public sector partners and private sector collaborators in Kenya.</p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="/diplomacy/index.html" class="btn btn-light">Visit Diplomacy Hub</a>
+                        <a href="/contact.html" class="btn btn-outline-light">Partner With Us</a>
+                    </div>
+                </div>
+                <div class="col-lg-5 mt-4 mt-lg-0">
+                    <ul class="diplomacy-list">
+                        <li class="diplomacy-card">Mission coordination and contact directories</li>
+                        <li class="diplomacy-card">Treaty status tracking and briefing notes</li>
+                        <li class="diplomacy-card">Delegations planning and protocol checklists</li>
+                        <li class="diplomacy-card">Trade and investment diplomacy dashboards</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- CTA Section -->
     <section class="bg-light py-5">
         <div class="container">
@@ -501,6 +564,7 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="/about.html" class="text-white-50 text-decoration-none">About Us</a></li>
                         <li class="mb-2"><a href="/contact.html" class="text-white-50 text-decoration-none">Contact</a></li>
+                        <li class="mb-2"><a href="/diplomacy/index.html" class="text-white-50 text-decoration-none">Diplomacy Portal</a></li>
                         <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Careers</a></li>
                         <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Blog</a></li>
                     </ul>

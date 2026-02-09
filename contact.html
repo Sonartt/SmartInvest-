@@ -100,8 +100,8 @@
                 <div class="contact-card text-center">
                     <div class="contact-icon mx-auto">📧</div>
                     <h5 class="fw-bold mb-3">Email Us</h5>
-                    <p class="text-muted mb-2">support@smartinvest.africa</p>
-                    <p class="text-muted mb-2">partnerships@smartinvest.africa</p>
+                    <p class="text-muted mb-2" id="contactSupportEmail">support@example.com</p>
+                    <p class="text-muted mb-2" id="contactPartnerEmail">partners@example.com</p>
                     <p class="small text-muted">Response within 24 hours</p>
                 </div>
             </div>
@@ -109,9 +109,7 @@
                 <div class="contact-card text-center">
                     <div class="contact-icon mx-auto">📞</div>
                     <h5 class="fw-bold mb-3">Call Us</h5>
-                    <p class="text-muted mb-2">🇰🇪 Kenya: +254 700 123 456</p>
-                    <p class="text-muted mb-2">🇿🇦 South Africa: +27 11 123 4567</p>
-                    <p class="text-muted mb-2">🇳🇬 Nigeria: +234 1 234 5678</p>
+                    <p class="text-muted mb-2" id="contactSupportPhone">Support line available on request</p>
                     <p class="small text-muted">Mon-Fri, 8am-6pm EAT</p>
                 </div>
             </div>
@@ -271,6 +269,23 @@
             // In production, send to backend API
             // fetch('/api/contact', { method: 'POST', body: new FormData(this) })
         });
+
+        async function loadContactConfig() {
+            try {
+                const res = await fetch('/api/public-config');
+                const data = await res.json();
+                const supportEmail = document.getElementById('contactSupportEmail');
+                const partnerEmail = document.getElementById('contactPartnerEmail');
+                const phone = document.getElementById('contactSupportPhone');
+                if (supportEmail) supportEmail.textContent = data.supportEmail || 'support@example.com';
+                if (partnerEmail) partnerEmail.textContent = data.supportEmail || 'partners@example.com';
+                if (phone) phone.textContent = data.supportPhone || 'Support line available on request';
+            } catch (e) {
+                // Keep fallback placeholders
+            }
+        }
+
+        loadContactConfig();
     </script>
 </body>
 </html>

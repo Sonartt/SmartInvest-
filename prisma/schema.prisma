@@ -232,3 +232,106 @@ model DataUsageLog {
 
   license DataLicense? @relation(fields: [licenseId], references: [id])
 }
+
+// ===========================================
+// DIPLOMACY PORTAL
+// ===========================================
+
+model DiplomacyMission {
+  id           String        @id @default(uuid())
+  name         String
+  country      String
+  city         String
+  region       String?
+  type         MissionType
+  status       MissionStatus @default(ACTIVE)
+  contactEmail String?
+  contactPhone String?
+  focusArea    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum MissionType {
+  EMBASSY
+  HIGH_COMMISSION
+  CONSULATE
+  PERMANENT_MISSION
+  HONORARY_CONSULATE
+}
+
+enum MissionStatus {
+  ACTIVE
+  PAUSED
+  PLANNING
+}
+
+model DiplomacyTreaty {
+  id            String       @id @default(uuid())
+  title         String
+  partner       String
+  sector        String
+  status        TreatyStatus @default(NEGOTIATION)
+  signedAt      DateTime?
+  nextMilestone String?
+  summary       String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum TreatyStatus {
+  NEGOTIATION
+  SIGNED
+  RATIFIED
+  IN_REVIEW
+  IMPLEMENTATION
+  EXPIRED
+}
+
+model DiplomacyDelegation {
+  id           String            @id @default(uuid())
+  name         String
+  focus        String
+  hostCity     String
+  hostCountry  String
+  leadMinistry String
+  status       DelegationStatus  @default(PLANNED)
+  startDate    DateTime
+  endDate      DateTime
+  objectives   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+enum DelegationStatus {
+  PLANNED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model DiplomacyDocument {
+  id             String            @id @default(uuid())
+  title          String
+  category       DocumentCategory
+  classification DocumentClass     @default(RESTRICTED)
+  ownerDept      String
+  summary        String?
+  linkUrl        String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+enum DocumentCategory {
+  BRIEFING_NOTE
+  PROTOCOL_GUIDE
+  TREATY_DRAFT
+  ECONOMIC_DIPLOMACY
+  OTHER
+}
+
+enum DocumentClass {
+  PUBLIC
+  RESTRICTED
+  CONFIDENTIAL
+}

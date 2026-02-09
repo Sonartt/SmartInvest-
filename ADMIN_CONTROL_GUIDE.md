@@ -2,7 +2,7 @@
 
 ## 👨‍💼 Admin Account
 
-**Email:** `delijah5415@gmail.com`  
+**Email:** `admin@example.com`  
 **Access Level:** Unrestricted (Full Control)  
 **Authentication:** HTTP Basic Auth + JWT Token
 
@@ -12,9 +12,9 @@
 
 Configure in `.env`:
 ```env
-ADMIN_USER=delijah5415@gmail.com
-ADMIN_PASS=Ishmaah5415
-ADMIN_EMAIL=delijah5415@gmail.com
+ADMIN_USER=admin@example.com
+ADMIN_PASS=your_secure_password
+ADMIN_EMAIL=admin@example.com
 ```
 
 ---
@@ -48,7 +48,7 @@ if (user === process.env.ADMIN_USER && pass === process.env.ADMIN_PASS) {
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/upload \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -F "file=@document.pdf" \
   -F "title=Investment Guide" \
   -F "description=Comprehensive investment guide for beginners" \
@@ -64,7 +64,7 @@ curl -X POST http://localhost:3000/api/admin/upload \
 
 ```bash
 curl -X DELETE http://localhost:3000/api/admin/files/abc-123 \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ### Update File Metadata
@@ -73,7 +73,7 @@ curl -X DELETE http://localhost:3000/api/admin/files/abc-123 \
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/files/abc-123 \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"title":"Updated Title","description":"New description","price":500}'
 ```
@@ -89,7 +89,7 @@ curl -X POST http://localhost:3000/api/admin/files/abc-123 \
 
 ```bash
 curl http://localhost:3000/api/admin/messages \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ### Reply to Messages (ADMIN ONLY)
@@ -99,13 +99,13 @@ curl http://localhost:3000/api/admin/messages \
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/messages/msg-id-123/reply \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"reply":"Thank you for your message. We will assist you shortly."}'
 ```
 
 **Features:**
-- Reply attributed to admin: `by: "delijah5415@gmail.com"`
+- Reply attributed to admin: `by: "admin@example.com"`
 - Auto-notifies original sender via email (if provided)
 - Replies stored in `data/messages.json`
 
@@ -127,7 +127,7 @@ curl -X POST http://localhost:3000/api/admin/messages/msg-id-123/reply \
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/grant-premium \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -144,7 +144,7 @@ curl -X POST http://localhost:3000/api/admin/grant-premium \
 **Effects:**
 - Sets `isPremium: true` on user account
 - Sets `premiumExpiresAt` to current date + days
-- Records `premiumGrantedBy: "delijah5415@gmail.com"`
+- Records `premiumGrantedBy: "admin@example.com"`
 - Sends premium welcome email to user
 - Updates `data/users.json`
 
@@ -155,7 +155,7 @@ curl -X POST http://localhost:3000/api/admin/grant-premium \
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/revoke-premium \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com"}'
 ```
@@ -177,7 +177,7 @@ curl -X POST http://localhost:3000/api/admin/revoke-premium \
 
 ```bash
 curl http://localhost:3000/api/admin/dashboard-stats \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 **Returns:**
@@ -273,7 +273,7 @@ GeoIP detection via `/api/geo` affects frontend button states only. Admin has un
 
 ```bash
 curl -X POST http://localhost:3000/api/admin/send-email \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{
     "to": "user@example.com",
@@ -302,14 +302,14 @@ curl http://localhost:3000/api/admin/users
 
 # Should return user list
 curl http://localhost:3000/api/admin/users \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ### Test Premium Bypass:
 ```bash
 # Admin can access premium content without premium subscription
 curl http://localhost:3000/api/premium/content \
-  -H "Authorization: Basic $(echo -n 'delijah5415@gmail.com:Ishmaah5415' | base64)"
+  -H "Authorization: Basic $(echo -n 'admin@example.com:your_secure_password' | base64)"
 ```
 
 ### Test File Upload (Admin Only):
@@ -321,7 +321,7 @@ curl -X POST http://localhost:3000/api/admin/upload \
 
 # Admin: Success
 curl -X POST http://localhost:3000/api/admin/upload \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -F "file=@test.pdf" \
   -F "title=Test Document"
 # Response: {"success":true,"file":{...}}
@@ -343,7 +343,7 @@ curl -X POST http://localhost:3000/api/admin/messages/msg-123/reply \
 
 # Admin reply: Success
 curl -X POST http://localhost:3000/api/admin/messages/msg-123/reply \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"reply":"Thanks for reaching out!"}'
 # Response: {"success":true,"reply":{...}}
@@ -368,7 +368,7 @@ All admin actions are logged to `storage-complex`:
 
 ```javascript
 storageComplex.addAdminEntry(
-  'delijah5415@gmail.com',
+  'admin@example.com',
   'grant_premium',
   { targetUser: 'user@example.com', days: 30 }
 );
@@ -377,7 +377,7 @@ storageComplex.addAdminEntry(
 **View Admin Logs:**
 ```bash
 curl http://localhost:3000/api/admin/storage-complex/admin \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ---
@@ -397,7 +397,7 @@ curl http://localhost:3000/api/admin/storage-complex/admin \
 ### Admin Login (Frontend)
 ```javascript
 // Use HTTP Basic Auth
-const credentials = btoa('delijah5415@gmail.com:Ishmaah5415');
+const credentials = btoa('admin@example.com:your_secure_password');
 fetch('/api/admin/users', {
   headers: {
     'Authorization': `Basic ${credentials}`
@@ -420,7 +420,7 @@ If admin credentials are lost:
 
 ## ✅ Summary
 
-**Admin:** delijah5415@gmail.com  
+**Admin:** admin@example.com  
 **Capabilities:**
 - ✅ Upload/Delete/Update Files (exclusive)
 - ✅ Reply to Chat Messages (exclusive)
@@ -442,5 +442,5 @@ If admin credentials are lost:
 ---
 
 **Last Updated:** 2025-01-24  
-**Admin Account:** delijah5415@gmail.com  
+**Admin Account:** admin@example.com  
 **Status:** ✅ Fully Configured & Secured

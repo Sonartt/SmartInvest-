@@ -324,11 +324,25 @@
   <footer class="classic-footer py-8 px-4">
     <div class="max-w-6xl mx-auto text-center">
       <p>&copy; 2026 SmartInvest Africa. All rights reserved.</p>
-      <div class="mt-2 text-sm">Contact: 0114383762 • delijah5415@gmail.com</div>
+      <div class="mt-2 text-sm" id="adminContactLine">Contact: --</div>
     </div>
   </footer>
 
   <script>
+    async function loadContactLine() {
+      try {
+        const res = await fetch('/api/public-config');
+        const data = await res.json();
+        const line = document.getElementById('adminContactLine');
+        if (!line) return;
+        const parts = [data.supportPhone, data.supportEmail].filter(Boolean);
+        line.textContent = parts.length ? `Contact: ${parts.join(' • ')}` : 'Contact: --';
+      } catch (e) {
+        const line = document.getElementById('adminContactLine');
+        if (line) line.textContent = 'Contact: --';
+      }
+    }
+
     async function refreshDashboard() {
       try {
         const res = await fetch('/api/admin/dashboard-stats', { credentials: 'include' });
@@ -336,7 +350,7 @@
         const data = await res.json();
         document.getElementById('stat-users').textContent = data.totalUsers ?? '-';
         document.getElementById('stat-premium').textContent = data.premiumUsers ?? '-';
-        document.getElementById('stat-files').textContent = data.filesUploaded ?? '-';
+        document.getElementById('stat-files').textContent = data.filesUploaded ?? data.filesCount ?? '-';
         document.getElementById('stat-messages').textContent = data.pendingMessages ?? '-';
       } catch (e) { console.error(e); }
     }
@@ -755,6 +769,7 @@
     }
 
     window.addEventListener('load', () => {
+      loadContactLine();
       refreshDashboard();
       loadFiles();
       loadMessages();

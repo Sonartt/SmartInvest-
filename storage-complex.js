@@ -2,7 +2,7 @@
  * Storage Complex Module
  * Centralized storage for all data: cache, crashes, users, admin actions, and logs
  * All data is stored with timestamps for audit and tracking purposes
- * Access restricted to admin: delijah5415@gmail.com
+ * Access restricted to admin: see ADMIN_USER in env
  */
 
 const fs = require('fs');

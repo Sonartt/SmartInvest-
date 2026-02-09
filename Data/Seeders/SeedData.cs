@@ -30,24 +30,28 @@ namespace SmartInvest.Data.Seeders
             }
 
             // Seed Admin User
-            var adminEmail = "delijah5415@gmail.com";
-            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_USER");
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASS");
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {
-                var adminUser = new ApplicationUser
+                if (await userManager.FindByEmailAsync(adminEmail) == null)
                 {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    EmailConfirmed = true,
-                    ConsentGiven = true,
-                    ConsentDate = DateTime.UtcNow,
-                    DataProcessingConsent = true,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    var adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true,
+                        ConsentGiven = true,
+                        ConsentDate = DateTime.UtcNow,
+                        DataProcessingConsent = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                var result = await userManager.CreateAsync(adminUser, "ELIJAH");
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    var result = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    }
                 }
             }
 

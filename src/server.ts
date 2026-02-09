@@ -95,6 +95,14 @@ function requireUser(req: any) {
   return req.userId as string;
 }
 
+function requireAdmin(req: any) {
+  if (!req.isAdmin) {
+    const err = new Error("Unauthorized: admin access required");
+    (err as any).statusCode = 401;
+    throw err;
+  }
+}
+
 // ---- Workflow endpoints ----
 app.post("/api/workflows/submit", async (req, res) => {
   try {
@@ -153,6 +161,119 @@ app.post("/api/incidents/:id/status", async (req, res) => {
     const { status, publicNote, internalNote } = req.body;
     const out = await updateIncidentStatus({ actorId, incidentId, status, publicNote, internalNote });
     res.json(out);
+  } catch (e: any) {
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+// ---- Diplomacy portal endpoints ----
+app.get("/api/diplomacy/missions", async (_req, res) => {
+  const missions = await prisma.diplomacyMission.findMany({ orderBy: { name: "asc" } });
+  res.json({ success: true, missions });
+});
+
+app.get("/api/diplomacy/missions/:id", async (req, res) => {
+  const mission = await prisma.diplomacyMission.findUnique({ where: { id: req.params.id } });
+  if (!mission) return res.status(404).json({ error: "Mission not found" });
+  res.json({ success: true, mission });
+});
+
+app.post("/api/diplomacy/missions", async (req, res) => {
+  try {
+    requireAdmin(req);
+    const { name, country, city, region, type, status, contactEmail, contactPhone, focusArea } = req.body || {};
+    if (!name || !country || !city || !type) return res.status(400).json({ error: "Missing required fields" });
+    const mission = await prisma.diplomacyMission.create({
+      data: { name, country, city, region, type, status, contactEmail, contactPhone, focusArea },
+    });
+    res.json({ success: true, mission });
+  } catch (e: any) {
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.get("/api/diplomacy/treaties", async (_req, res) => {
+  const treaties = await prisma.diplomacyTreaty.findMany({ orderBy: { updatedAt: "desc" } });
+  res.json({ success: true, treaties });
+});
+
+app.get("/api/diplomacy/treaties/:id", async (req, res) => {
+  const treaty = await prisma.diplomacyTreaty.findUnique({ where: { id: req.params.id } });
+  if (!treaty) return res.status(404).json({ error: "Treaty not found" });
+  res.json({ success: true, treaty });
+});
+
+app.post("/api/diplomacy/treaties", async (req, res) => {
+  try {
+    requireAdmin(req);
+    const { title, partner, sector, status, signedAt, nextMilestone, summary } = req.body || {};
+    if (!title || !partner || !sector) return res.status(400).json({ error: "Missing required fields" });
+    const treaty = await prisma.diplomacyTreaty.create({
+      data: { title, partner, sector, status, signedAt, nextMilestone, summary },
+    });
+    res.json({ success: true, treaty });
+  } catch (e: any) {
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.get("/api/diplomacy/delegations", async (_req, res) => {
+  const delegations = await prisma.diplomacyDelegation.findMany({ orderBy: { startDate: "asc" } });
+  res.json({ success: true, delegations });
+});
+
+app.get("/api/diplomacy/delegations/:id", async (req, res) => {
+  const delegation = await prisma.diplomacyDelegation.findUnique({ where: { id: req.params.id } });
+  if (!delegation) return res.status(404).json({ error: "Delegation not found" });
+  res.json({ success: true, delegation });
+});
+
+app.post("/api/diplomacy/delegations", async (req, res) => {
+  try {
+    requireAdmin(req);
+    const { name, focus, hostCity, hostCountry, leadMinistry, status, startDate, endDate, objectives } = req.body || {};
+    if (!name || !focus || !hostCity || !hostCountry || !leadMinistry || !startDate || !endDate) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const delegation = await prisma.diplomacyDelegation.create({
+      data: {
+        name,
+        focus,
+        hostCity,
+        hostCountry,
+        leadMinistry,
+        status,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        objectives,
+      },
+    });
+    res.json({ success: true, delegation });
+  } catch (e: any) {
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.get("/api/diplomacy/documents", async (_req, res) => {
+  const documents = await prisma.diplomacyDocument.findMany({ orderBy: { updatedAt: "desc" } });
+  res.json({ success: true, documents });
+});
+
+app.get("/api/diplomacy/documents/:id", async (req, res) => {
+  const document = await prisma.diplomacyDocument.findUnique({ where: { id: req.params.id } });
+  if (!document) return res.status(404).json({ error: "Document not found" });
+  res.json({ success: true, document });
+});
+
+app.post("/api/diplomacy/documents", async (req, res) => {
+  try {
+    requireAdmin(req);
+    const { title, category, classification, ownerDept, summary, linkUrl } = req.body || {};
+    if (!title || !category || !ownerDept) return res.status(400).json({ error: "Missing required fields" });
+    const document = await prisma.diplomacyDocument.create({
+      data: { title, category, classification, ownerDept, summary, linkUrl },
+    });
+    res.json({ success: true, document });
   } catch (e: any) {
     res.status(e.statusCode || 400).json({ error: e.message });
   }

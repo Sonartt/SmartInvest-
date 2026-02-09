@@ -1,9 +1,9 @@
-# Admin Quick Reference - delijah5415@gmail.com
+# Admin Quick Reference - admin@example.com
 
 ## 🔐 Login Credentials
 ```
-Email: delijah5415@gmail.com
-Password: Ishmaah5415
+Email: admin@example.com
+Password: your_secure_password
 Method: HTTP Basic Auth
 ```
 
@@ -12,7 +12,7 @@ Method: HTTP Basic Auth
 ### Upload File
 ```bash
 curl -X POST http://localhost:3000/api/admin/upload \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -F "file=@document.pdf" \
   -F "title=Investment Guide" \
   -F "price=0"
@@ -21,7 +21,7 @@ curl -X POST http://localhost:3000/api/admin/upload \
 ### Delete File
 ```bash
 curl -X DELETE http://localhost:3000/api/admin/files/FILE_ID \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ---
@@ -31,13 +31,13 @@ curl -X DELETE http://localhost:3000/api/admin/files/FILE_ID \
 ### View All Messages
 ```bash
 curl http://localhost:3000/api/admin/messages \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ### Reply to Message (ADMIN EXCLUSIVE)
 ```bash
 curl -X POST http://localhost:3000/api/admin/messages/MESSAGE_ID/reply \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"reply":"Thank you for your message!"}'
 ```
@@ -51,7 +51,7 @@ curl -X POST http://localhost:3000/api/admin/messages/MESSAGE_ID/reply \
 ### Grant Premium Access
 ```bash
 curl -X POST http://localhost:3000/api/admin/grant-premium \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","days":30,"reason":"Admin approved"}'
 ```
@@ -59,7 +59,7 @@ curl -X POST http://localhost:3000/api/admin/grant-premium \
 ### Revoke Premium Access
 ```bash
 curl -X POST http://localhost:3000/api/admin/revoke-premium \
-  -u "delijah5415@gmail.com:Ishmaah5415" \
+  -u "admin@example.com:your_secure_password" \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com"}'
 ```
@@ -71,13 +71,13 @@ curl -X POST http://localhost:3000/api/admin/revoke-premium \
 ### View All Users
 ```bash
 curl http://localhost:3000/api/admin/users \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ### Dashboard Statistics
 ```bash
 curl http://localhost:3000/api/admin/dashboard-stats \
-  -u "delijah5415@gmail.com:Ishmaah5415"
+  -u "admin@example.com:your_secure_password"
 ```
 
 ---
@@ -107,12 +107,12 @@ curl http://localhost:3000/api/admin/dashboard-stats \
 
 ### Command Line (curl):
 ```bash
--u "delijah5415@gmail.com:Ishmaah5415"
+-u "admin@example.com:your_secure_password"
 ```
 
 ### JavaScript (fetch):
 ```javascript
-const auth = btoa('delijah5415@gmail.com:Ishmaah5415');
+const auth = btoa('admin@example.com:your_secure_password');
 fetch('/api/admin/users', {
   headers: { 'Authorization': `Basic ${auth}` }
 });
