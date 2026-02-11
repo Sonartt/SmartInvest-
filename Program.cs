@@ -7,8 +7,12 @@ using SmartInvest.Services.Analytics;
 using SmartInvest.Services.Calculation;
 using SmartInvest.Services.Compliance;
 using SmartInvest.Services.Notification;
-using SmartInvest.Services.Partner;
-using SmartInvest.Services.Payment;
+using SmartInvest.Services.Marketplace;
+
+using SmartInvest.Services.Authorization;
+using SmartInvest.Services.Integration;
+using SmartInvest.Services.Security;
+using SmartInvest.Services.Marketplace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,9 +39,26 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 builder.Services.AddScoped<IInvestmentCalculationService, InvestmentCalculationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ICryptoPaymentService, CryptoPaymentService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
+builder.Services.AddScoped<IUserDiscoveryService, UserDiscoveryService>();
+builder.Services.AddScoped<IAdminAuthorizationService, AdminAuthorizationService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
+builder.Services.AddScoped<IMarketplaceService, MarketplaceService>();
+builder.Services.AddScoped<IUsageTrackingService, UsageTrackingService>();
+builder.Services.AddScoped<IFraudDetectionService, FraudDetectionService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IShippingService, ShippingService>();
+builder.Services.AddScoped<ILivePaymentService, LivePaymentService>();
+builder.Services.AddScoped<IExternalIntegrationService, ExternalIntegrationService>();
+
+// Admin Seeder
+builder.Services.AddScoped<AdminSeeder>();
+
+builder.Services.AddHttpClient();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -71,6 +92,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// API Key Authentication Middleware (before auth)
+app.UseMiddleware<SmartInvest.Middleware.ApiKeyAuthenticationMiddleware>();
+
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
@@ -100,7 +124,12 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        // Run migrations and seed initial data
         await SeedData.Initialize(services);
+        
+        // Seed master admin user
+        var adminSeeder = services.GetRequiredService<AdminSeeder>();
+        await adminSeeder.SeedMasterAdminAsync();
     }
     catch (Exception ex)
     {

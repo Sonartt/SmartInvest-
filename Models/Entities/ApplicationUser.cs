@@ -40,6 +40,10 @@ namespace SmartInvest.Models.Entities
         public string Region { get; set; } // ZA, NG, GH, etc.
         public string PreferredCurrency { get; set; }
         
+        // Roles and Access
+        public UserRole Role { get; set; }
+        public bool IsExecutive { get; set; }
+        
         // Tracking
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginDate { get; set; }

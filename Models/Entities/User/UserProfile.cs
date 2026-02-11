@@ -28,6 +28,12 @@ namespace SmartInvest.Models.Entities.User
         [Phone]
         public string PhoneNumber { get; set; }
         public string AlternativeEmail { get; set; }
+
+        // Public profile
+        public string Headline { get; set; }
+        public string Bio { get; set; }
+        public string Skills { get; set; }
+        public bool IsPublicProfile { get; set; }
         
         // Address
         public string Address { get; set; }
