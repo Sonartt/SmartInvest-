@@ -51,12 +51,34 @@ app.use(
   })
 );
 
-app.use(express.json());
+// Limit request body size to prevent DoS attacks
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
+app.use(express.raw({ limit: '1mb' }));
 app.use(cookieParser());
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn("⚠️  JWT_SECRET not set in .env — using insecure fallback");
-  return "INSECURE-DEV-SECRET-CHANGE-ME";
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  
+  // In production, REQUIRE JWT_SECRET to be set and valid
+  if (nodeEnv === 'production' || process.env.ENFORCE_STRICT_JWT === 'true') {
+    if (!secret) {
+      throw new Error('CRITICAL: JWT_SECRET must be set in .env for production');
+    }
+    if (secret === 'INSECURE-DEV-SECRET-CHANGE-ME' || secret.length < 32) {
+      throw new Error('CRITICAL: JWT_SECRET must be at least 32 random characters and not be the default value');
+    }
+    return secret;
+  }
+  
+  // In development, allow fallback but warn
+  if (!secret) {
+    console.warn('⚠️ WARNING: JWT_SECRET not set in .env — using insecure fallback (DEV ONLY)');
+    return 'INSECURE-DEV-SECRET-CHANGE-ME';
+  }
+  
+  return secret;
 })();
 
 interface JWTPayload {
@@ -64,6 +86,53 @@ interface JWTPayload {
   email: string;
   admin?: boolean;
 }
+
+// ============================================
+// PHASE 1 SECURITY: Input Validators
+// ============================================
+
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return typeof email === 'string' && email.length <= 254 && emailRegex.test(email);
+}
+
+function isValidPhone(phone: string): boolean {
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  return typeof phone === 'string' && phoneRegex.test(phone);
+}
+
+function sanitizeString(str: string, maxLength = 1000): string {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[<>\"'`]/g, '').substring(0, maxLength);
+}
+
+function sanitizeError(error: any): string {
+  if (typeof error === 'string') return sanitizeString(error, 200);
+  if (error instanceof Error) return sanitizeString(error.message, 200);
+  return 'An error occurred';
+}
+
+// ============================================
+// PHASE 1 SECURITY: Admin Rate Limiting
+// ============================================
+
+const failedAdminAttempts = new Map<string, { count: number; resetTime: number }>();
+
+// Admin rate limiter
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 10,                    // 10 requests per window
+  keyGenerator: (req) => {
+    return req.ip || req.connection?.remoteAddress || 'unknown';
+  },
+  handler: (req, res) => {
+    return res.status(429).json({
+      error: 'Too many requests. Please try again later.',
+    });
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function verifyTokenFromReq(req: express.Request): JWTPayload | null {
   const auth = (req.headers.authorization || "").toString();
@@ -86,6 +155,23 @@ app.use(async (req, _res, next) => {
   next();
 });
 
+// ============================================
+// PHASE 1 SECURITY: Error Sanitization Middleware
+// ============================================
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const statusCode = err.statusCode || 500;
+  const sanitized = sanitizeError(err);
+  
+  // Log actual error internally (don't send to client)
+  console.error('[ERROR]', err);
+  
+  // Send sanitized error to client
+  res.status(statusCode).json({
+    error: sanitized,
+    ...(process.env.NODE_ENV === 'development' && { hint: 'Run with NODE_ENV=production to hide errors' }),
+  });
+});
+
 function requireUser(req: any) {
   if (!req.userId) {
     const err = new Error("Unauthorized: missing or invalid auth token");
@@ -102,6 +188,15 @@ function requireAdmin(req: any) {
     throw err;
   }
 }
+
+// ============================================
+// PHASE 1 SECURITY: Apply Admin Rate Limiter
+// ============================================
+app.use('/api/admin', adminLimiter);
+app.use('/api/diplomacy/missions', adminLimiter);
+app.use('/api/diplomacy/treaties', adminLimiter);
+app.use('/api/diplomacy/delegations', adminLimiter);
+app.use('/api/diplomacy/documents', adminLimiter);
 
 // ---- Workflow endpoints ----
 app.post("/api/workflows/submit", async (req, res) => {
@@ -182,13 +277,40 @@ app.post("/api/diplomacy/missions", async (req, res) => {
   try {
     requireAdmin(req);
     const { name, country, city, region, type, status, contactEmail, contactPhone, focusArea } = req.body || {};
-    if (!name || !country || !city || !type) return res.status(400).json({ error: "Missing required fields" });
+    
+    // Input validation
+    if (!name || !country || !city || !type) {
+      return res.status(400).json({ error: "Missing required fields: name, country, city, type" });
+    }
+    
+    if (typeof name !== 'string' || name.length > 500) {
+      return res.status(400).json({ error: "Invalid name: must be string ≤500 chars" });
+    }
+    
+    if (contactEmail && !isValidEmail(contactEmail)) {
+      return res.status(400).json({ error: "Invalid contact email" });
+    }
+    
+    if (contactPhone && !isValidPhone(contactPhone)) {
+      return res.status(400).json({ error: "Invalid contact phone" });
+    }
+    
     const mission = await prisma.diplomacyMission.create({
-      data: { name, country, city, region, type, status, contactEmail, contactPhone, focusArea },
+      data: {
+        name: sanitizeString(name),
+        country: sanitizeString(country),
+        city: sanitizeString(city),
+        region: sanitizeString(region),
+        type: sanitizeString(type),
+        status: sanitizeString(status),
+        contactEmail: contactEmail ? sanitizeString(contactEmail) : null,
+        contactPhone: contactPhone ? sanitizeString(contactPhone) : null,
+        focusArea: focusArea ? sanitizeString(focusArea) : null,
+      },
     });
     res.json({ success: true, mission });
   } catch (e: any) {
-    res.status(e.statusCode || 400).json({ error: e.message });
+    res.status(e.statusCode || 400).json({ error: sanitizeError(e) });
   }
 });
 
@@ -207,13 +329,30 @@ app.post("/api/diplomacy/treaties", async (req, res) => {
   try {
     requireAdmin(req);
     const { title, partner, sector, status, signedAt, nextMilestone, summary } = req.body || {};
-    if (!title || !partner || !sector) return res.status(400).json({ error: "Missing required fields" });
+    
+    // Input validation
+    if (!title || !partner || !sector) {
+      return res.status(400).json({ error: "Missing required fields: title, partner, sector" });
+    }
+    
+    if (typeof title !== 'string' || title.length > 500) {
+      return res.status(400).json({ error: "Invalid title: must be string ≤500 chars" });
+    }
+    
     const treaty = await prisma.diplomacyTreaty.create({
-      data: { title, partner, sector, status, signedAt, nextMilestone, summary },
+      data: {
+        title: sanitizeString(title),
+        partner: sanitizeString(partner),
+        sector: sanitizeString(sector),
+        status: status ? sanitizeString(status) : null,
+        signedAt: signedAt ? new Date(signedAt) : null,
+        nextMilestone: nextMilestone ? new Date(nextMilestone) : null,
+        summary: summary ? sanitizeString(summary) : null,
+      },
     });
     res.json({ success: true, treaty });
   } catch (e: any) {
-    res.status(e.statusCode || 400).json({ error: e.message });
+    res.status(e.statusCode || 400).json({ error: sanitizeError(e) });
   }
 });
 
@@ -232,25 +371,34 @@ app.post("/api/diplomacy/delegations", async (req, res) => {
   try {
     requireAdmin(req);
     const { name, focus, hostCity, hostCountry, leadMinistry, status, startDate, endDate, objectives } = req.body || {};
+    
+    // Input validation
     if (!name || !focus || !hostCity || !hostCountry || !leadMinistry || !startDate || !endDate) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ 
+        error: "Missing required fields: name, focus, hostCity, hostCountry, leadMinistry, startDate, endDate" 
+      });
     }
+    
+    if (typeof name !== 'string' || name.length > 500) {
+      return res.status(400).json({ error: "Invalid name: must be string ≤500 chars" });
+    }
+    
     const delegation = await prisma.diplomacyDelegation.create({
       data: {
-        name,
-        focus,
-        hostCity,
-        hostCountry,
-        leadMinistry,
-        status,
+        name: sanitizeString(name),
+        focus: sanitizeString(focus),
+        hostCity: sanitizeString(hostCity),
+        hostCountry: sanitizeString(hostCountry),
+        leadMinistry: sanitizeString(leadMinistry),
+        status: status ? sanitizeString(status) : null,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        objectives,
+        objectives: objectives ? sanitizeString(objectives) : null,
       },
     });
     res.json({ success: true, delegation });
   } catch (e: any) {
-    res.status(e.statusCode || 400).json({ error: e.message });
+    res.status(e.statusCode || 400).json({ error: sanitizeError(e) });
   }
 });
 
@@ -269,13 +417,33 @@ app.post("/api/diplomacy/documents", async (req, res) => {
   try {
     requireAdmin(req);
     const { title, category, classification, ownerDept, summary, linkUrl } = req.body || {};
-    if (!title || !category || !ownerDept) return res.status(400).json({ error: "Missing required fields" });
+    
+    // Input validation
+    if (!title || !category || !ownerDept) {
+      return res.status(400).json({ error: "Missing required fields: title, category, ownerDept" });
+    }
+    
+    if (typeof title !== 'string' || title.length > 500) {
+      return res.status(400).json({ error: "Invalid title: must be string ≤500 chars" });
+    }
+    
+    if (linkUrl && !/^https?:\/\//.test(linkUrl)) {
+      return res.status(400).json({ error: "Invalid linkUrl: must be valid HTTP/HTTPS URL" });
+    }
+    
     const document = await prisma.diplomacyDocument.create({
-      data: { title, category, classification, ownerDept, summary, linkUrl },
+      data: {
+        title: sanitizeString(title),
+        category: sanitizeString(category),
+        classification: classification ? sanitizeString(classification) : null,
+        ownerDept: sanitizeString(ownerDept),
+        summary: summary ? sanitizeString(summary) : null,
+        linkUrl: linkUrl ? sanitizeString(linkUrl) : null,
+      },
     });
     res.json({ success: true, document });
   } catch (e: any) {
-    res.status(e.statusCode || 400).json({ error: e.message });
+    res.status(e.statusCode || 400).json({ error: sanitizeError(e) });
   }
 });
 

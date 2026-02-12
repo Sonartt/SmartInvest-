@@ -2422,4 +2422,298 @@ app.post('/api/payments/admin/note', adminAuth, (req, res) => {
 // END OF MODERN PAYMENT SYSTEM API
 // ============================================================================
 
-app.listen(PORT, ()=>console.log(`Payment API listening on ${PORT}`));
+// ============================================================================
+// PREMIUM BROCHURE DELIVERY & MARKETPLACE API
+// ============================================================================
+
+// Premium Brochure Delivery Endpoints
+app.get('/api/user/membership-status', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  // Check if user has premium membership
+  const user = users.find(u => u.email === payload.email);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  return res.json({
+    isPremium: user.premium || false,
+    subscriptionStartDate: user.premiumStartDate || new Date().toISOString(),
+    subscriptionEndDate: user.premiumEndDate || null,
+    lastNotificationDate: user.lastBrochureNotification || null
+  });
+});
+
+// Get available brochures for user
+app.get('/api/brochures/available', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const user = users.find(u => u.email === payload.email);
+  if (!user || !user.premium) {
+    return res.status(403).json({ error: 'Premium membership required' });
+  }
+  
+  // Calculate weeks subscribed
+  const startDate = new Date(user.premiumStartDate || Date.now());
+  const now = new Date();
+  const weeksSubscribed = Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 7));
+  
+  return res.json({
+    weeksSubscribed,
+    availableBrochures: brochureList.filter(b => b.deliveryWeek <= weeksSubscribed)
+  });
+});
+
+// Generate PDF for brochure
+app.get('/api/brochures/:brochureId/pdf', async (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const user = users.find(u => u.email === payload.email);
+  if (!user || !user.premium) {
+    return res.status(403).json({ error: 'Premium membership required' });
+  }
+  
+  const { brochureId } = req.params;
+  
+  // In production, generate actual PDF using puppeteer or similar
+  // For now, redirect to HTML version
+  return res.redirect(`/public/brochures/${brochureId}.html`);
+});
+
+// Marketplace - Get all products
+app.get('/api/marketplace/products', (req, res) => {
+  const { category, minPrice, maxPrice, sort } = req.query;
+  
+  let filtered = marketplaceProducts;
+  
+  if (category && category !== 'all') {
+    filtered = filtered.filter(p => p.category === category);
+  }
+  
+  if (minPrice) {
+    filtered = filtered.filter(p => p.price >= parseFloat(minPrice));
+  }
+  
+  if (maxPrice) {
+    filtered = filtered.filter(p => p.price <= parseFloat(maxPrice));
+  }
+  
+  // Sort products
+  if (sort === 'price-low') {
+    filtered.sort((a, b) => a.price - b.price);
+  } else if (sort === 'price-high') {
+    filtered.sort((a, b) => b.price - a.price);
+  } else if (sort === 'rating') {
+    filtered.sort((a, b) => b.rating - a.rating);
+  }
+  
+  return res.json({ products: filtered, total: filtered.length });
+});
+
+// Marketplace - Get single product
+app.get('/api/marketplace/products/:id', (req, res) => {
+  const product = marketplaceProducts.find(p => p.id === parseInt(req.params.id));
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  return res.json(product);
+});
+
+// Marketplace - Add to cart
+app.post('/api/marketplace/cart/add', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Please login to add items to cart' });
+  }
+  
+  const { productId, quantity } = req.body;
+  const product = marketplaceProducts.find(p => p.id === productId);
+  
+  if (!product) {
+    return res.status(404).json({ error: 'Product not found' });
+  }
+  
+  // Initialize cart if doesn't exist
+  if (!userCarts[payload.email]) {
+    userCarts[payload.email] = [];
+  }
+  
+  // Check if product already in cart
+  const existingItem = userCarts[payload.email].find(item => item.productId === productId);
+  
+  if (existingItem) {
+    existingItem.quantity += quantity || 1;
+  } else {
+    userCarts[payload.email].push({
+      productId,
+      quantity: quantity || 1,
+      addedAt: new Date().toISOString()
+    });
+  }
+  
+  return res.json({ 
+    success: true, 
+    message: 'Added to cart',
+    cartCount: userCarts[payload.email].length
+  });
+});
+
+// Marketplace - Get cart
+app.get('/api/marketplace/cart', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const cart = userCarts[payload.email] || [];
+  const cartWithProducts = cart.map(item => {
+    const product = marketplaceProducts.find(p => p.id === item.productId);
+    return {
+      ...item,
+      product
+    };
+  });
+  
+  const total = cartWithProducts.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  
+  return res.json({ items: cartWithProducts, total, count: cart.length });
+});
+
+// Marketplace - Remove from cart
+app.delete('/api/marketplace/cart/:productId', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const productId = parseInt(req.params.productId);
+  
+  if (userCarts[payload.email]) {
+    userCarts[payload.email] = userCarts[payload.email].filter(item => item.productId !== productId);
+  }
+  
+  return res.json({ success: true, message: 'Item removed from cart' });
+});
+
+// Marketplace - Purchase products
+app.post('/api/marketplace/purchase', async (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  if (!payload) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  const { items, paymentMethod, mpesaPhone, paypalEmail } = req.body;
+  
+  if (!items || items.length === 0) {
+    return res.status(400).json({ error: 'No items in order' });
+  }
+  
+  // Calculate total
+  const total = items.reduce((sum, item) => {
+    const product = marketplaceProducts.find(p => p.id === item.productId);
+    return sum + (product ? product.price * item.quantity : 0);
+  }, 0);
+  
+  // Create order
+  const order = {
+    id: `ORD-${Date.now()}`,
+    userId: payload.email,
+    items,
+    total,
+    paymentMethod,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  
+  // Process payment (integrate with existing M-Pesa/PayPal logic)
+  if (paymentMethod === 'mpesa') {
+    // Use existing M-Pesa integration
+    order.mpesaPhone = mpesaPhone;
+    order.status = 'processing';
+  } else if (paymentMethod === 'paypal') {
+    order.paypalEmail = paypalEmail;
+    order.status = 'processing';
+  }
+  
+  // Store order (in production, save to database)
+  if (!marketplaceOrders) {
+    global.marketplaceOrders = [];
+  }
+  marketplaceOrders.push(order);
+  
+  // Clear cart
+  userCarts[payload.email] = [];
+  
+  return res.json({ 
+    success: true, 
+    orderId: order.id,
+    message: 'Order placed successfully',
+    order
+  });
+});
+
+// Analytics tracking
+app.post('/api/analytics/track', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  const { event, data, timestamp } = req.body;
+  
+  // Log event (in production, send to analytics service)
+  console.log('Analytics Event:', {
+    user: payload?.email || 'anonymous',
+    event,
+    data,
+    timestamp
+  });
+  
+  return res.json({ success: true });
+});
+
+// Sample marketplace products
+const marketplaceProducts = [
+  { id: 1, title: "Complete Investment Masterclass 2026", category: "courses", price: 2999, rating: 4.8, reviews: 1242, image: "https://via.placeholder.com/300x200?text=Investment+Course" },
+  { id: 2, title: "Africa Markets Weekly Brochure", category: "brochures", price: 499, rating: 4.9, reviews: 856, premium: true, image: "https://via.placeholder.com/300x200?text=Weekly+Brochure" },
+  { id: 3, title: "Portfolio Tracker Pro", category: "tools", price: 1499, rating: 4.7, reviews: 623, image: "https://via.placeholder.com/300x200?text=Portfolio+Tracker" },
+  { id: 4, title: "Q1 2026 Market Analysis Report", category: "reports", price: 799, rating: 4.6, reviews: 445, image: "https://via.placeholder.com/300x200?text=Market+Report" },
+  { id: 5, title: "Premium Investment Brochure Bundle", category: "brochures", price: 3999, rating: 5.0, reviews: 234, premium: true, image: "https://via.placeholder.com/300x200?text=Premium+Bundle" },
+  { id: 6, title: "Crypto Investment Guide 2026", category: "courses", price: 1999, rating: 4.5, reviews: 892, image: "https://via.placeholder.com/300x200?text=Crypto+Guide" },
+  { id: 7, title: "Personal Advisory Session", category: "advisory", price: 4999, rating: 5.0, reviews: 156, premium: true, image: "https://via.placeholder.com/300x200?text=Advisory+Session" },
+  { id: 8, title: "Investment Proposal Templates", category: "templates", price: 599, rating: 4.4, reviews: 378, image: "https://via.placeholder.com/300x200?text=Templates" },
+  { id: 9, title: "Technical Analysis Course", category: "courses", price: 2499, rating: 4.8, reviews: 1089, image: "https://via.placeholder.com/300x200?text=Technical+Analysis" },
+  { id: 10, title: "Real Estate Investment Calculator", category: "tools", price: 899, rating: 4.7, reviews: 512, image: "https://via.placeholder.com/300x200?text=RE+Calculator" },
+  { id: 11, title: "ESG Investing Brochure Series", category: "brochures", price: 699, rating: 4.9, reviews: 267, premium: true, image: "https://via.placeholder.com/300x200?text=ESG+Brochures" },
+  { id: 12, title: "Stock Screening Tool Advanced", category: "tools", price: 1799, rating: 4.6, reviews: 445, image: "https://via.placeholder.com/300x200?text=Stock+Screener" }
+];
+
+const brochureList = [
+  { id: 'weekly-insights', title: 'Africa Markets Weekly Insights', deliveryWeek: 1, description: 'Comprehensive weekly analysis of African markets' },
+  { id: 'quarterly-opportunities', title: 'Investment Opportunities Q1 2026', deliveryWeek: 2, description: 'Top investment opportunities for the quarter' },
+  { id: 'portfolio-optimization', title: 'Portfolio Optimization Strategies', deliveryWeek: 3, description: 'Advanced strategies to optimize your portfolio' },
+  { id: 'risk-management', title: 'Risk Management Masterclass', deliveryWeek: 4, description: 'Comprehensive risk management techniques' },
+  { id: 'fintech-report', title: 'African Fintech Revolution Report', deliveryWeek: 8, description: 'Deep dive into African fintech landscape' },
+  { id: 'green-energy', title: 'Green Energy Investment Guide', deliveryWeek: 12, description: 'Sustainable energy investment opportunities' }
+];
+
+const userCarts = {};
+const marketplaceOrders = [];
+
+// ============================================================================
+// SERVER START
+// ============================================================================
+
+app.listen(PORT, () => {
+  console.log('\n🚀 SmartInvest Server Running');
+  console.log(`✅ Server listening on http://localhost:${PORT}`);
+  console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+  console.log(`🛒 Marketplace: http://localhost:${PORT}/marketplace.html`);
+  console.log(`📚 Premium Brochures: Enabled`);
+  console.log('💡 Check .env for M-Pesa, PayPal, etc. configuration\n');
+});
