@@ -6,6 +6,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const storageComplex = require('./storage-complex');
 const pochiRoutes = require('./src/routes/pochi-routes');
 
@@ -16,11 +17,61 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api/pochi', pochiRoutes);
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.warn('⚠️  JWT_SECRET not set in .env — using insecure fallback');
-  return 'INSECURE-DEV-SECRET-CHANGE-ME';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  const enforceStrict = nodeEnv === 'production' || process.env.ENFORCE_STRICT_JWT === 'true';
+
+  if (enforceStrict) {
+    if (!secret) {
+      throw new Error('CRITICAL: JWT_SECRET must be set in .env for production');
+    }
+
+    if (secret.length < 32 || secret === 'INSECURE-DEV-SECRET-CHANGE-ME') {
+      throw new Error('CRITICAL: JWT_SECRET must be at least 32 random characters and not be the default value');
+    }
+
+    return secret;
+  }
+
+  if (!secret) {
+    console.warn('⚠️  JWT_SECRET not set in .env — using insecure fallback (DEV ONLY)');
+    return 'INSECURE-DEV-SECRET-CHANGE-ME';
+  }
+
+  return secret;
 })();
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '12h';
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => {
+    return req.ip || req.connection?.remoteAddress || 'unknown';
+  },
+  handler: (_req, res) => {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api/admin', adminLimiter);
+
+const userProfiles = new Map();
+
+function sanitizeString(value, maxLength = 200) {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[<>"'`]/g, '').slice(0, maxLength);
+}
+
+function resolveProfileKey(req, body) {
+  const payload = verifyTokenFromReq(req);
+  if (payload?.email) return payload.email.toLowerCase();
+  const email = body?.email || req.query?.email;
+  if (typeof email === 'string' && email.includes('@')) return email.toLowerCase();
+  return null;
+}
 
 // JWT token verification helper
 function verifyTokenFromReq(req) {
@@ -2675,6 +2726,52 @@ app.post('/api/analytics/track', (req, res) => {
   });
   
   return res.json({ success: true });
+});
+
+// User profile (MVP personalization)
+app.get('/api/profile', (req, res) => {
+  const key = resolveProfileKey(req, req.body || {});
+  if (!key) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const profile = userProfiles.get(key) || null;
+  return res.json({ success: true, profile });
+});
+
+app.post('/api/profile', (req, res) => {
+  const key = resolveProfileKey(req, req.body || {});
+  if (!key) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const allowedGoals = ['growth', 'retirement', 'education', 'business', 'income'];
+  const allowedHorizon = ['0-2', '3-5', '6-10', '10+'];
+  const allowedRisk = ['low', 'medium', 'high'];
+
+  const goal = sanitizeString(req.body?.goal || '').toLowerCase();
+  const horizon = sanitizeString(req.body?.horizon || '').toLowerCase();
+  const risk = sanitizeString(req.body?.risk || '').toLowerCase();
+  const region = sanitizeString(req.body?.region || '').toUpperCase();
+  const contribution = Number(req.body?.contribution || 0);
+  const impact = Boolean(req.body?.impact);
+
+  if (!allowedGoals.includes(goal) || !allowedHorizon.includes(horizon) || !allowedRisk.includes(risk) || !region) {
+    return res.status(400).json({ success: false, error: 'Invalid profile data' });
+  }
+
+  const profile = {
+    goal,
+    horizon,
+    risk,
+    region,
+    contribution: Number.isFinite(contribution) ? contribution : 0,
+    impact,
+    updatedAt: new Date().toISOString()
+  };
+
+  userProfiles.set(key, profile);
+  return res.json({ success: true, profile });
 });
 
 // Sample marketplace products

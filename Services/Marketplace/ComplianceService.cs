@@ -1,3 +1,4 @@
+using SmartInvest.Models.Entities;
 using SmartInvest.Models.Entities.Marketplace;
 
 namespace SmartInvest.Services.Marketplace;
@@ -51,10 +52,14 @@ public class ComplianceService : IComplianceService
             if (user == null) return false;
 
             // Check scope applicability
-            if (!IsRuleApplicable(rule.Scope, user)) return true;
+            if (!await IsRuleApplicableAsync(rule.Scope, user)) return true;
 
-            // Check required access level
-            // TODO: Get user's actual access level
+            var userAccessLevel = await ResolveUserAccessLevelAsync(user);
+            if (userAccessLevel < rule.RequiredAccessLevel)
+            {
+                _logger.LogWarning($"Access denied for user {userId}. Required={rule.RequiredAccessLevel}, Actual={userAccessLevel}");
+                return false;
+            }
             
             _logger.LogInformation($"Business rule '{ruleName}' checked for user {userId}");
             return true;
@@ -212,16 +217,67 @@ public class ComplianceService : IComplianceService
         _logger.LogInformation($"Official {userId} accessing {resourceType}");
     }
 
-    private bool IsRuleApplicable(RuleScope scope, ApplicationUser user)
+    private async Task<bool> IsRuleApplicableAsync(RuleScope scope, ApplicationUser user)
     {
+        if (scope == RuleScope.All)
+        {
+            return true;
+        }
+
+        var subscription = await _context.UserSubscriptions
+            .Include(s => s.SubscriptionTier)
+            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.Status == SubscriptionStatus.Active);
+
         return scope switch
         {
-            RuleScope.All => true,
-            RuleScope.Investors => user.Role == 3, // Investor role
-            RuleScope.Sellers => user.Role == 2,   // Seller role
-            RuleScope.Buyers => user.Role == 1,    // Buyer role
-            RuleScope.Administrators => user.Role >= 4, // Admin or higher
+            RuleScope.Buyers => user.Role == UserRole.Buyer,
+            RuleScope.Sellers => user.Role == UserRole.Seller || user.Role == UserRole.Merchant,
+            RuleScope.Administrators => user.Role == UserRole.Admin || user.Role == UserRole.Executive || user.IsExecutive,
+            RuleScope.PremiumUsers => subscription != null,
+            RuleScope.FreeUsers => subscription == null,
+            RuleScope.Investors => subscription?.SubscriptionTier?.InvestorAccess == true,
             _ => false
         };
+    }
+
+    private async Task<AccessLevel> ResolveUserAccessLevelAsync(ApplicationUser user)
+    {
+        var accessLevel = AccessLevel.User;
+
+        switch (user.Role)
+        {
+            case UserRole.Admin:
+                accessLevel = AccessLevel.Admin;
+                break;
+            case UserRole.Executive:
+                accessLevel = AccessLevel.Official;
+                break;
+            case UserRole.Merchant:
+            case UserRole.Seller:
+                accessLevel = AccessLevel.Seller;
+                break;
+            case UserRole.Buyer:
+                accessLevel = AccessLevel.User;
+                break;
+            default:
+                accessLevel = AccessLevel.User;
+                break;
+        }
+
+        if (user.IsExecutive)
+        {
+            accessLevel = AccessLevel.Official;
+        }
+
+        var subscription = await _context.UserSubscriptions
+            .Include(s => s.SubscriptionTier)
+            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.Status == SubscriptionStatus.Active);
+
+        if (subscription?.SubscriptionTier?.InvestorAccess == true)
+        {
+            accessLevel = (AccessLevel)Math.Max((int)accessLevel, (int)AccessLevel.Investor);
+        }
+
+        return accessLevel;
     }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SmartInvest.Data;
+using SmartInvest.Models.Entities.Analytics;
 using SmartInvest.Models.Entities.Integration;
 
 namespace SmartInvest.Services.Integration
@@ -14,6 +15,7 @@ namespace SmartInvest.Services.Integration
         Task<ApiKey> ValidateKeyAsync(string key);
         Task<bool> RevokeKeyAsync(string userId, int keyId);
         Task RecordUsageAsync(int keyId);
+        Task<int> CountUsageSinceAsync(int keyId, DateTime sinceUtc);
     }
 
     public class ApiKeyService : IApiKeyService
@@ -83,8 +85,32 @@ namespace SmartInvest.Services.Integration
             {
                 apiKey.LastUsedAt = DateTime.UtcNow;
                 apiKey.UsageCount++;
+
+                _db.UsageLogs.Add(new UsageLog
+                {
+                    UserId = apiKey.UserId,
+                    Action = "ApiKeyRequest",
+                    EntityType = "ApiKey",
+                    EntityId = apiKey.Id.ToString(),
+                    IpAddress = null,
+                    UserAgent = null,
+                    Metadata = null,
+                    CreatedAt = DateTime.UtcNow
+                });
+
                 await _db.SaveChangesAsync();
             }
+        }
+
+        public async Task<int> CountUsageSinceAsync(int keyId, DateTime sinceUtc)
+        {
+            var keyIdString = keyId.ToString();
+
+            return await _db.UsageLogs.CountAsync(log =>
+                log.EntityType == "ApiKey" &&
+                log.EntityId == keyIdString &&
+                log.Action == "ApiKeyRequest" &&
+                log.CreatedAt >= sinceUtc);
         }
 
         private static string GenerateApiKey()

@@ -134,6 +134,15 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const userProfiles = new Map<string, any>();
+
+function resolveProfileKey(req: any, body: any): string | null {
+  if (req.userEmail) return String(req.userEmail).toLowerCase();
+  const email = body?.email;
+  if (typeof email === 'string' && email.includes('@')) return email.toLowerCase();
+  return null;
+}
+
 function verifyTokenFromReq(req: express.Request): JWTPayload | null {
   const auth = (req.headers.authorization || "").toString();
   let token: string | null = null;
@@ -197,6 +206,60 @@ app.use('/api/diplomacy/missions', adminLimiter);
 app.use('/api/diplomacy/treaties', adminLimiter);
 app.use('/api/diplomacy/delegations', adminLimiter);
 app.use('/api/diplomacy/documents', adminLimiter);
+
+// ---- Profile endpoints (MVP personalization) ----
+app.get('/api/profile', (req, res) => {
+  const key = resolveProfileKey(req, req.body || {});
+  if (!key) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const profile = userProfiles.get(key) || null;
+  return res.json({ success: true, profile });
+});
+
+app.post('/api/profile', (req, res) => {
+  const key = resolveProfileKey(req, req.body || {});
+  if (!key) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  const allowedGoals = ['growth', 'retirement', 'education', 'business', 'income'];
+  const allowedHorizon = ['0-2', '3-5', '6-10', '10+'];
+  const allowedRisk = ['low', 'medium', 'high'];
+
+  const goal = sanitizeString(req.body?.goal || '').toLowerCase();
+  const horizon = sanitizeString(req.body?.horizon || '').toLowerCase();
+  const risk = sanitizeString(req.body?.risk || '').toLowerCase();
+  const region = sanitizeString(req.body?.region || '').toUpperCase();
+  const contribution = Number(req.body?.contribution || 0);
+  const impact = Boolean(req.body?.impact);
+
+  if (!allowedGoals.includes(goal) || !allowedHorizon.includes(horizon) || !allowedRisk.includes(risk) || !region) {
+    return res.status(400).json({ success: false, error: 'Invalid profile data' });
+  }
+
+  const profile = {
+    goal,
+    horizon,
+    risk,
+    region,
+    contribution: Number.isFinite(contribution) ? contribution : 0,
+    impact,
+    updatedAt: new Date().toISOString()
+  };
+
+  userProfiles.set(key, profile);
+  return res.json({ success: true, profile });
+});
+
+// ---- Analytics tracking ----
+app.post('/api/analytics/track', (req, res) => {
+  const payload = verifyTokenFromReq(req);
+  const { event, data, timestamp } = req.body || {};
+  console.log('Analytics Event:', {
+    user: payload?.email || 'anonymous',
+    event,
+    data,
+    timestamp
+  });
+  return res.json({ success: true });
+});
 
 // ---- Workflow endpoints ----
 app.post("/api/workflows/submit", async (req, res) => {

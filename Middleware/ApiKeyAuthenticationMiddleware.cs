@@ -99,8 +99,8 @@ namespace SmartInvest.Middleware
 
         private async Task<int> CountHourlyUsageAsync(int keyId, IApiKeyService apiKeyService)
         {
-            // Simplified: In production, use a cache or separate tracking table
-            return 0; // Placeholder
+            var sinceUtc = DateTime.UtcNow.AddHours(-1);
+            return await apiKeyService.CountUsageSinceAsync(keyId, sinceUtc);
         }
     }
 }

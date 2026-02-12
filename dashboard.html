@@ -81,6 +81,20 @@
             font-weight: 600;
             font-size: 0.75rem;
         }
+        .onboarding-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.25rem;
+            background: #f8fafc;
+        }
+        .pill {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: #e2e8f0;
+            color: #1f2937;
+        }
     </style>
 </head>
 <body>
@@ -103,6 +117,7 @@
                 </div>
                 <nav>
                     <a href="#overview" class="sidebar-link active">📊 Overview</a>
+                    <a href="#onboarding" class="sidebar-link">🧭 Personalized Plan</a>
                     <a href="#portfolio" class="sidebar-link">💼 Portfolio</a>
                     <a href="#transactions" class="sidebar-link">💳 Transactions</a>
                     <a href="#analytics" class="sidebar-link">📈 Analytics</a>
@@ -129,6 +144,84 @@
                         <button class="btn btn-sm btn-outline-primary">👤 Profile</button>
                     </div>
                 </div>
+
+                <section id="onboarding" class="mb-4">
+                    <div class="chart-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">Personalized Plan</h5>
+                                <p class="text-muted mb-0">Share your goals to build a tailored investment path.</p>
+                            </div>
+                            <span class="badge bg-info text-dark" id="onboardingStatus">Not started</span>
+                        </div>
+                        <form id="onboardingForm" class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Primary Goal</label>
+                                <select class="form-select" name="goal" required>
+                                    <option value="growth">Grow wealth</option>
+                                    <option value="retirement">Retirement plan</option>
+                                    <option value="education">Education fund</option>
+                                    <option value="business">Business expansion</option>
+                                    <option value="income">Monthly income</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Time Horizon</label>
+                                <select class="form-select" name="horizon" required>
+                                    <option value="0-2">0-2 years</option>
+                                    <option value="3-5">3-5 years</option>
+                                    <option value="6-10">6-10 years</option>
+                                    <option value="10+">10+ years</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Risk Comfort</label>
+                                <select class="form-select" name="risk" required>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Region</label>
+                                <select class="form-select" name="region" required>
+                                    <option value="KE">Kenya</option>
+                                    <option value="ZA">South Africa</option>
+                                    <option value="NG">Nigeria</option>
+                                    <option value="GH">Ghana</option>
+                                    <option value="UG">Uganda</option>
+                                    <option value="TZ">Tanzania</option>
+                                    <option value="RW">Rwanda</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Monthly Contribution (KES)</label>
+                                <input class="form-control" type="number" name="contribution" min="0" step="100" value="5000">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Impact Focus</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="impact" id="impactFocus">
+                                    <label class="form-check-label" for="impactFocus">Prioritize impact and sustainability</label>
+                                </div>
+                            </div>
+                            <div class="col-12 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save Plan</button>
+                                <button type="button" class="btn btn-outline-secondary" id="onboardingReset">Reset</button>
+                            </div>
+                        </form>
+                        <div class="onboarding-card mt-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="fw-bold mb-1">Plan Summary</h6>
+                                    <div class="text-muted" id="onboardingSummary">Complete the plan to see personalized next steps.</div>
+                                </div>
+                                <div class="pill" id="onboardingPill">Not personalized</div>
+                            </div>
+                            <div class="row g-3 mt-2" id="onboardingActions"></div>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- Stats Overview -->
                 <div class="row g-3 mb-4">
@@ -321,6 +414,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/public/js/onboarding-mvp.js"></script>
     <script src="/public/js/modern-payment-interface.js"></script>
     <script src="/public/js/transaction-history-viewer.js"></script>
     <script type="module">

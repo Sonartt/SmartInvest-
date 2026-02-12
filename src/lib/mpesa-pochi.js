@@ -15,6 +15,8 @@ class MpesaPochi {
     this.callbackUrl = config.callbackUrl || process.env.MPESA_CALLBACK_URL;
     this.pochiAccountName = config.pochiAccountName || 'SmartInvest';
     this.env = config.env || process.env.MPESA_ENV || 'sandbox';
+    this.initiatorPassword = config.initiatorPassword || process.env.MPESA_INITIATOR_PASSWORD;
+    this.publicKey = config.publicKey || process.env.MPESA_PUBLIC_KEY || process.env.MPESA_PUBLIC_KEY_B64;
     
     this.baseUrl = this.env === 'production'
       ? 'https://api.safaricom.co.ke'
@@ -345,12 +347,31 @@ class MpesaPochi {
   }
 
   /**
-   * Generate security credential (placeholder - implement with actual encryption)
+   * Generate security credential using M-Pesa public key encryption
    */
   async getSecurityCredential() {
-    // In production, this should encrypt the initiator password with M-Pesa's public key
-    // For now, return a placeholder - implement proper encryption for production
-    return 'Base64EncodedSecurityCredential';
+    if (!this.initiatorPassword) {
+      throw new Error('MPESA_INITIATOR_PASSWORD is required to generate security credential');
+    }
+
+    if (!this.publicKey) {
+      throw new Error('MPESA_PUBLIC_KEY or MPESA_PUBLIC_KEY_B64 is required to generate security credential');
+    }
+
+    let publicKey = this.publicKey;
+    if (!publicKey.includes('BEGIN')) {
+      publicKey = Buffer.from(publicKey, 'base64').toString('utf8');
+    }
+
+    const encrypted = crypto.publicEncrypt(
+      {
+        key: publicKey,
+        padding: crypto.constants.RSA_PKCS1_PADDING
+      },
+      Buffer.from(this.initiatorPassword)
+    );
+
+    return encrypted.toString('base64');
   }
 
   /**

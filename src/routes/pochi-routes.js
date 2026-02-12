@@ -6,6 +6,9 @@
 const express = require('express');
 const router = express.Router();
 const MpesaPochi = require('../lib/mpesa-pochi');
+const EmailService = require('../services/EmailService');
+const PremiumAccessService = require('../services/PremiumAccessService');
+const NotificationService = require('../services/NotificationService');
 
 // Initialize Pochi handler
 const pochi = new MpesaPochi({
@@ -163,24 +166,39 @@ router.post('/callback', express.json(), async (req, res) => {
           timestamp: new Date().toISOString()
         });
 
-        // Send confirmation email to user (placeholder for email service)
-        console.log(`📧 Sending confirmation email to ${validation.phoneNumber}`);
-        // TODO: Implement actual email sending via SMTP
-        // const emailService = new EmailService();
-        // await emailService.sendPaymentConfirmation({
-        //   phone: validation.phoneNumber,
-        //   amount: validation.amount,
-        //   receipt: validation.mpesaReceiptNumber
-        // });
+        const metadataItems = req.body?.Body?.stkCallback?.CallbackMetadata?.Item || [];
+        const emailItem = metadataItems.find((item) => /email/i.test(item.Name));
+        const recipientEmail = req.body?.customerEmail || req.body?.email || emailItem?.Value || null;
 
-        // Grant premium access if applicable
+        const emailService = new EmailService();
+        const premiumService = new PremiumAccessService();
+        const notificationService = new NotificationService();
+
+        if (recipientEmail) {
+          console.log(`📧 Sending confirmation email to ${recipientEmail}`);
+          await emailService.sendPaymentConfirmation({
+            toEmail: recipientEmail,
+            amount: validation.amount,
+            receipt: validation.mpesaReceiptNumber,
+            currency: 'KES'
+          });
+        } else {
+          console.log('📧 No email found for payment confirmation');
+        }
+
         console.log(`🔑 Granting premium access to ${validation.phoneNumber}`);
-        // TODO: Implement premium access grant logic
-        // const userService = new UserService();
-        // await userService.grantPremiumAccess({
-        //   phone: validation.phoneNumber,
-        //   validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-        // });
+        await premiumService.grantPremiumAccess({
+          phone: validation.phoneNumber,
+          email: recipientEmail,
+          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          reason: 'pochi_payment'
+        });
+
+        await notificationService.sendPaymentSuccessNotification({
+          phone: validation.phoneNumber,
+          amount: validation.amount,
+          currency: 'KES'
+        });
       } catch (updateError) {
         console.error('Error updating payment status:', updateError);
       }
@@ -195,15 +213,27 @@ router.post('/callback', express.json(), async (req, res) => {
           timestamp: new Date().toISOString()
         });
 
-        // Notify user of failure (placeholder for notification service)
+        const metadataItems = req.body?.Body?.stkCallback?.CallbackMetadata?.Item || [];
+        const emailItem = metadataItems.find((item) => /email/i.test(item.Name));
+        const recipientEmail = req.body?.customerEmail || req.body?.email || emailItem?.Value || null;
+
+        const emailService = new EmailService();
+        const notificationService = new NotificationService();
+        const retryUrl = process.env.PAYMENT_RETRY_URL || 'https://smartinvest.example.com/payment/retry';
+
         console.log(`⚠️ Notifying user ${validation.phoneNumber} of payment failure`);
-        // TODO: Implement actual user notification
-        // const notificationService = new NotificationService();
-        // await notificationService.sendPaymentFailureAlert({
-        //   phone: validation.phoneNumber,
-        //   reason: validation.resultDesc,
-        //   retryUrl: 'https://yourdomain.com/payment/retry'
-        // });
+        await notificationService.sendPaymentFailureAlert({
+          phone: validation.phoneNumber,
+          reason: validation.resultDesc,
+          retryUrl
+        });
+
+        if (recipientEmail) {
+          await emailService.sendPaymentFailure({
+            toEmail: recipientEmail,
+            reason: validation.resultDesc
+          });
+        }
       } catch (failureError) {
         console.error('Error logging payment failure:', failureError);
       }
