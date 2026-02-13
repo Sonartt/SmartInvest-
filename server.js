@@ -1935,6 +1935,30 @@ app.post('/api/admin/kcb/reconcile', adminAuth, (req, res) => {
 // Serve tools folder (static files like the investment calculator)
 app.use('/tools', express.static(path.join(__dirname, 'tools')));
 
+// Serve public and wwwroot folders for CSS, JS, and other assets
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/wwwroot', express.static(path.join(__dirname, 'wwwroot')));
+
+// Serve root HTML files - must be AFTER API routes so /api routes take precedence
+// This enables access to all dashboards like /dashboard.html, /marketplace.html, /index.html, etc.
+app.use(express.static(path.join(__dirname), {
+  setHeaders: (res, path) => {
+    // Set cache headers for HTML files (short cache)
+    if (path.endsWith('.html')) {
+      res.set('Cache-Control', 'public, max-age=3600');
+    }
+    // Set cache headers for static assets (long cache)
+    if (path.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/)) {
+      res.set('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
+
+// Catch-all: serve index.html for SPA routing (optional - uncomment if needed)
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'index.html'));
+// });
+
 // Premium Academy Content API (requires premium subscription)
 app.get('/api/academy/courses', requirePremium, (req, res) => {
   const courses = [
