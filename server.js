@@ -281,7 +281,9 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
     console.error('paypal error', err.message);
     return res.status(500).json({ error: err.message });
   }
-});
+}
+
+// DUPLICATE PAYPAL ENDPOINT REMOVED - See line 478 for active implementation
 
 // Simple JSON file user store (demo). In production use a real DB.
 /* Duplicate USERS_FILE and related requires removed to fix redeclaration error */
@@ -518,12 +520,7 @@ app.post('/api/pay/paypal/create-order', async (req, res) => {
 
 // Simple JSON file user store (demo). In production use a real DB.
 const USERS_FILE = './data/users.json';
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
-const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
+// NOTE: fs, path, bcrypt, nodemailer, multer, uuid are already imported at the top of file
 
 // Logging helpers for MPESA debug (enabled when MPESA_DEBUG=true)
 const LOG_DIR = path.join(__dirname, 'logs');

@@ -1,43 +1,40 @@
-# Vercel Deployment Setup Guide
+# Vercel Deployment Setup Guide - MANUAL DEPLOYMENT
 
 ## Overview
 
-SmartInvest is now configured for **automatic full-stack deployment to Vercel** when you push to the `main` branch.
+SmartInvest is configured for **manual full-stack deployment to Vercel**. You control when deployments happen via Vercel CLI or dashboard.
+
+**Note:** Automatic CI/CD deployment has been disabled in this guide. You can optionally enable GitHub push-to-deploy in Vercel project settings if preferred.
 
 ## Architecture
 
 - **Frontend**: Static HTML dashboards (30 files), CSS, JavaScript controllers
 - **Backend**: Express.js server running as Node.js serverless functions on Vercel
 - **Database**: Prisma ORM with PostgreSQL (Supabase recommended)
-- **CI/CD**: GitHub Actions automatically builds and deploys on every push to main
+- **Deployment**: Manual via Vercel CLI or dashboard - you control when to deploy
 
 ## Prerequisites
 
 1. **Vercel Account**: Sign up at https://vercel.com
-2. **GitHub Integration**: Connect your Vercel account to GitHub
-3. **Project Created on Vercel**: At https://vercel.com/dashboard, create a new project linked to this repository
+2. **GitHub Integration** (Optional): Connect your Vercel account to GitHub for one-click deploy via dashboard
+3. **Vercel CLI** (Recommended): `npm install -g vercel`
+4. **Project Created on Vercel**: At https://vercel.com/dashboard, create a new project linked to this repository
 
-## Required Setup Steps
+## Setup Steps (5 Minutes)
 
-### 1. Add GitHub Secrets
+### 1. Create Vercel Project
 
-In your repository settings (`Settings → Secrets and variables → Actions`), add:
+Visit https://vercel.com/dashboard:
+1. Click "New Project"
+2. Import your GitHub repository
+3. Leave "Build & Development Settings" on auto-detect
+4. Click "Deploy"
 
-```
-VERCEL_TOKEN           = Your Vercel API Token
-VERCEL_ORG_ID          = Your Vercel Organization ID  
-VERCEL_PROJECT_ID      = Your Vercel Project ID
-```
+### 2. Add Environment Variables (Production)
 
-**How to get these values:**
+In Vercel project settings (`Settings → Environment Variables`), add:
 
-- **VERCEL_TOKEN**: Visit https://vercel.com/account/tokens and create a new token
-- **VERCEL_ORG_ID**: Found in Vercel team settings or in project URL (vercel.com/dashboard/team/[ORG_ID])
-- **VERCEL_PROJECT_ID**: Found in project settings on Vercel dashboard
-
-### 2. Add Vercel Environment Variables
-
-In your Vercel project settings (`Settings → Environment Variables`), add these production variables:
+**Required Variables:**
 
 ```
 # JWT & Auth
@@ -89,43 +86,74 @@ PORT=3000
 
 ## Deployment Workflow
 
-### ✅ Automatic (On Push to Main)
+### Manual Deployment - Your Control
 
-When you push to `main`:
+You can deploy using either:
 
-1. ✅ GitHub Actions workflow triggers
-2. 🔍 Runs linting and tests
-3. 🏗️ Builds the project
-4. 🚀 Deploys to Vercel production automatically
+1. **Vercel CLI** (Local command-line)
+2. **Vercel Dashboard** (Web UI)
+3. **Push-to-Deploy** (Optional GitHub integration)
 
-### 🔄 Manual (Pull Requests)
+**Option 1: Deploy via Vercel CLI (Recommended)**
 
-When you create a pull request:
+```bash
+# Install Vercel CLI globally (if not already installed)
+npm install -g vercel
 
-1. ✅ Tests run
-2. 🚀 Vercel deploys a preview environment
-3. 💬 A comment is added with the preview URL
-4. ✅ Review and merge when ready
+# Deploy to production
+vercel deploy --prod
+
+# Deploy to preview (staging)
+vercel deploy
+
+# View deployment
+vercel --version
+vercel help
+```
+
+**Option 2: Deploy via Vercel Dashboard**
+
+1. Visit https://vercel.com/dashboard
+2. Select your SmartInvest project
+3. View recent commits and deployment options
+4. Click "Deploy" next to the commit you want
+5. Vercel builds and deploys automatically
+
+**Option 3: Enable Push-to-Deploy (Optional)**
+
+For automatic deployments on every push:
+1. In Vercel project settings, enable "Automatically deploy on push"
+2. Future pushes to main will auto-deploy (disable this setting to maintain manual control)
+
+### ✅ Verification After Deploy
+
+```bash
+# Check deployment status
+vercel deploy --confirm
+
+# View live logs
+vercel logs
+
+# Test endpoint
+curl https://your-domain.com/health
+```
 
 ## Monitoring Deployments
 
-### GitHub Actions Dashboard
-- Visit: `Repository → Actions → Deploy to Vercel`
-- Check status of each deployment
-
 ### Vercel Dashboard
 - Visit: https://vercel.com/dashboard
-- View deployment history, logs, and analytics
-- Configure custom domains
+- View deployment history, logs, and real-time analytics
+- Configure custom domains and SSL certificates
+- View build logs and deployment details
 
 ## Troubleshooting
 
 ### Deployment Failed
 
-1. **Check GitHub Actions logs**: Go to Actions tab and view the workflow output
-2. **Check Vercel logs**: In Vercel dashboard, view deployment logs
-3. **Verify environment variables**: Ensure all secrets are set correctly
-4. **Check database connection**: Test Prisma migration with `npm run prisma:generate`
+1. **Check Vercel logs**: In Vercel dashboard, view deployment logs for detailed errors
+2. **Verify environment variables**: Ensure all required variables are set in Vercel project settings
+3. **Check database connection**: Test Prisma connection with `npm run prisma:generate`
+4. **Test locally first**: Run `npm install && npm run build && npm start` to validate locally
 
 ### Build Issues
 
@@ -189,24 +217,21 @@ npm start -- --log
 ├── wwwroot/                      # wwwroot assets
 ├── *.html                        # Dashboard HTML files (30+ files)
 ├── vercel.json                  # Vercel configuration
-├── .env.example                 # Environment variables template
-└── .github/
-    └── workflows/
-        └── vercel-deploy.yml    # GitHub Actions workflow
+└── .env.example                 # Environment variables template
 ```
 
 ## Next Steps
 
-1. ✅ Create Vercel account and link repository
-2. ✅ Add GitHub repository secrets (3 variables)
+1. ✅ Create Vercel account at https://vercel.com
+2. ✅ Create project and import this GitHub repository
 3. ✅ Set up Supabase PostgreSQL database
-4. ✅ Add Vercel environment variables
+4. ✅ Add environment variables to Vercel project settings
 5. ✅ Run initial migration: `npm run prisma:migrate:deploy`
-6. 🚀 Push to `main` branch - deployment happens automatically!
+6. 🚀 Deploy when ready via `vercel deploy --prod` or Vercel dashboard
 
 ## Support
 
 For issues or questions:
-- Check GitHub Actions logs for build errors
-- Review Vercel dashboard for runtime issues
-- Test locally: `npm install && npm start`
+- Review Vercel dashboard deployment logs for build and runtime errors
+- Test locally before deploying: `npm install && npm run build && npm start`
+- Check environment variables are correctly set in Vercel project settings

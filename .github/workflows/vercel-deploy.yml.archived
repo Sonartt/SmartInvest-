@@ -1,0 +1,12 @@
+# ℹ️ ARCHIVED - This workflow has been replaced with manual deployment
+# 
+# Previous auto-deployment workflow removed on 2026-02-14
+# 
+# For manual deployment to Vercel, use:
+#   vercel deploy --prod
+#
+# Or use the Vercel dashboard: https://vercel.com/dashboard
+#
+# The current workflow is: ci-manual-deploy.yml (builds & tests only, no auto-deploy)
+
+# This file is kept for reference only. It is not active.
