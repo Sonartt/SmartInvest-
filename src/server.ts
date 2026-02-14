@@ -134,8 +134,6 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-const userProfiles = new Map<string, any>();
-
 function resolveProfileKey(req: any, body: any): string | null {
   if (req.userEmail) return String(req.userEmail).toLowerCase();
   const email = body?.email;
@@ -208,14 +206,22 @@ app.use('/api/diplomacy/delegations', adminLimiter);
 app.use('/api/diplomacy/documents', adminLimiter);
 
 // ---- Profile endpoints (MVP personalization) ----
-app.get('/api/profile', (req, res) => {
+app.get('/api/profile', async (req, res) => {
   const key = resolveProfileKey(req, req.body || {});
   if (!key) return res.status(401).json({ success: false, error: 'Unauthorized' });
-  const profile = userProfiles.get(key) || null;
-  return res.json({ success: true, profile });
+  
+  try {
+    const profile = await prisma.userProfile.findUnique({
+      where: { email: key }
+    });
+    return res.json({ success: true, profile: profile || null });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return res.status(500).json({ success: false, error: 'Database error' });
+  }
 });
 
-app.post('/api/profile', (req, res) => {
+app.post('/api/profile', async (req, res) => {
   const key = resolveProfileKey(req, req.body || {});
   if (!key) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
@@ -234,18 +240,32 @@ app.post('/api/profile', (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid profile data' });
   }
 
-  const profile = {
-    goal,
-    horizon,
-    risk,
-    region,
-    contribution: Number.isFinite(contribution) ? contribution : 0,
-    impact,
-    updatedAt: new Date().toISOString()
-  };
-
-  userProfiles.set(key, profile);
-  return res.json({ success: true, profile });
+  try {
+    const profile = await prisma.userProfile.upsert({
+      where: { email: key },
+      update: {
+        investmentGoal: goal,
+        timeHorizon: horizon,
+        riskTolerance: risk,
+        preferredRegion: region,
+        monthlyIncome: Number.isFinite(contribution) ? contribution : 0,
+        preferences: { impact }
+      },
+      create: {
+        email: key,
+        investmentGoal: goal,
+        timeHorizon: horizon,
+        riskTolerance: risk,
+        preferredRegion: region,
+        monthlyIncome: Number.isFinite(contribution) ? contribution : 0,
+        preferences: { impact }
+      }
+    });
+    return res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    return res.status(500).json({ success: false, error: 'Database error' });
+  }
 });
 
 // ---- Analytics tracking ----
@@ -535,4 +555,25 @@ app.post("/api/data/request", async (req, res) => {
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 3001;
-app.listen(port, () => console.log(`Server on :${port}`));
+const server = app.listen(port, () => console.log(`Server on :${port}`));
+
+// Graceful shutdown - close Prisma connection
+process.on('SIGINT', async () => {
+  console.log('\n👋 Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+  });
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n👋 Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+  });
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+export default app;

@@ -9,8 +9,11 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const storageComplex = require('./storage-complex');
 const pochiRoutes = require('./src/routes/pochi-routes');
+const { PrismaClient } = require('@prisma/client');
 
 const app = express();
+const prisma = new PrismaClient();
+
 app.use(cors());
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -57,8 +60,6 @@ const adminLimiter = rateLimit({
 });
 
 app.use('/api/admin', adminLimiter);
-
-const userProfiles = new Map();
 
 function sanitizeString(value, maxLength = 200) {
   if (typeof value !== 'string') return '';
@@ -2753,17 +2754,24 @@ app.post('/api/analytics/track', (req, res) => {
 });
 
 // User profile (MVP personalization)
-app.get('/api/profile', (req, res) => {
+app.get('/api/profile', async (req, res) => {
   const key = resolveProfileKey(req, req.body || {});
   if (!key) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
-  const profile = userProfiles.get(key) || null;
-  return res.json({ success: true, profile });
+  try {
+    const profile = await prisma.userProfile.findUnique({
+      where: { email: key }
+    });
+    return res.json({ success: true, profile: profile || null });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return res.status(500).json({ success: false, error: 'Database error' });
+  }
 });
 
-app.post('/api/profile', (req, res) => {
+app.post('/api/profile', async (req, res) => {
   const key = resolveProfileKey(req, req.body || {});
   if (!key) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -2784,18 +2792,32 @@ app.post('/api/profile', (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid profile data' });
   }
 
-  const profile = {
-    goal,
-    horizon,
-    risk,
-    region,
-    contribution: Number.isFinite(contribution) ? contribution : 0,
-    impact,
-    updatedAt: new Date().toISOString()
-  };
-
-  userProfiles.set(key, profile);
-  return res.json({ success: true, profile });
+  try {
+    const profile = await prisma.userProfile.upsert({
+      where: { email: key },
+      update: {
+        investmentGoal: goal,
+        timeHorizon: horizon,
+        riskTolerance: risk,
+        preferredRegion: region,
+        monthlyIncome: Number.isFinite(contribution) ? contribution : 0,
+        preferences: { impact }
+      },
+      create: {
+        email: key,
+        investmentGoal: goal,
+        timeHorizon: horizon,
+        riskTolerance: risk,
+        preferredRegion: region,
+        monthlyIncome: Number.isFinite(contribution) ? contribution : 0,
+        preferences: { impact }
+      }
+    });
+    return res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    return res.status(500).json({ success: false, error: 'Database error' });
+  }
 });
 
 // Sample marketplace products
@@ -2830,11 +2852,30 @@ const marketplaceOrders = [];
 // SERVER START
 // ============================================================================
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('\n🚀 SmartInvest Server Running');
   console.log(`✅ Server listening on http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
   console.log(`🛒 Marketplace: http://localhost:${PORT}/marketplace.html`);
   console.log(`📚 Premium Brochures: Enabled`);
   console.log('💡 Check .env for M-Pesa, PayPal, etc. configuration\n');
+});
+
+// Graceful shutdown - close Prisma connection
+process.on('SIGINT', async () => {
+  console.log('\n👋 Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+  });
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n👋 Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+  });
+  await prisma.$disconnect();
+  process.exit(0);
 });

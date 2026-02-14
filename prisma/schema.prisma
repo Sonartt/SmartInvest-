@@ -40,6 +40,7 @@ model User {
   approvals           WorkflowApproval[]
   reportedIncidents   Incident[]        @relation("ReportedIncidents")
   ownedIncidents      Incident[]        @relation("OwnedIncidents")
+  profile             UserProfile?
 }
 
 enum UserRole {
@@ -49,6 +50,24 @@ enum UserRole {
   ANALYST
   INCIDENT_COMMANDER
   VIEWER
+}
+
+// User Profile for Investment Dashboard Personalization
+model UserProfile {
+  id                String    @id @default(uuid())
+  userId            String?   @unique // Optional for guest profiles
+  email             String    @unique
+  investmentGoal    String?   // User's primary investment goal
+  timeHorizon       String?   // Investment time horizon (e.g., "short-term", "long-term")
+  riskTolerance     String?   // Risk profile (e.g., "conservative", "moderate", "aggressive")
+  preferredRegion   String?   // Preferred investment region
+  portfolioValue    Float?    // Current portfolio value
+  monthlyIncome     Float?    // Monthly income for savings tracking
+  preferences       Json?     // Flexible JSON for additional preferences
+  premiumAccess     Boolean   @default(false)
+  premiumExpiry     DateTime?
+  lastUpdated       DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
 }
 
 model ContentItem {
